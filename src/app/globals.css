@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #009688;
+  --color-secondary: #263238;
+  --color-accent: #FF9800;
+  --color-light: #F5F5F5;
+  --color-text-main: #303030;
+  --color-dark: #0f172a;
+  --color-web-bg: #EFF3FB;
+  --color-btn-primary: #002957;
+  --color-btn-secondary: #F26430;
+
+  --font-headline: var(--font-oswald), sans-serif;
+  --font-body: var(--font-open-sans), sans-serif;
+}
+
+:root {
+  --background: #EFF3FB;
+  --foreground: #303030;
+}
+
+body {
+  background-color: var(--color-web-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-headline);
+}
+
+/* Custom scrollbar to make it look premium */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-web-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+/* Lenis Recommended CSS */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
