@@ -1,9 +1,15 @@
-import { createClient } from '@/lib/supabase/server'
 import { compare } from 'bcryptjs'
 import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const JWT_SECRET = process.env.JWT_SECRET!
+
+// Use supabase-js directly (not the SSR client that needs cookies)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +22,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Query admin from public.admins table
-    const supabase = await createClient()
+    // Query admin from public.admins table using direct supabase client
     const { data: admin, error: dbError } = await supabase
       .from('admins')
       .select('id, name, email, password, role, is_active')
@@ -25,6 +30,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError || !admin) {
+      console.error('DB query error:', dbError?.message, dbError?.code)
       return NextResponse.json(
         { error: 'Email atau password salah.' },
         { status: 401 }
@@ -75,15 +81,15 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
     })
 
     return response
-  } catch (err) {
-    console.error('Login error:', err)
+  } catch (err: any) {
+    console.error('Login error:', err?.message, err?.stack)
     return NextResponse.json(
-      { error: 'Terjadi kesalahan server. Coba lagi nanti.' },
+      { error: 'Terjadi kesalahan server: ' + (err?.message || 'Unknown error') },
       { status: 500 }
     )
   }

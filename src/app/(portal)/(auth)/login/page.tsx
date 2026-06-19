@@ -17,44 +17,24 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (authError) {
-        console.error('Auth error:', authError);
-        throw new Error(authError.message);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Terjadi kesalahan saat login.');
       }
 
-      if (data?.user) {
-        // Query the admin's role to confirm they have permission
-        const { data: admin, error: dbError } = await supabase
-          .from('admins')
-          .select('role, is_active')
-          .eq('id', data.user.id)
-          .single();
-
-        if (dbError) {
-          console.error('DB error fetching admin role:', dbError);
-          await supabase.auth.signOut();
-          throw new Error(`Database error: ${dbError.message}`);
-        }
-
-        if (!admin) {
-          await supabase.auth.signOut();
-          throw new Error('Access denied. You are not authorized as an administrator.');
-        }
-
-        if (!admin.is_active) {
-          await supabase.auth.signOut();
-          throw new Error('Access denied. Your admin account is inactive.');
-        }
-
-        // Redirect on success
-        router.push('/dashboard');
-        router.refresh();
-      }
+      // Redirect on success
+      router.push('/dashboard');
+      router.refresh();
+      
     } catch (err: any) {
       console.error('Sign in catch block:', err);
       const msg = err instanceof Error ? err.message : (typeof err === 'object' ? JSON.stringify(err) : String(err));

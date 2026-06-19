@@ -1,6 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { jwtVerify } from 'jose'
+
+const JWT_SECRET = process.env.JWT_SECRET!
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -21,35 +23,20 @@ export async function middleware(request: NextRequest) {
   const isProtectedPath = protectedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'))
   const isLoginPage = pathname === '/login'
 
-  // Create a response to modify headers/cookies
-  let response = NextResponse.next({
-    request,
-  })
+  // Get user session from cookie
+  const token = request.cookies.get('admin_session')?.value
+  let user: any = null
 
-  // Initialize Supabase client
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
+  if (token && JWT_SECRET) {
+    try {
+      const secret = new TextEncoder().encode(JWT_SECRET)
+      const { payload } = await jwtVerify(token, secret)
+      user = payload
+    } catch (err) {
+      // Invalid token
+      user = null
     }
-  )
-
-  // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  }
 
   // Guard protected paths
   if (isProtectedPath) {
@@ -60,22 +47,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Retrieve user role from admins table
-    const { data: admin } = await supabase
-      .from('admins')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!admin) {
-      // User is authenticated but has no admin profile -> sign out and redirect to login
-      await supabase.auth.signOut()
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-
-    const role = admin.role // 'superadmin', 'admin', 'bendahara', 'kepsek'
+    const role = user.role // 'superadmin', 'admin', 'bendahara', 'kepsek'
 
     // RBAC validation
     if (pathname.startsWith('/users') && role !== 'superadmin') {
@@ -100,7 +72,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return response
+  return NextResponse.next()
 }
 
 export const config = {

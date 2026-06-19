@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '../../lib/supabase/client';
 import { 
   LayoutDashboard, 
   Users, 
@@ -32,17 +31,11 @@ export function Sidebar() {
   useEffect(() => {
     async function getProfile() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: admin } = await supabase
-            .from('admins')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          if (admin) {
-            setRole(admin.role);
-          }
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        
+        if (data?.user) {
+          setRole(data.user.role);
         }
       } catch (err) {
         console.error('Error fetching role:', err);
@@ -54,7 +47,7 @@ export function Sidebar() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
     router.refresh();
   };
