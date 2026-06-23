@@ -99,7 +99,9 @@ export default function GuruPage() {
                 guruList.map((guru) => (
                   <tr key={guru.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition group">
                     <td className="py-3 pr-4">
-                      <div className="font-bold text-slate-800">{guru.name}</div>
+                      <Link href={`/guru/${guru.id}`} className="font-bold text-slate-800 hover:text-blue-600 transition block">
+                        {guru.name}
+                      </Link>
                     </td>
                     <td className="py-3 pr-4 text-slate-600 font-medium">{guru.position}</td>
                     <td className="py-3 pr-4">

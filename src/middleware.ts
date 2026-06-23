@@ -23,9 +23,15 @@ export async function middleware(request: NextRequest) {
   const isProtectedPath = protectedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'))
   const isLoginPage = pathname === '/login'
 
+  const isParentPath = pathname.startsWith('/parent/')
+  const isParentLoginPage = pathname === '/parent/login'
+
   // Get user session from cookie
   const token = request.cookies.get('admin_session')?.value
+  const parentToken = request.cookies.get('parent_session')?.value
+  
   let user: any = null
+  let parentUser: any = null
 
   if (token && JWT_SECRET) {
     try {
@@ -33,12 +39,34 @@ export async function middleware(request: NextRequest) {
       const { payload } = await jwtVerify(token, secret)
       user = payload
     } catch (err) {
-      // Invalid token
       user = null
     }
   }
 
-  // Guard protected paths
+  if (parentToken && JWT_SECRET) {
+    try {
+      const secret = new TextEncoder().encode(JWT_SECRET)
+      const { payload } = await jwtVerify(parentToken, secret)
+      parentUser = payload
+    } catch (err) {
+      parentUser = null
+    }
+  }
+
+  // Guard Parent paths
+  if (isParentPath && !isParentLoginPage) {
+    if (!parentUser) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/parent/login'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  if (isParentLoginPage && parentUser) {
+    return NextResponse.redirect(new URL('/parent/dashboard', request.url))
+  }
+
+  // Guard protected admin paths
   if (isProtectedPath) {
     if (!user) {
       // Not logged in -> redirect to login
@@ -47,22 +75,24 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    const role = user.role // 'superadmin', 'admin', 'bendahara', 'kepsek'
+    const role = user.role // 'superadmin', 'kepsek', 'guru', 'staff'
 
     // RBAC validation
+    const isSuperOrKepsek = role === 'superadmin' || role === 'kepsek'
+
+    // Guru & Staff cannot access Users, Finance, Reports
     if (pathname.startsWith('/users') && role !== 'superadmin') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     
-    if (pathname.startsWith('/finance') && role !== 'superadmin' && role !== 'bendahara') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (pathname.startsWith('/finance') && !isSuperOrKepsek) {
+      // Temporary fallback for bendahara if still needed, but per new RBAC, superadmin & kepsek have access
+      if (role !== 'bendahara') {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
     }
 
-    if (pathname.startsWith('/content') && role !== 'superadmin' && role !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-    if (pathname.startsWith('/reports') && role !== 'superadmin' && role !== 'kepsek') {
+    if (pathname.startsWith('/reports') && !isSuperOrKepsek) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }

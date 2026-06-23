@@ -1,51 +1,97 @@
-import { dummyNews, NewsArticle } from '@/data/dummyNews';
+import { createClient } from '@supabase/supabase-js';
 
-// TODO: Replace with actual Supabase client later
-// import { createClient } from '@/lib/supabase/server';
+// We initialize a client for server-side fetching in the app dir or server actions.
+// Using env vars, fallback to empty string so it doesn't crash on build if missing.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export interface NewsArticle {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  date: string;
+  author: string;
+  imageUrl: string;
+  isFeatured: boolean;
+  readTime: string;
+}
+
+// Helper to map Supabase post to NewsArticle
+function mapPostToArticle(post: any): NewsArticle {
+  // Strip HTML tags for excerpt
+  const strippedContent = post.content ? post.content.replace(/<[^>]*>?/gm, '') : '';
+  const excerpt = strippedContent.length > 150 ? strippedContent.substring(0, 150) + '...' : strippedContent;
+
+  return {
+    id: post.id,
+    slug: post.slug || post.id,
+    title: post.title,
+    excerpt: excerpt,
+    content: post.content,
+    category: post.category || 'Berita',
+    date: new Date(post.created_at).toLocaleDateString('id-ID', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    }),
+    author: post.author || 'Admin',
+    imageUrl: post.thumbnail || '/images/school_building.png',
+    isFeatured: post.tags?.includes('featured') || false,
+    readTime: post.reading_time ? `${post.reading_time} Menit` : '3 Menit'
+  };
+}
 
 /**
  * Fetch all published news articles
- * Currently returns dummy data, ready to be swapped with DB logic
  */
 export async function getPublishedNews(): Promise<NewsArticle[]> {
-  // Simulate network delay
-  // await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Nanti ganti dengan:
-  // const supabase = createClient();
-  // const { data, error } = await supabase.from('news').select('*').eq('status', 'published').order('date', { ascending: false });
-  // if (error) throw error;
-  // return data;
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  return dummyNews;
+  if (error) {
+    console.error('Error fetching news:', error);
+    return [];
+  }
+
+  return (data || []).map(mapPostToArticle);
 }
 
 /**
  * Fetch a single news article by its slug
  */
 export async function getNewsBySlug(slug: string): Promise<NewsArticle | null> {
-  // Simulate network delay
-  // await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Nanti ganti dengan:
-  // const supabase = createClient();
-  // const { data, error } = await supabase.from('news').select('*').eq('slug', slug).single();
-  // if (error) return null;
-  // return data;
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('slug', slug)
+    .single();
 
-  const article = dummyNews.find(n => n.slug === slug);
-  return article || null;
+  if (error || !data) {
+    return null;
+  }
+
+  return mapPostToArticle(data);
 }
 
 /**
  * Fetch related news articles
  */
 export async function getRelatedNews(currentId: string, limit: number = 3): Promise<NewsArticle[]> {
-  // Nanti ganti dengan:
-  // const supabase = createClient();
-  // const { data, error } = await supabase.from('news').select('*').neq('id', currentId).limit(limit);
-  // if (error) return [];
-  // return data;
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .neq('id', currentId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
-  return dummyNews.filter(n => n.id !== currentId).slice(0, limit);
+  if (error) {
+    console.error('Error fetching related news:', error);
+    return [];
+  }
+
+  return (data || []).map(mapPostToArticle);
 }

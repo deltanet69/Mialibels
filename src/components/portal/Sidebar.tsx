@@ -3,17 +3,17 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
-  ClipboardCheck, 
-  Wallet, 
-  CreditCard, 
-  PiggyBank, 
-  FileText, 
-  Image as ImageIcon, 
-  Megaphone, 
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  ClipboardCheck,
+  Wallet,
+  CreditCard,
+  PiggyBank,
+  FileText,
+  Image as ImageIcon,
+  Megaphone,
   MessageSquare,
   BarChart3,
   UserCog,
@@ -33,7 +33,7 @@ export function Sidebar() {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
-        
+
         if (data?.user) {
           setRole(data.user.role);
         }
@@ -57,11 +57,10 @@ export function Sidebar() {
   };
 
   const linkClass = (path: string) => {
-    return `flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${
-      isActive(path) 
-        ? 'bg-blue-600 text-white shadow-sm' 
+    return `flex items-center gap-3 px-3 py-2.5 rounded-xl transition ${isActive(path)
+        ? 'bg-blue-600 text-white shadow-sm'
         : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
-    }`;
+      }`;
   };
 
   if (loading) {
@@ -80,20 +79,20 @@ export function Sidebar() {
   // Helper to determine role access
   const hasAccess = (section: 'main' | 'akademik' | 'finance' | 'content' | 'reports' | 'users') => {
     if (!role) return false;
-    if (role === 'superadmin') return true;
 
+    // Superadmin & Kepsek have access to everything
+    if (role === 'superadmin' || role === 'kepsek') return true;
+
+    // Guru & Staff have limited access
     switch (section) {
       case 'main':
       case 'akademik':
-        return true; // All roles can see main & akademik pages (guru, students, classroom, attendance)
-      case 'finance':
-        return role === 'bendahara';
       case 'content':
-        return role === 'admin';
+        return true; // Guru & Staff can access Main, Akademik, and Content
+      case 'finance':
       case 'reports':
-        return role === 'kepsek';
       case 'users':
-        return false; // Only superadmin has access, handled above
+        return false; // Only Superadmin & Kepsek have access to these
       default:
         return false;
     }
@@ -109,10 +108,10 @@ export function Sidebar() {
           </div>
           <span className="text-xl font-bold text-slate-800">MI Attaqwa 15</span>
         </div>
-        
+
         {/* Navigation */}
         <nav className="flex flex-col gap-6 flex-grow">
-          
+
           {/* MAIN */}
           {hasAccess('main') && (
             <div>
@@ -123,6 +122,9 @@ export function Sidebar() {
                 </Link>
                 <Link href="/guru" className={linkClass('/guru')}>
                   <GraduationCap size={20} /> <span className="font-medium">Data Guru</span>
+                </Link>
+                <Link href="/absensi-guru" className={linkClass('/absensi-guru')}>
+                  <ClipboardCheck size={20} /> <span className="font-medium">Absensi Guru</span>
                 </Link>
               </div>
             </div>
@@ -139,9 +141,7 @@ export function Sidebar() {
                 <Link href="/classroom" className={linkClass('/classroom')}>
                   <School size={20} /> <span className="font-medium">Classroom</span>
                 </Link>
-                <Link href="/attendance" className={linkClass('/attendance')}>
-                  <ClipboardCheck size={20} /> <span className="font-medium">Absensi</span>
-                </Link>
+
               </div>
             </div>
           )}
@@ -209,7 +209,7 @@ export function Sidebar() {
 
       {/* Logout button at the bottom */}
       <div className="border-t border-slate-100 pt-4 mt-auto">
-        <button 
+        <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 transition w-full text-left font-medium"
         >

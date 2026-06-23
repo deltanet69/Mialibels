@@ -17,7 +17,9 @@ export default async function NewsPage() {
   const featuredArticle = allNews.find(news => news.isFeatured) || allNews[0];
   
   // Ambil berita sisanya
-  const regularArticles = allNews.filter(news => news.id !== featuredArticle.id);
+  const regularArticles = featuredArticle 
+    ? allNews.filter(news => news.id !== featuredArticle.id)
+    : [];
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-[#F8FAFC]">
@@ -62,7 +64,13 @@ export default async function NewsPage() {
       <AnimatedSection direction="up" delay={0.2}>
       <section className="py-12 -mt-10 lg:-mt-16 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <NewsCard article={featuredArticle} featured={true} />
+          {featuredArticle ? (
+            <NewsCard article={featuredArticle} featured={true} />
+          ) : (
+            <div className="bg-white p-12 rounded-[2rem] text-center text-gray-500 shadow-sm border border-gray-100">
+              Belum ada berita atau artikel yang diterbitkan saat ini.
+            </div>
+          )}
         </div>
       </section>
       </AnimatedSection>
