@@ -6,8 +6,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const { data: classroom, error } = await supabase
       .from('classrooms')
       .select(`
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         homeroom_teacher:staffs(name),
         students(count)
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) throw error
@@ -33,8 +34,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await request.json()
     const { error } = await supabase
       .from('classrooms')
@@ -43,7 +45,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         homeroom_teacher_id: body.homeroomTeacherId || null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) throw error
     return NextResponse.json({ success: true })
@@ -52,12 +54,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const { error } = await supabase
       .from('classrooms')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) throw error
     return NextResponse.json({ success: true })
