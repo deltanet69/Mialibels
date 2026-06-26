@@ -1,42 +1,94 @@
 'use client';
 
-import React, { useState } from 'react';
-import { dummyInfos, ClassInfo } from '@/data/dummyClassroom';
-import { Bell, Plus, Trash2, Edit2, X, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Plus, Trash2, Edit2, X, Calendar, Loader2 } from 'lucide-react';
 
-export function ClassroomInfo() {
-  const [infos, setInfos] = useState<ClassInfo[]>(dummyInfos);
+export function ClassroomInfo({ classroomId }: { classroomId: string }) {
+  const [infos, setInfos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Omit<ClassInfo, 'id'>>({ title: '', date: '', description: '' });
+  const [formData, setFormData] = useState({ title: '', date: '', description: '' });
+  const [saving, setSaving] = useState(false);
+
+  const fetchInfos = async () => {
+    if (!classroomId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/infos?classroomId=${classroomId}`);
+      const data = await res.json();
+      if (data.success) {
+        setInfos(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInfos();
+  }, [classroomId]);
 
   const handleOpenAdd = () => {
     setEditingId(null);
-    setFormData({ title: '', date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), description: '' });
+    setFormData({ title: '', date: new Date().toISOString().split('T')[0], description: '' });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (info: ClassInfo) => {
+  const handleOpenEdit = (info: any) => {
     setEditingId(info.id);
     setFormData({ title: info.title, date: info.date, description: info.description });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if(confirm('Yakin ingin menghapus informasi ini?')) {
-      setInfos(infos.filter(info => info.id !== id));
+      try {
+        await fetch(`/api/infos?id=${id}`, { method: 'DELETE' });
+        setInfos(infos.filter(info => info.id !== id));
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      setInfos(infos.map(info => info.id === editingId ? { ...formData, id: editingId } as ClassInfo : info));
-    } else {
-      setInfos([{ ...formData, id: Math.random().toString(36).substr(2, 9) } as ClassInfo, ...infos]);
+    setSaving(true);
+    try {
+      if (editingId) {
+        await fetch(`/api/infos?id=${editingId}`, { method: 'DELETE' });
+      }
+
+      const payload = {
+        ...formData,
+        classroom_id: classroomId,
+      };
+      
+      await fetch('/api/infos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([payload]) // wait, /api/infos does insert(body), if body is array it inserts multiple, if single it inserts single. But in POST route it just does insert(body). So it's fine.
+      });
+      
+      setIsModalOpen(false);
+      fetchInfos();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
-    setIsModalOpen(false);
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-12 flex justify-center items-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
@@ -104,7 +156,7 @@ export function ClassroomInfo() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} placeholder="Contoh: 18 Juni 2026" />
+                <input required type="date" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} placeholder="Contoh: 2026-06-18" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
@@ -112,7 +164,9 @@ export function ClassroomInfo() {
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">Batal</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">Simpan</button>
+                <button disabled={saving} type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />} Simpan
+                </button>
               </div>
             </form>
           </div>

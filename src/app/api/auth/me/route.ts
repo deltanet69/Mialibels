@@ -16,7 +16,7 @@ export async function GET() {
     const secret = new TextEncoder().encode(JWT_SECRET)
     const { payload } = await jwtVerify(token, secret)
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       user: {
         id: payload.sub,
         email: payload.email,
@@ -24,6 +24,9 @@ export async function GET() {
         role: payload.role,
       },
     })
+    // Cache response di browser selama 30 detik — valid karena JWT sudah di-verify
+    res.headers.set('Cache-Control', 'private, max-age=30')
+    return res
   } catch {
     return NextResponse.json({ user: null }, { status: 401 })
   }

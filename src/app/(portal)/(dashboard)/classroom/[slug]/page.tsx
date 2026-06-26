@@ -1,22 +1,51 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { notFound } from 'next/navigation';
-import { dummyClassrooms } from '@/data/dummyClassroom';
 import { ClassroomOverview } from '@/components/classroom/ClassroomOverview';
 import { ClassroomSchedule } from '@/components/classroom/ClassroomSchedule';
 import { ClassroomAttendance } from '@/components/classroom/ClassroomAttendance';
 import { ClassroomInfo } from '@/components/classroom/ClassroomInfo';
-import { LayoutDashboard, CalendarDays, ClipboardCheck, Megaphone } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, ClipboardCheck, Megaphone, Loader2 } from 'lucide-react';
 
-export default function ClassroomDetailPage(props: { params: Promise<{ id: string }> }) {
+export default function ClassroomDetailPage(props: { params: Promise<{ slug: string }> }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [classroom, setClassroom] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   
   const params = use(props.params);
-  const classroomId = params.id;
-  const classroom = dummyClassrooms.find(c => c.id === classroomId);
+  const slug = params.slug;
   
-  if (!classroom) {
+  useEffect(() => {
+    const fetchClassroom = async () => {
+      try {
+        const res = await fetch(`/api/classrooms/${slug}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          setClassroom(data.data);
+        } else {
+          setError(true);
+        }
+      } catch (err) {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchClassroom();
+  }, [slug]);
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error || !classroom) {
     notFound();
   }
 
@@ -30,13 +59,13 @@ export default function ClassroomDetailPage(props: { params: Promise<{ id: strin
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <ClassroomOverview totalStudents={classroom.enrolledStudents} />;
+        return <ClassroomOverview totalStudents={classroom.enrolledStudents} classroomId={classroom.id} />;
       case 'schedule':
-        return <ClassroomSchedule />;
+        return <ClassroomSchedule classroomId={classroom.id} />;
       case 'attendance':
-        return <ClassroomAttendance />;
+        return <ClassroomAttendance classroomId={classroom.id} />;
       case 'info':
-        return <ClassroomInfo />;
+        return <ClassroomInfo classroomId={classroom.id} />;
       default:
         return null;
     }
@@ -54,7 +83,7 @@ export default function ClassroomDetailPage(props: { params: Promise<{ id: strin
               {classroom.name.charAt(0)}
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">{classroom.name}</h1>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">Kelas {classroom.name}</h1>
               <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
                 <span className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 rounded-full">
                   Wali Kelas: <span className="text-slate-700">{classroom.homeroomTeacher}</span>

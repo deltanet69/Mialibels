@@ -1,14 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Helper to get name from slug
+const getNameFromSlug = (slug: string) => {
+  return slug.replace(/^kelas-/i, '').replace(/-/g, ' ').trim().toUpperCase()
+}
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const { id } = await params
+    const { slug } = await params
+    const nameToSearch = getNameFromSlug(slug)
+
     const { data: classroom, error } = await supabase
       .from('classrooms')
       .select(`
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         homeroom_teacher:staffs(name),
         students(count)
       `)
-      .eq('id', id)
+      .ilike('name', nameToSearch)
       .single()
 
     if (error) throw error
@@ -34,10 +36,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const { id } = await params
+    const { slug } = await params
+    const nameToSearch = getNameFromSlug(slug)
     const body = await request.json()
+    
+    // First find the classroom ID
+    const { data: cls } = await supabase.from('classrooms').select('id').ilike('name', nameToSearch).single()
+    if (!cls) throw new Error('Classroom not found')
+
     const { error } = await supabase
       .from('classrooms')
       .update({
@@ -45,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         homeroom_teacher_id: body.homeroomTeacherId || null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', id)
+      .eq('id', cls.id)
 
     if (error) throw error
     return NextResponse.json({ success: true })
@@ -54,13 +62,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const { id } = await params
+    const { slug } = await params
+    const nameToSearch = getNameFromSlug(slug)
+
+    // First find the classroom ID
+    const { data: cls } = await supabase.from('classrooms').select('id').ilike('name', nameToSearch).single()
+    if (!cls) throw new Error('Classroom not found')
+
     const { error } = await supabase
       .from('classrooms')
       .delete()
-      .eq('id', id)
+      .eq('id', cls.id)
 
     if (error) throw error
     return NextResponse.json({ success: true })

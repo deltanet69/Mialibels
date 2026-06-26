@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +19,9 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, data })
+    const res = NextResponse.json({ success: true, data })
+    res.headers.set('Cache-Control', 'private, max-age=10, stale-while-revalidate=30')
+    return res
   } catch (error: any) {
     console.error('Error fetching students:', error)
     return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
@@ -36,12 +33,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { isBulk, students } = body
 
+    // Helper to get class map
+    const { data: classroomsData } = await supabase.from('classrooms').select('id, name')
+    const classMap: Record<string, string> = {}
+    if (classroomsData) {
+      classroomsData.forEach(c => {
+        classMap[c.name.toLowerCase()] = c.id
+      })
+    }
+
+    const getClassId = (rawClass: string) => {
+      if (!rawClass) return null
+      const cleanName = rawClass.replace(/^kelas\s+/i, '').trim().toLowerCase()
+      return classMap[cleanName] || null
+    }
+
     if (isBulk && Array.isArray(students)) {
       // Bulk Insert Mode (e.g. from CSV)
-      // We will insert students first
+      const studentsToInsert = students.map(s => ({
+        ...s,
+        class_id: getClassId(s.class)
+      }))
+
       const { data: newStudents, error: insertError } = await supabase
         .from('students')
-        .insert(students)
+        .insert(studentsToInsert)
         .select('id')
 
       if (insertError) throw insertError
@@ -59,16 +75,20 @@ export async function POST(request: NextRequest) {
 
         if (accError) {
           console.error('Error creating bulk student accounts:', accError)
-          // We don't fail the whole request but we should log it
         }
       }
 
       return NextResponse.json({ success: true, count: newStudents?.length || 0 })
     } else {
       // Single Insert Mode
+      const payload = {
+        ...body,
+        class_id: getClassId(body.class)
+      }
+
       const { data: student, error: insertError } = await supabase
         .from('students')
-        .insert([body])
+        .insert([payload])
         .select()
         .single()
 

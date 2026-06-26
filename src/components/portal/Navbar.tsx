@@ -1,11 +1,19 @@
+'use client';
+
 import React from 'react';
 import { Menu, Bell } from 'lucide-react';
+import { useSidebar } from './SidebarProvider';
 
 export function Navbar() {
+  const { setIsOpen } = useSidebar();
+
   return (
     <header className="h-16 bg-transparent flex items-center justify-between px-6 sticky top-0 z-10">
       <div className="flex items-center gap-4">
-        <button className="p-2 hover:bg-slate-200/50 rounded-full md:hidden text-slate-500 transition">
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="p-2 hover:bg-slate-200/50 rounded-full md:hidden text-slate-500 transition"
+        >
           <Menu size={20} />
         </button>
       </div>

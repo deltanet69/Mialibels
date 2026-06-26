@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { dummySchedules, Schedule } from '@/data/dummyClassroom';
-import { Clock, Plus, Trash2, Edit2, X, Calendar as CalendarIcon, PlayCircle } from 'lucide-react';
+import { Clock, Plus, Trash2, Edit2, X, Calendar as CalendarIcon, PlayCircle, Loader2 } from 'lucide-react';
 
-export function ClassroomSchedule() {
-  const [schedules, setSchedules] = useState<Schedule[]>(dummySchedules);
+export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
+  const [schedules, setSchedules] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [currentTime, setCurrentTime] = useState(new Date());
   
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Omit<Schedule, 'id'>>({ name: '', time: '', type: 'Akademik' });
+  const [formData, setFormData] = useState({ name: '', time: '', type: 'Akademik' });
+  const [saving, setSaving] = useState(false);
 
   // Update current time every minute
   useEffect(() => {
@@ -20,6 +21,26 @@ export function ClassroomSchedule() {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
+
+  const fetchSchedules = async () => {
+    if (!classroomId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/schedules?classroomId=${classroomId}`);
+      const data = await res.json();
+      if (data.success) {
+        setSchedules(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [classroomId]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -31,7 +52,6 @@ export function ClassroomSchedule() {
   };
 
   const isScheduleActive = (timeString: string, scheduleDate: string) => {
-    // Only active if the selected date is today
     const todayStr = new Date().toISOString().split('T')[0];
     if (scheduleDate !== todayStr) return false;
 
@@ -61,27 +81,64 @@ export function ClassroomSchedule() {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (schedule: Schedule) => {
+  const handleOpenEdit = (schedule: any) => {
     setEditingId(schedule.id);
     setFormData({ name: schedule.name, time: schedule.time, type: schedule.type });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if(confirm('Yakin ingin menghapus jadwal ini?')) {
-      setSchedules(schedules.filter(s => s.id !== id));
+      try {
+        await fetch(`/api/schedules?id=${id}`, { method: 'DELETE' });
+        setSchedules(schedules.filter(s => s.id !== id));
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      setSchedules(schedules.map(s => s.id === editingId ? { ...formData, id: editingId } as Schedule : s));
-    } else {
-      setSchedules([...schedules, { ...formData, id: Math.random().toString(36).substr(2, 9) } as Schedule]);
+    setSaving(true);
+    try {
+      if (editingId) {
+        // We'd ideally have a PUT, but if we don't, we can delete and recreate or write a PUT route
+        // For simplicity, let's just assume we delete and recreate or add PUT to route.
+        // Actually I only wrote GET, POST, DELETE in route.ts! Let's delete and create.
+        await fetch(`/api/schedules?id=${editingId}`, { method: 'DELETE' });
+      }
+
+      const payload = {
+        ...formData,
+        classroom_id: classroomId,
+        date: selectedDate
+      };
+      
+      await fetch('/api/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([payload])
+      });
+      
+      setIsModalOpen(false);
+      fetchSchedules();
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
     }
-    setIsModalOpen(false);
   };
+
+  const filteredSchedules = schedules.filter(s => s.date === selectedDate);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-12 flex justify-center items-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
@@ -110,11 +167,11 @@ export function ClassroomSchedule() {
       </div>
       
       <div className="divide-y divide-slate-100 flex-1">
-        {schedules.length === 0 ? (
+        {filteredSchedules.length === 0 ? (
           <div className="p-12 text-center text-slate-500">Belum ada jadwal untuk tanggal ini.</div>
         ) : (
-          schedules.map((schedule) => {
-            const active = isScheduleActive(schedule.time, selectedDate);
+          filteredSchedules.map((schedule) => {
+            const active = isScheduleActive(schedule.time, schedule.date);
             return (
               <div key={schedule.id} className={`p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors group relative ${active ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
                 {active && (
@@ -180,7 +237,9 @@ export function ClassroomSchedule() {
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">Batal</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">Simpan</button>
+                <button disabled={saving} type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />} Simpan
+                </button>
               </div>
             </form>
           </div>
@@ -189,4 +248,3 @@ export function ClassroomSchedule() {
     </div>
   );
 }
-
