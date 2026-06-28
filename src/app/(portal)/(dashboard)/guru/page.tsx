@@ -1,44 +1,78 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Search, Trash2, Edit3, Eye, Phone, Mail } from 'lucide-react'
 import { GuruForm } from '@/components/portal/guru/GuruForm'
 import Link from 'next/link'
 
+// Skeleton row component
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse border-b border-slate-50">
+      <td className="py-3 pr-4">
+        <div className="h-4 bg-slate-100 rounded w-32 mb-1" />
+      </td>
+      <td className="py-3 pr-4"><div className="h-4 bg-slate-100 rounded w-28" /></td>
+      <td className="py-3 pr-4">
+        <div className="h-3 bg-slate-100 rounded w-24 mb-1.5" />
+        <div className="h-3 bg-slate-100 rounded w-36" />
+      </td>
+      <td className="py-3 pr-4"><div className="h-5 bg-slate-100 rounded-full w-14" /></td>
+      <td className="py-3 pr-4 text-right"><div className="h-7 bg-slate-100 rounded w-20 ml-auto" /></td>
+    </tr>
+  )
+}
+
 export default function GuruPage() {
-  const [guruList, setGuruList] = useState<any[]>([])
+  // Raw data fetched once from server
+  const [allGuru, setAllGuru] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Client-side search (instant, 0ms)
   const [search, setSearch] = useState('')
+
   const [showForm, setShowForm] = useState(false)
   const [editingGuru, setEditingGuru] = useState<any | null>(null)
 
-  const fetchGuru = async () => {
+  // Fetch ALL guru once on mount — no search param
+  const fetchGuru = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/guru?search=${encodeURIComponent(search)}`)
+      const res = await fetch('/api/guru')
       const data = await res.json()
       if (data.success) {
-        setGuruList(data.data)
+        setAllGuru(data.data)
       }
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchGuru()
-    }, 500)
-    return () => clearTimeout(delay)
-  }, [search])
+    fetchGuru()
+  }, [fetchGuru])
+
+  // Instant client-side filtering — no API call
+  const guruList = useMemo(() => {
+    if (!search.trim()) return allGuru
+    const q = search.toLowerCase()
+    return allGuru.filter(g =>
+      g.name?.toLowerCase().includes(q) ||
+      g.position?.toLowerCase().includes(q) ||
+      g.email?.toLowerCase().includes(q)
+    )
+  }, [allGuru, search])
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`Yakin ingin menghapus data guru ${name}?`)) {
       try {
         const res = await fetch(`/api/guru/${id}`, { method: 'DELETE' })
-        if (res.ok) fetchGuru()
+        if (res.ok) {
+          // Optimistic update — no re-fetch
+          setAllGuru(prev => prev.filter(g => g.id !== id))
+        }
       } catch (err) {
         console.error(err)
       }
@@ -63,15 +97,22 @@ export default function GuruPage() {
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Cari nama atau jabatan..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
-            />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input 
+                type="text" 
+                placeholder="Cari nama, jabatan, atau email..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+              />
+            </div>
+            {!loading && (
+              <span className="text-sm text-slate-400 whitespace-nowrap shrink-0">
+                {guruList.length} guru/staff
+              </span>
+            )}
           </div>
         </div>
 
@@ -88,12 +129,12 @@ export default function GuruPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-10 text-slate-500">Memuat data...</td>
-                </tr>
+                Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : guruList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10 text-slate-500">Tidak ada data guru/staff ditemukan.</td>
+                  <td colSpan={5} className="text-center py-10 text-slate-500">
+                    {search ? `Tidak ada guru dengan kata kunci "${search}".` : 'Tidak ada data guru/staff.'}
+                  </td>
                 </tr>
               ) : (
                 guruList.map((guru) => (

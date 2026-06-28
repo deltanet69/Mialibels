@@ -59,7 +59,7 @@ export default function ClassroomDetailPage(props: { params: Promise<{ slug: str
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <ClassroomOverview totalStudents={classroom.enrolledStudents} classroomId={classroom.id} />;
+        return <ClassroomOverview totalStudents={classroom.enrolledStudents} classroomId={classroom.id} classroomSlug={slug} />;
       case 'schedule':
         return <ClassroomSchedule classroomId={classroom.id} />;
       case 'attendance':

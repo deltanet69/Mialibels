@@ -1,13 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Users, UserCircle2, ArrowRight, Plus, Search, X } from 'lucide-react';
 
 const CLASS_OPTIONS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
 
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse flex flex-col bg-white border border-slate-100 rounded-2xl overflow-hidden">
+      <div className="p-4 flex flex-col items-center text-center gap-2">
+        <div className="w-14 h-14 rounded-2xl bg-slate-100" />
+        <div className="h-4 bg-slate-100 rounded w-20" />
+        <div className="h-3 bg-slate-100 rounded w-16" />
+        <div className="h-3 bg-slate-100 rounded w-24" />
+      </div>
+      <div className="px-4 py-2.5 bg-slate-50 h-9" />
+    </div>
+  );
+}
+
 export default function ClassroomPage() {
-  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [allClassrooms, setAllClassrooms] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,20 +29,22 @@ export default function ClassroomPage() {
   const [formData, setFormData] = useState({ name: '', homeroomTeacherId: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchClassrooms = async () => {
+  // Fetch classrooms once
+  const fetchClassrooms = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/classrooms?search=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch('/api/classrooms');
       const data = await res.json();
-      if (data.success) setClassrooms(data.data);
+      if (data.success) setAllClassrooms(data.data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchTeachers = async () => {
+  // Fetch teachers once (same `staffs` table)
+  const fetchTeachers = useCallback(async () => {
     try {
       const res = await fetch('/api/guru');
       const data = await res.json();
@@ -36,23 +52,29 @@ export default function ClassroomPage() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
-  // Initial fetch — langsung tanpa delay
   useEffect(() => {
     fetchClassrooms();
     fetchTeachers();
-  }, []);
+  }, [fetchClassrooms, fetchTeachers]);
 
-  // Debounce hanya untuk pencarian (bukan load pertama)
-  useEffect(() => {
-    if (searchQuery === '') return; // skip saat kosong (sudah di-fetch di atas)
-    const delay = setTimeout(() => fetchClassrooms(), 300);
-    return () => clearTimeout(delay);
-  }, [searchQuery]);
+  // Instant client-side filter + predefined order
+  const sortedClassrooms = useMemo(() => {
+    let result = allClassrooms;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        (c.homeroomTeacher && c.homeroomTeacher.toLowerCase().includes(q))
+      );
+    }
+    return [...result].sort(
+      (a, b) => CLASS_OPTIONS.indexOf(a.name.toUpperCase()) - CLASS_OPTIONS.indexOf(b.name.toUpperCase())
+    );
+  }, [allClassrooms, searchQuery]);
 
-  // Filter out classes that already exist in the database
-  const existingClassNames = classrooms.map(c => c.name.toUpperCase());
+  const existingClassNames = allClassrooms.map(c => c.name.toUpperCase());
   const availableClassOptions = CLASS_OPTIONS.filter(opt => !existingClassNames.includes(opt));
 
   const handleOpenModal = () => {
@@ -74,7 +96,8 @@ export default function ClassroomPage() {
       if (data.success) {
         setIsModalOpen(false);
         setFormData({ name: '', homeroomTeacherId: '' });
-        fetchClassrooms();
+        // Optimistic: add to local state
+        setAllClassrooms(prev => [...prev, data.data]);
       } else {
         alert(data.error || 'Gagal menambahkan kelas');
       }
@@ -86,28 +109,18 @@ export default function ClassroomPage() {
     }
   };
 
-  const filteredClassrooms = classrooms.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.homeroomTeacher && c.homeroomTeacher.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  // Sort by predefined order (1A, 1B, 2A, 2B ...)
-  const sortedClassrooms = [...filteredClassrooms].sort(
-    (a, b) => CLASS_OPTIONS.indexOf(a.name.toUpperCase()) - CLASS_OPTIONS.indexOf(b.name.toUpperCase())
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Classroom</h1>
-          <p className="text-slate-500">Kelola ruang kelas, jadwal, absensi, dan data siswa.</p>
+          <h1 className="text-2xl font-bold text-slate-800">Manajemen Kelas</h1>
+          <p className="text-slate-500">Kelola kelas, wali kelas, siswa, jadwal, dan absensi.</p>
         </div>
         <button
           onClick={handleOpenModal}
           disabled={availableClassOptions.length === 0}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-sm hover:shadow-md"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all shadow-sm"
         >
           <Plus className="w-5 h-5" />
           Tambah Kelas
@@ -116,26 +129,35 @@ export default function ClassroomPage() {
 
       {/* Content */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-        <div className="relative mb-6 w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Cari kelas atau nama wali kelas..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
-          />
+        <div className="flex items-center gap-3 mb-6">
+          <div className="relative flex-1 sm:flex-none sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Cari kelas atau nama wali kelas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+            />
+          </div>
+          {!loading && (
+            <span className="text-sm text-slate-400 shrink-0">
+              {sortedClassrooms.length} kelas
+            </span>
+          )}
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-slate-500">Memuat data kelas...</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
         ) : sortedClassrooms.length === 0 ? (
           <div className="py-12 text-center">
             <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-slate-400" />
             </div>
             <p className="text-slate-500 font-medium">
-              {searchQuery ? 'Kelas tidak ditemukan.' : 'Belum ada data kelas.'}
+              {searchQuery ? `Kelas "${searchQuery}" tidak ditemukan.` : 'Belum ada data kelas.'}
             </p>
             {!searchQuery && (
               <p className="text-slate-400 text-sm mt-1">Klik "Tambah Kelas" untuk membuat kelas baru.</p>
@@ -161,9 +183,9 @@ export default function ClassroomPage() {
                     <span>{classroom.enrolledStudents || 0} Siswa</span>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-slate-400">
-                    <UserCircle2 className="w-3.5 h-3.5" />
+                    <UserCircle2 className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate max-w-[90px]" title={classroom.homeroomTeacher}>
-                      {classroom.homeroomTeacher || '-'}
+                      {classroom.homeroomTeacher || 'Belum Ditugaskan'}
                     </span>
                   </div>
                 </div>
@@ -177,7 +199,7 @@ export default function ClassroomPage() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Add Class Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
@@ -202,7 +224,7 @@ export default function ClassroomPage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors bg-white text-slate-800 font-semibold"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white text-slate-800 font-semibold"
                   >
                     <option value="">-- Pilih Nama Kelas --</option>
                     {availableClassOptions.map(opt => (
@@ -214,15 +236,18 @@ export default function ClassroomPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Wali Kelas (Opsional)</label>
                 <select
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-colors bg-white"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white"
                   value={formData.homeroomTeacherId}
                   onChange={(e) => setFormData({ ...formData, homeroomTeacherId: e.target.value })}
                 >
                   <option value="">-- Pilih Wali Kelas --</option>
                   {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>{t.name} {t.position ? `(${t.position})` : ''}</option>
                   ))}
                 </select>
+                {teachers.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">⚠ Belum ada guru/staff terdaftar. Tambah terlebih dahulu di menu Guru & Staff.</p>
+                )}
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
@@ -233,7 +258,7 @@ export default function ClassroomPage() {
                   disabled={isSubmitting || availableClassOptions.length === 0}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Kelas'}
                 </button>
               </div>
             </form>

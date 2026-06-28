@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Insert new attendances
     const { data, error } = await supabase
       .from('classroom_attendances')
-      .insert(attendances)
+      .insert(attendances as any)
 
     if (error) throw error
     return NextResponse.json({ success: true, data })

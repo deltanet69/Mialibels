@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 // Helper to get name from slug
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { slug } = await params
     const nameToSearch = getNameFromSlug(slug)
 
-    const { data: classroom, error } = await supabase
+    const { data: rawClassroom, error } = await supabase
       .from('classrooms')
       .select(`
         *,
@@ -22,6 +22,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .single()
 
     if (error) throw error
+
+    const classroom = rawClassroom as any;
 
     const formattedData = {
       id: classroom.id,
@@ -43,11 +45,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json()
     
     // First find the classroom ID
-    const { data: cls } = await supabase.from('classrooms').select('id').ilike('name', nameToSearch).single()
+    const { data: rawCls } = await supabase.from('classrooms').select('id').ilike('name', nameToSearch).single()
+    const cls = rawCls as any;
     if (!cls) throw new Error('Classroom not found')
 
-    const { error } = await supabase
-      .from('classrooms')
+    const query = supabase.from('classrooms') as any;
+    const { error } = await query
       .update({
         name: body.name,
         homeroom_teacher_id: body.homeroomTeacherId || null,
@@ -68,7 +71,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const nameToSearch = getNameFromSlug(slug)
 
     // First find the classroom ID
-    const { data: cls } = await supabase.from('classrooms').select('id').ilike('name', nameToSearch).single()
+    const { data: rawCls } = await supabase.from('classrooms').select('id').ilike('name', nameToSearch).single()
+    const cls = rawCls as any;
     if (!cls) throw new Error('Classroom not found')
 
     const { error } = await supabase

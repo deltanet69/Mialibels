@@ -1,47 +1,79 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { Plus, UploadCloud, Search, Trash2, Edit3, MoreVertical, Eye } from 'lucide-react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import { Plus, UploadCloud, Search, Trash2, Edit3, Eye } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import Link from 'next/link'
 
+// Skeleton row component
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse border-b border-slate-50">
+      <td className="py-3 pr-4"><div className="h-4 bg-slate-100 rounded w-20" /></td>
+      <td className="py-3 pr-4"><div className="h-4 bg-slate-100 rounded w-36" /></td>
+      <td className="py-3 pr-4"><div className="h-4 bg-slate-100 rounded w-12" /></td>
+      <td className="py-3 pr-4">
+        <div className="h-4 bg-slate-100 rounded w-28 mb-1" />
+        <div className="h-3 bg-slate-100 rounded w-20" />
+      </td>
+      <td className="py-3 pr-4"><div className="h-5 bg-slate-100 rounded-full w-14" /></td>
+      <td className="py-3 pr-4 text-right"><div className="h-7 bg-slate-100 rounded w-20 ml-auto" /></td>
+    </tr>
+  )
+}
+
 export default function StudentsPage() {
-  const [students, setStudents] = useState<any[]>([])
+  // Raw data fetched once from server
+  const [allStudents, setAllStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Client-side search (instant, 0ms)
   const [search, setSearch] = useState('')
+
   const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
 
-  const fetchStudents = async () => {
+  // Fetch ALL students once on mount — no search param needed
+  const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/students?search=${encodeURIComponent(search)}`)
+      const res = await fetch('/api/students')
       const data = await res.json()
       if (data.success) {
-        setStudents(data.data)
+        setAllStudents(data.data)
       }
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    // debounce search
-    const delay = setTimeout(() => {
-      fetchStudents()
-    }, 500)
-    return () => clearTimeout(delay)
-  }, [search])
+    fetchStudents()
+  }, [fetchStudents])
+
+  // Instant client-side filtering — no API call
+  const students = useMemo(() => {
+    if (!search.trim()) return allStudents
+    const q = search.toLowerCase()
+    return allStudents.filter(s =>
+      s.name?.toLowerCase().includes(q) ||
+      s.student_number?.toLowerCase().includes(q) ||
+      s.class?.toLowerCase().includes(q)
+    )
+  }, [allStudents, search])
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`Yakin ingin menghapus data siswa ${name}? Data SPP dan Tabungan terkait juga akan terhapus!`)) {
       try {
         const res = await fetch(`/api/students/${id}`, { method: 'DELETE' })
-        if (res.ok) fetchStudents()
+        if (res.ok) {
+          // Optimistic update — remove locally without re-fetch
+          setAllStudents(prev => prev.filter(s => s.id !== id))
+        }
       } catch (err) {
         console.error(err)
       }
@@ -75,15 +107,22 @@ export default function StudentsPage() {
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Cari nama atau NIS..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
-            />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input 
+                type="text" 
+                placeholder="Cari nama, NIS, atau kelas..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+              />
+            </div>
+            {!loading && (
+              <span className="text-sm text-slate-400 whitespace-nowrap shrink-0">
+                {students.length} siswa
+              </span>
+            )}
           </div>
         </div>
 
@@ -101,12 +140,12 @@ export default function StudentsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-500">Memuat data...</td>
-                </tr>
+                Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-slate-500">Tidak ada data siswa ditemukan.</td>
+                  <td colSpan={6} className="text-center py-10 text-slate-500">
+                    {search ? `Tidak ada siswa dengan kata kunci "${search}".` : 'Tidak ada data siswa.'}
+                  </td>
                 </tr>
               ) : (
                 students.map((student) => (

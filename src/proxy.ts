@@ -4,7 +4,7 @@ import { jwtVerify } from 'jose'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Define admin paths to protect

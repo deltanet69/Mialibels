@@ -7,8 +7,37 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
 
-export default function ParentDashboardHome() {
+const JWT_SECRET = process.env.JWT_SECRET!;
+
+export default async function ParentDashboardHome() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('parent_session')?.value;
+  
+  let studentData = {
+    name: "Siswa",
+    className: "-",
+    parentName: "Wali Murid",
+    nis: ""
+  };
+
+  if (sessionCookie) {
+    try {
+      const secret = new TextEncoder().encode(JWT_SECRET);
+      const { payload } = await jwtVerify(sessionCookie, secret);
+      studentData = {
+        name: (payload.studentName as string) || "Siswa",
+        className: (payload.class as string) || "-",
+        parentName: (payload.parentName as string) || "Wali Murid",
+        nis: (payload.nis as string) || ""
+      };
+    } catch (e) {
+      console.error("Token verification failed on dashboard", e);
+    }
+  }
+
   return (
     <div className="space-y-6">
       
@@ -28,7 +57,7 @@ export default function ParentDashboardHome() {
             </div>
             <div>
               <p className="text-xs text-blue-200 font-bold uppercase tracking-wider">Siswa Aktif</p>
-              <p className="text-lg font-bold">Ahmad Fauzan</p>
+              <p className="text-lg font-bold">{studentData.name}</p>
             </div>
           </div>
         </div>
@@ -62,8 +91,8 @@ export default function ParentDashboardHome() {
             <Wallet size={20} />
           </div>
           <div>
-            <p className="text-xl md:text-2xl font-black text-slate-800">Lunas</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">SPP Bulan Ini</p>
+            <p className="text-xl md:text-2xl font-black text-slate-800">Cek SPP</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Status Pembayaran</p>
           </div>
         </div>
 
@@ -72,8 +101,8 @@ export default function ParentDashboardHome() {
             <UserCircle size={20} />
           </div>
           <div>
-            <p className="text-xl md:text-2xl font-black text-slate-800">Kelas 6B</p>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Wali: Ibu Aminah</p>
+            <p className="text-xl md:text-2xl font-black text-slate-800">Kelas {studentData.className}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">NISN: {studentData.nis}</p>
           </div>
         </div>
 
@@ -122,15 +151,15 @@ export default function ParentDashboardHome() {
               <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-slate-800 text-sm">Pembayaran SPP Bulan Depan</p>
-                <p className="text-xs text-slate-600 mt-1">Jatuh tempo pada tanggal 10 Juli 2026. Nominal Rp 150.000.</p>
+                <p className="text-xs text-slate-600 mt-1">Jatuh tempo pada tanggal 10. Segera cek menu Tagihan SPP.</p>
               </div>
             </div>
             <div className="flex items-center justify-between py-3 border-b border-slate-100">
               <span className="text-sm text-slate-500">Total Tabungan Siswa</span>
-              <span className="font-bold text-slate-800">Rp 1.250.000</span>
+              <span className="font-bold text-slate-800">Buka Menu Tabungan</span>
             </div>
           </div>
-          <Link href="/parent/dashboard/finance" className="mt-6 block w-full text-center py-3 rounded-xl bg-slate-50 text-slate-700 font-bold text-sm hover:bg-slate-100 transition">
+          <Link href="/parent/dashboard/spp" className="mt-6 block w-full text-center py-3 rounded-xl bg-slate-50 text-slate-700 font-bold text-sm hover:bg-slate-100 transition">
             Lihat Detail Keuangan
           </Link>
         </div>

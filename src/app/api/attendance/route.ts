@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     // Use upsert to handle both new records and updates based on UNIQUE(staff_id, date) constraint
     const { data, error } = await supabase
       .from('staff_attendance')
-      .upsert(upsertData, { onConflict: 'staff_id, date' })
+      .upsert(upsertData as any, { onConflict: 'staff_id, date' })
       .select()
 
     if (error) throw error
