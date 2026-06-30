@@ -1,17 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Clock, Plus, Trash2, Edit2, X, Calendar as CalendarIcon, PlayCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Clock, Plus, Trash2, Edit2, X, PlayCircle, Loader2, UserCircle2 } from 'lucide-react';
+
+const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
 export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
   const [schedules, setSchedules] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  
+  // Default to today if it's a weekday, otherwise Monday
+  const todayIndex = new Date().getDay(); // 0=Sun, 1=Mon...
+  const initialDay = (todayIndex >= 1 && todayIndex <= 5) ? DAYS[todayIndex - 1] : 'Senin';
+  const [selectedDay, setSelectedDay] = useState(initialDay);
+  
   const [currentTime, setCurrentTime] = useState(new Date());
   
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', time: '', type: 'Akademik' });
+  const [formData, setFormData] = useState({ name: '', time: '', type: 'Pelajaran', teacher_id: '' });
   const [saving, setSaving] = useState(false);
 
   // Update current time every minute
@@ -22,14 +30,22 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchSchedules = async () => {
+  const fetchData = async () => {
     if (!classroomId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/schedules?classroomId=${classroomId}`);
-      const data = await res.json();
-      if (data.success) {
-        setSchedules(data.data);
+      // Fetch schedules
+      const resSchedules = await fetch(`/api/schedules?classroomId=${classroomId}`);
+      const dataSchedules = await resSchedules.json();
+      if (dataSchedules.success) {
+        setSchedules(dataSchedules.data);
+      }
+      
+      // Fetch teachers for dropdown
+      const resTeachers = await fetch('/api/guru');
+      const dataTeachers = await resTeachers.json();
+      if (dataTeachers.success) {
+        setTeachers(dataTeachers.data);
       }
     } catch (e) {
       console.error(e);
@@ -39,24 +55,26 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
   };
 
   useEffect(() => {
-    fetchSchedules();
+    fetchData();
   }, [classroomId]);
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'Akademik': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Ekstrakurikuler': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'Blank': return 'bg-slate-100 text-slate-600 border-slate-200';
+    switch (type?.toLowerCase()) {
+      case 'pelajaran': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'ekstrakurikuler': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'istirahat': return 'bg-slate-100 text-slate-600 border-slate-200';
       default: return 'bg-emerald-100 text-emerald-700 border-emerald-200';
     }
   };
 
-  const isScheduleActive = (timeString: string, scheduleDate: string) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (scheduleDate !== todayStr) return false;
+  const isScheduleActive = (timeString: string, scheduleDay: string) => {
+    const todayIndex = new Date().getDay(); 
+    // Match current day of week with scheduleDay
+    const currentDayName = (todayIndex >= 1 && todayIndex <= 5) ? DAYS[todayIndex - 1] : null;
+    if (scheduleDay !== currentDayName) return false;
 
     try {
-      const [startStr, endStr] = timeString.split(' - ');
+      const [startStr, endStr] = timeString.split('-').map(s => s.trim());
       if (!startStr || !endStr) return false;
 
       const [startHour, startMin] = startStr.split(':').map(Number);
@@ -77,13 +95,18 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
 
   const handleOpenAdd = () => {
     setEditingId(null);
-    setFormData({ name: '', time: '', type: 'Akademik' });
+    setFormData({ name: '', time: '', type: 'Pelajaran', teacher_id: '' });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (schedule: any) => {
     setEditingId(schedule.id);
-    setFormData({ name: schedule.name, time: schedule.time, type: schedule.type });
+    setFormData({ 
+      name: schedule.name, 
+      time: schedule.time, 
+      type: schedule.type,
+      teacher_id: schedule.teacher_id || '' 
+    });
     setIsModalOpen(true);
   };
 
@@ -103,16 +126,13 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
     setSaving(true);
     try {
       if (editingId) {
-        // We'd ideally have a PUT, but if we don't, we can delete and recreate or write a PUT route
-        // For simplicity, let's just assume we delete and recreate or add PUT to route.
-        // Actually I only wrote GET, POST, DELETE in route.ts! Let's delete and create.
         await fetch(`/api/schedules?id=${editingId}`, { method: 'DELETE' });
       }
 
       const payload = {
         ...formData,
         classroom_id: classroomId,
-        date: selectedDate
+        day: selectedDay
       };
       
       await fetch('/api/schedules', {
@@ -122,7 +142,7 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
       });
       
       setIsModalOpen(false);
-      fetchSchedules();
+      fetchData();
     } catch(e) {
       console.error(e);
     } finally {
@@ -130,7 +150,16 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
     }
   };
 
-  const filteredSchedules = schedules.filter(s => s.date === selectedDate);
+  // Sort schedules by time
+  const filteredSchedules = useMemo(() => {
+    return schedules
+      .filter(s => s.day === selectedDay)
+      .sort((a, b) => {
+        const timeA = a.time.split('-')[0].trim();
+        const timeB = b.time.split('-')[0].trim();
+        return timeA.localeCompare(timeB);
+      });
+  }, [schedules, selectedDay]);
 
   if (loading) {
     return (
@@ -142,63 +171,93 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-      <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-800">Jadwal Kelas</h3>
-          <p className="text-sm text-slate-500">Atur jadwal berdasarkan tanggal</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="relative">
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700"
-            />
+      <div className="p-6 border-b border-slate-100 flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Jadwal Pelajaran</h3>
+            <p className="text-sm text-slate-500">Atur jadwal mingguan untuk kelas ini.</p>
           </div>
           <button 
             onClick={handleOpenAdd}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Tambah
+            Tambah Jadwal
           </button>
+        </div>
+
+        {/* Days Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+          {DAYS.map(day => (
+            <button
+              key={day}
+              onClick={() => setSelectedDay(day)}
+              className={`px-5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                selectedDay === day 
+                  ? 'bg-blue-50 text-blue-700 shadow-sm' 
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+              }`}
+            >
+              {day}
+            </button>
+          ))}
         </div>
       </div>
       
       <div className="divide-y divide-slate-100 flex-1">
         {filteredSchedules.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">Belum ada jadwal untuk tanggal ini.</div>
+          <div className="p-12 text-center text-slate-500">Belum ada jadwal di hari {selectedDay}.</div>
         ) : (
           filteredSchedules.map((schedule) => {
-            const active = isScheduleActive(schedule.time, schedule.date);
+            const active = isScheduleActive(schedule.time, schedule.day);
             return (
-              <div key={schedule.id} className={`p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors group relative ${active ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
+              <div key={schedule.id} className={`p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors group relative ${active ? 'bg-green-50/30' : 'hover:bg-slate-50'}`}>
                 {active && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-md"></div>
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500 rounded-r-md"></div>
                 )}
-                <div className={`flex items-center gap-2 min-w-[140px] ${active ? 'text-blue-600 font-semibold' : 'text-slate-500'}`}>
-                  {active ? <PlayCircle className="w-4 h-4 animate-pulse" /> : <Clock className="w-4 h-4" />}
-                  <span className="text-sm">{schedule.time}</span>
+                
+                <div className={`flex items-center gap-2 min-w-[140px] ${active ? 'text-green-600 font-bold' : 'text-slate-500'}`}>
+                  {active ? (
+                    <div className="relative flex items-center justify-center w-4 h-4">
+                      <div className="absolute w-full h-full bg-green-500 rounded-full animate-ping opacity-75"></div>
+                      <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                    </div>
+                  ) : (
+                    <Clock className="w-4 h-4" />
+                  )}
+                  <span className="text-sm tracking-wide">{schedule.time}</span>
                 </div>
                 
-                <div className="flex-1 flex items-center justify-between sm:justify-start gap-4">
-                  <h4 className={`text-base font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>
-                    {schedule.name}
-                    {active && <span className="ml-3 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider">Sedang Berlangsung</span>}
-                  </h4>
+                <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h4 className={`text-base font-semibold ${active ? 'text-green-700' : 'text-slate-800'}`}>
+                        {schedule.name}
+                      </h4>
+                      {active && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 uppercase tracking-wider">Sedang Berlangsung</span>
+                      )}
+                    </div>
+                    {schedule.type !== 'Istirahat' && schedule.teacher && (
+                      <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-500">
+                        <UserCircle2 className="w-3.5 h-3.5" />
+                        <span>{schedule.teacher.name}</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="sm:ml-auto">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getTypeColor(schedule.type)}`}>
-                      {schedule.type === 'Blank' ? 'Istirahat / Kosong' : schedule.type}
+                      {schedule.type}
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleOpenEdit(schedule)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors">
+                  <button onClick={() => handleOpenEdit(schedule)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Edit">
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(schedule.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors">
+                  <button onClick={() => handleDelete(schedule.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors" title="Hapus">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -219,22 +278,37 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Kegiatan</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kegiatan</label>
                 <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Contoh: Matematika" />
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Waktu</label>
                 <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} placeholder="Contoh: 07:00 - 08:30" />
+                <p className="text-xs text-slate-500 mt-1">Format: HH:MM - HH:MM (contoh: 07:00 - 08:30)</p>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kegiatan</label>
-                <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
-                  <option value="Akademik">Akademik</option>
+                <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+                  <option value="Pelajaran">Mata Pelajaran</option>
                   <option value="Ekstrakurikuler">Ekstrakurikuler</option>
-                  <option value="Lainnya">Lainnya</option>
-                  <option value="Blank">Blank / Istirahat</option>
+                  <option value="Istirahat">Istirahat / Kosong</option>
                 </select>
               </div>
+
+              {formData.type !== 'Istirahat' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Guru / Penanggung Jawab</label>
+                  <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})}>
+                    <option value="">-- Pilih Guru --</option>
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} {t.position ? `(${t.position})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">Batal</button>
                 <button disabled={saving} type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">

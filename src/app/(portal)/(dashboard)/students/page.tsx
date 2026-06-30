@@ -28,8 +28,13 @@ export default function StudentsPage() {
   const [allStudents, setAllStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Client-side search (instant, 0ms)
+  // Client-side search and filters
   const [search, setSearch] = useState('')
+  const [classFilter, setClassFilter] = useState('all')
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -55,16 +60,43 @@ export default function StudentsPage() {
     fetchStudents()
   }, [fetchStudents])
 
+  // Unique classes for filter
+  const classes = useMemo(() => {
+    const uniqueClasses = Array.from(new Set(allStudents.map(s => s.class).filter(Boolean)))
+    return uniqueClasses.sort()
+  }, [allStudents])
+
   // Instant client-side filtering — no API call
-  const students = useMemo(() => {
-    if (!search.trim()) return allStudents
-    const q = search.toLowerCase()
-    return allStudents.filter(s =>
-      s.name?.toLowerCase().includes(q) ||
-      s.student_number?.toLowerCase().includes(q) ||
-      s.class?.toLowerCase().includes(q)
-    )
-  }, [allStudents, search])
+  const filteredStudents = useMemo(() => {
+    let filtered = allStudents
+
+    if (classFilter !== 'all') {
+      filtered = filtered.filter(s => s.class === classFilter)
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      filtered = filtered.filter(s =>
+        s.name?.toLowerCase().includes(q) ||
+        s.student_number?.toLowerCase().includes(q) ||
+        s.class?.toLowerCase().includes(q) ||
+        s.nisn?.toLowerCase().includes(q)
+      )
+    }
+    return filtered
+  }, [allStudents, search, classFilter])
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, classFilter, itemsPerPage])
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage)
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    return filteredStudents.slice(start, start + itemsPerPage)
+  }, [filteredStudents, currentPage, itemsPerPage])
 
   const handleDelete = async (id: string, name: string) => {
     if (confirm(`Yakin ingin menghapus data siswa ${name}? Data SPP dan Tabungan terkait juga akan terhapus!`)) {
@@ -107,7 +139,7 @@ export default function StudentsPage() {
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
             <div className="relative w-full sm:w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input 
@@ -118,9 +150,21 @@ export default function StudentsPage() {
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
               />
             </div>
+            
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700"
+            >
+              <option value="all">Semua Kelas</option>
+              {classes.map((c: any) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
             {!loading && (
-              <span className="text-sm text-slate-400 whitespace-nowrap shrink-0">
-                {students.length} siswa
+              <span className="text-sm text-slate-400 whitespace-nowrap shrink-0 ml-auto sm:ml-0">
+                {filteredStudents.length} siswa
               </span>
             )}
           </div>
@@ -130,7 +174,7 @@ export default function StudentsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="pb-3 pr-4">NIS</th>
+                <th className="pb-3 pr-4">NIS / NISN</th>
                 <th className="pb-3 pr-4">Nama Lengkap</th>
                 <th className="pb-3 pr-4">Kelas</th>
                 <th className="pb-3 pr-4">Orang Tua</th>
@@ -141,16 +185,19 @@ export default function StudentsPage() {
             <tbody>
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
-              ) : students.length === 0 ? (
+              ) : paginatedStudents.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-slate-500">
-                    {search ? `Tidak ada siswa dengan kata kunci "${search}".` : 'Tidak ada data siswa.'}
+                    {search || classFilter !== 'all' ? `Tidak ada siswa yang sesuai pencarian.` : 'Tidak ada data siswa.'}
                   </td>
                 </tr>
               ) : (
-                students.map((student) => (
+                paginatedStudents.map((student) => (
                   <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition group">
-                    <td className="py-3 pr-4 font-medium text-slate-700">{student.student_number}</td>
+                    <td className="py-3 pr-4">
+                      <div className="font-medium text-slate-700">{student.student_number}</div>
+                      {student.nisn && <div className="text-xs text-slate-500">{student.nisn}</div>}
+                    </td>
                     <td className="py-3 pr-4">
                       <div className="font-medium text-slate-800">{student.name}</div>
                     </td>
@@ -197,6 +244,77 @@ export default function StudentsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && filteredStudents.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4 border-t border-slate-100 pt-6">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              Tampilkan
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-700 font-medium"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              siswa per halaman
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Sebelumnya
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const page = i + 1;
+                  // Show max 5 pages, with current page in middle if possible
+                  if (
+                    totalPages <= 5 || 
+                    page === 1 || 
+                    page === totalPages || 
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded-lg transition ${
+                          currentPage === page 
+                            ? 'bg-blue-600 text-white shadow-sm' 
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  }
+                  
+                  if (page === currentPage - 2 || page === currentPage + 2) {
+                    return <span key={page} className="text-slate-400">...</span>
+                  }
+                  
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showImport && (

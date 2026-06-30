@@ -34,13 +34,34 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { isBulk, students } = body
 
-    // Helper to get class map
+    // Build class map (name → id)
     const { data: classroomsData } = await supabase.from('classrooms').select('id, name')
     const classMap: Record<string, string> = {}
     if (classroomsData) {
       classroomsData.forEach(c => {
         classMap[c.name.toLowerCase()] = c.id
       })
+    }
+
+    // Auto-create any classrooms that don't exist yet
+    if (isBulk && Array.isArray(students)) {
+      const uniqueClasses = [...new Set(
+        students
+          .map((s: any) => s.class?.replace(/^kelas\s+/i, '').trim())
+          .filter(Boolean)
+      )]
+      const missingClasses = uniqueClasses.filter((cls: any) => !classMap[cls.toLowerCase()])
+      if (missingClasses.length > 0) {
+        const { data: newClassrooms } = await supabase
+          .from('classrooms')
+          .insert(missingClasses.map((name: any) => ({ name })))
+          .select('id, name')
+        if (newClassrooms) {
+          newClassrooms.forEach((c: any) => {
+            classMap[c.name.toLowerCase()] = c.id
+          })
+        }
+      }
     }
 
     const getClassId = (rawClass: string) => {

@@ -4,28 +4,32 @@ import React, { useState } from 'react'
 import Papa from 'papaparse'
 import { UploadCloud, FileSpreadsheet, X, CheckCircle, AlertTriangle, Download } from 'lucide-react'
 
-export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClose: () => void }) {
+interface CsvImportGuruProps {
+  onSuccess: () => void
+  onClose: () => void
+}
+
+export function CsvImportGuru({ onSuccess, onClose }: CsvImportGuruProps) {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<any[]>([])
-
+  
   // ─── Download Template ──────────────────────────────────────────────────────
   function handleDownloadTemplate() {
     const headers = [
-      'nisn',
       'name',
-      'student_number',
-      'class',
-      'parent_name',
-      'parent_phone',
-      'parent_email',
+      'position',
+      'email',
+      'phone',
+      'education_level',
+      'major',
+      'address',
       'is_active',
     ]
     const rows = [
-      ['0123456789', 'Budi Santoso', '2023001', '1A', 'Joko Santoso', '081234567890', 'joko@email.com', 'true'],
-      ['0234567891', 'Siti Aminah', '2023002', '1B', 'Ahmad Syarif', '082298765432', 'ahmad@email.com', 'true'],
-      ['0345678912', 'Dani Pratama', '2023003', '2A', 'Bapak Dani', '083312345678', '', 'true'],
+      ['Ahmad Zainuddin', 'Guru Matematika', 'ahmad.z@email.com', '081234567890', 'S1', 'Pendidikan Matematika', 'Jl. Merdeka No 1', 'true'],
+      ['Siti Aminah', 'Guru Bahasa Inggris', 'siti.a@email.com', '082198765432', 'S1', 'Sastra Inggris', 'Jl. Kenangan No 2', 'true'],
     ]
 
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
@@ -33,7 +37,7 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'template_data_siswa.csv'
+    a.download = 'template_guru_staff.csv'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -54,7 +58,7 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
     })
   }
 
-  // ─── Upload ─────────────────────────────────────────────────────────────────
+  // ─── Upload File ────────────────────────────────────────────────────────────
   async function handleUpload() {
     if (!file) return
     setLoading(true)
@@ -65,32 +69,34 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
       skipEmptyLines: true,
       complete: async (res) => {
         try {
-          const students = (res.data as any[])
+          const staffs = (res.data as any[])
             .map((row) => ({
-              nisn: row.nisn || row.NISN || null,
               name: row.name || row.Nama || '',
-              student_number: row.student_number || row.NIS || '',
-              class: row.class || row.Kelas || '',
-              parent_name: row.parent_name || row['Nama Orang Tua'] || '',
-              parent_phone: row.parent_phone || row['No HP'] || '',
-              parent_email: row.parent_email || row.Email || null,
-              is_active: row.is_active !== 'false',
+              position: row.position || row.Jabatan || '',
+              email: row.email || row.Email || null,
+              phone: row.phone || row['No HP'] || null,
+              education_level: row.education_level || row.Pendidikan || null,
+              major: row.major || row.Jurusan || null,
+              address: row.address || row.Alamat || null,
+              is_active: row.is_active !== 'false' && row.is_active !== '0',
             }))
-            .filter((s) => s.name && s.student_number && s.class)
+            .filter((s) => s.name && s.position)
 
-          if (students.length === 0) {
-            throw new Error(
-              'Tidak ada data valid. Pastikan kolom: name, student_number, class, parent_name, parent_phone.'
-            )
+          if (staffs.length === 0) {
+            throw new Error('Data kosong atau tidak ada baris yang valid (wajib isi nama & jabatan)')
           }
 
-          const resp = await fetch('/api/students', {
+          const apiRes = await fetch('/api/guru', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isBulk: true, students }),
+            body: JSON.stringify({ isBulk: true, staffs }),
           })
-          const data = await resp.json()
-          if (!resp.ok) throw new Error(data.error || 'Gagal mengimpor data.')
+
+          const data = await apiRes.json()
+
+          if (!data.success) {
+            throw new Error(data.error || 'Gagal menyimpan data guru/staff')
+          }
 
           onSuccess()
           onClose()
@@ -100,36 +106,34 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
         }
       },
       error: (err) => {
-        setError('Gagal mem-parsing CSV: ' + err.message)
+        setError('Gagal mem-parsing file: ' + err.message)
         setLoading(false)
-      },
+      }
     })
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-white shrink-0">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <FileSpreadsheet className="text-blue-600" size={22} />
-            Import Data Siswa
+            Import Data Guru/Staff
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition p-1 hover:bg-slate-50 rounded-lg">
             <X size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-5">
-
+        <div className="px-6 py-5 space-y-5 overflow-y-auto">
           {/* Info banner */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700">
             <p className="font-semibold mb-1">Kolom yang diperlukan:</p>
             <p className="font-mono text-xs leading-relaxed">
-              nisn, name, student_number, class, parent_name, parent_phone, parent_email, is_active
+              name, position, email, phone, education_level, major, address, is_active
             </p>
           </div>
 
@@ -145,7 +149,7 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
           <div className="relative border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors bg-slate-50 cursor-pointer">
             <input
               type="file"
-              accept=".csv"
+              accept=".csv,.txt"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
@@ -159,8 +163,8 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
               ) : (
                 <>
                   <UploadCloud className="w-12 h-12 text-slate-400 mb-1" />
-                  <span className="font-semibold text-slate-700">Klik atau drag file CSV kesini</span>
-                  <span className="text-xs text-slate-400">Format: .csv</span>
+                  <span className="font-semibold text-slate-700">Klik atau drag file CSV / TXT kesini</span>
+                  <span className="text-xs text-slate-400">Format: .csv atau .txt</span>
                 </>
               )}
             </div>
@@ -176,19 +180,19 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
                 <table className="w-full text-left whitespace-nowrap">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-200 text-slate-500">
-                      <th className="px-3 py-2 font-medium">NIS</th>
                       <th className="px-3 py-2 font-medium">Nama</th>
-                      <th className="px-3 py-2 font-medium">Kelas</th>
-                      <th className="px-3 py-2 font-medium">Orang Tua</th>
+                      <th className="px-3 py-2 font-medium">Jabatan</th>
+                      <th className="px-3 py-2 font-medium">Email</th>
+                      <th className="px-3 py-2 font-medium">No HP</th>
                     </tr>
                   </thead>
                   <tbody>
                     {preview.map((row, i) => (
                       <tr key={i} className="border-b border-slate-100 last:border-0">
-                        <td className="px-3 py-2 text-slate-700">{row.student_number || '-'}</td>
                         <td className="px-3 py-2 text-slate-700">{row.name || '-'}</td>
-                        <td className="px-3 py-2 text-slate-700">{row.class || '-'}</td>
-                        <td className="px-3 py-2 text-slate-700">{row.parent_name || '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{row.position || '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{row.email || '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{row.phone || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -199,8 +203,7 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center gap-3">
-          {/* Download template — kiri */}
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={handleDownloadTemplate}
@@ -210,24 +213,21 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
             Download Template
           </button>
 
-          {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Batal */}
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition"
+            className="px-5 py-2.5 rounded-xl font-medium text-sm text-slate-600 hover:bg-slate-200 transition"
           >
             Batal
           </button>
 
-          {/* Upload */}
           <button
             type="button"
             onClick={handleUpload}
             disabled={!file || loading}
-            className="px-5 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl font-medium text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
           >
             {loading ? 'Mengimpor...' : 'Upload Data'}
           </button>

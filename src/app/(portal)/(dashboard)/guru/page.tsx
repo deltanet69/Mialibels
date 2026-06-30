@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Search, Trash2, Edit3, Eye, Phone, Mail } from 'lucide-react'
 import { GuruForm } from '@/components/portal/guru/GuruForm'
+import { CsvImportGuru } from '@/components/portal/guru/CsvImportGuru'
 import Link from 'next/link'
 
 // Skeleton row component
@@ -32,6 +33,7 @@ export default function GuruPage() {
   const [search, setSearch] = useState('')
 
   const [showForm, setShowForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [editingGuru, setEditingGuru] = useState<any | null>(null)
 
   // Fetch ALL guru once on mount — no search param
@@ -86,13 +88,22 @@ export default function GuruPage() {
           <h1 className="text-2xl font-bold text-slate-800">Data Guru & Staff</h1>
           <p className="text-slate-500">Kelola informasi guru, staff, dan riwayat absensinya.</p>
         </div>
-        <button 
-          onClick={() => { setEditingGuru(null); setShowForm(true); }}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-sm font-medium"
-        >
-          <Plus size={18} />
-          Tambah Guru/Staff
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setShowImport(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
+          >
+            <Plus size={18} />
+            Import CSV
+          </button>
+          <button 
+            onClick={() => { setEditingGuru(null); setShowForm(true); }}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-sm font-medium"
+          >
+            <Plus size={18} />
+            Tambah Guru/Staff
+          </button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -123,6 +134,7 @@ export default function GuruPage() {
                 <th className="pb-3 pr-4">Nama Lengkap</th>
                 <th className="pb-3 pr-4">Jabatan</th>
                 <th className="pb-3 pr-4">Kontak</th>
+                <th className="pb-3 pr-4">Tugas Kelas</th>
                 <th className="pb-3 pr-4">Status</th>
                 <th className="pb-3 pr-4 text-right">Aksi</th>
               </tr>
@@ -157,6 +169,28 @@ export default function GuruPage() {
                         </div>
                       )}
                       {!guru.phone && !guru.email && <span className="text-slate-400 text-sm">-</span>}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {guru.homeroom_classrooms?.length > 0 && (
+                        <div className="mb-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-indigo-50 border border-indigo-100 text-indigo-700" title="Wali Kelas">
+                            Wali Kelas: {guru.homeroom_classrooms.map((c: any) => c.name).join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      {guru.teaching_classes?.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-xs text-slate-500 mr-1 flex items-center">Mengajar:</span>
+                          {guru.teaching_classes.map((cls: string, idx: number) => (
+                            <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                              {cls}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {!guru.homeroom_classrooms?.length && !guru.teaching_classes?.length && (
+                        <span className="text-slate-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="py-3 pr-4">
                       {guru.is_active ? (
@@ -197,6 +231,13 @@ export default function GuruPage() {
           </table>
         </div>
       </div>
+
+      {showImport && (
+        <CsvImportGuru 
+          onSuccess={fetchGuru} 
+          onClose={() => setShowImport(false)} 
+        />
+      )}
 
       {showForm && (
         <GuruForm 
