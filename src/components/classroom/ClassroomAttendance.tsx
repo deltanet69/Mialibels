@@ -12,7 +12,13 @@ type StudentAttendance = {
 };
 
 export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const getLocalDateString = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<string, StudentAttendance>>({});
   const [loading, setLoading] = useState(true);

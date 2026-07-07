@@ -107,7 +107,7 @@ export default function AttendancePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Absensi Guru / Staff</h1>
@@ -207,3 +207,4 @@ export default function AttendancePage() {
     </div>
   )
 }
+

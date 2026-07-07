@@ -10,7 +10,7 @@ export default function SPPPage() {
 
   return (
     <div className="bg-slate-50 min-h-screen p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         
         {/* Header */}
         <div>
@@ -52,3 +52,4 @@ export default function SPPPage() {
     </div>
   );
 }
+

@@ -20,7 +20,8 @@ import {
   UserCog,
   School,
   LogOut,
-  X
+  X,
+  Activity
 } from 'lucide-react';
 import { useSidebar } from './SidebarProvider';
 
@@ -53,21 +54,36 @@ export function SidebarClient({ role, userName }: Props) {
 
   const hasAccess = (section: 'main' | 'akademik' | 'finance' | 'content' | 'reports' | 'users') => {
     if (!role) return false;
+    // superadmin & kepsek have full access to navigation
     if (role === 'superadmin' || role === 'kepsek') return true;
-
-    switch (section) {
-      case 'main':
-      case 'akademik':
-      case 'content':
-        return true;
-      case 'finance':
-      case 'reports':
-      case 'users':
-        return false;
-      default:
-        return false;
+    // guru: limited access
+    if (role === 'guru') {
+      switch (section) {
+        case 'main':
+        case 'akademik':
+          return true;
+        default:
+          return false;
+      }
     }
+    // staff: same as guru + content posts only
+    if (role === 'staff') {
+      switch (section) {
+        case 'main':
+        case 'akademik':
+          return true;
+        default:
+          return false;
+      }
+    }
+    return false;
   };
+
+  // kepsek can see finance pages but cannot execute transactions (handled per-page)
+  const canViewFinance = role === 'superadmin' || role === 'kepsek';
+
+  // Staff can only manage Berita & Artikel (posts), not full content
+  const canViewContentPosts = role === 'staff';
 
   return (
     <>
@@ -137,7 +153,7 @@ export function SidebarClient({ role, userName }: Props) {
             )}
 
             {/* FINANCE */}
-            {hasAccess('finance') && (
+            {canViewFinance && (
               <div>
                 <h4 className="text-xs font-semibold text-slate-400 mb-3 px-2">FINANCE</h4>
                 <div className="flex flex-col gap-1">
@@ -175,6 +191,18 @@ export function SidebarClient({ role, userName }: Props) {
               </div>
             )}
 
+            {/* KONTEN untuk Staff (hanya Berita & Artikel) */}
+            {canViewContentPosts && (
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 mb-3 px-2">KONTEN SEKOLAH</h4>
+                <div className="flex flex-col gap-1">
+                  <Link href="/content/posts" className={linkClass('/content/posts')} onClick={() => setIsOpen(false)}>
+                    <FileText size={20} /> <span className="font-medium">Berita & Artikel</span>
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* SISTEM */}
             {(hasAccess('reports') || hasAccess('users')) && (
               <div>
@@ -183,6 +211,11 @@ export function SidebarClient({ role, userName }: Props) {
                   {hasAccess('reports') && (
                     <Link href="/reports" className={linkClass('/reports')} onClick={() => setIsOpen(false)}>
                       <BarChart3 size={20} /> <span className="font-medium">Laporan Kepsek</span>
+                    </Link>
+                  )}
+                  {hasAccess('reports') && (
+                    <Link href="/reports/logs" className={linkClass('/reports/logs')} onClick={() => setIsOpen(false)}>
+                      <Activity size={20} /> <span className="font-medium">Activity Log</span>
                     </Link>
                   )}
                   {hasAccess('users') && (

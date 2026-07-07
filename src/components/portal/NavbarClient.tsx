@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Menu, CheckCircle2, DollarSign } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { useParentSidebar } from './ParentSidebarProvider';
+import { Menu, Bell, CheckCircle2, DollarSign } from 'lucide-react';
+import { useSidebar } from './SidebarProvider';
 
-export function ParentNavbar({ studentName, parentName }: { studentName?: string; parentName?: string }) {
-  const { setIsOpen } = useParentSidebar();
+export function NavbarClient({ user }: { user: any }) {
+  const { setIsOpen } = useSidebar();
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -20,12 +19,12 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const initials = parentName
-    ? parentName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
-    : 'WM';
+  const initials = user?.name 
+    ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
+    : 'U';
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30 shrink-0">
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30">
       <div className="flex items-center gap-4">
         <button 
           onClick={() => setIsOpen(true)}
@@ -49,7 +48,7 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-4 duration-200">
               <div className="px-4 py-2 border-b border-slate-50 flex items-center justify-between">
                 <span className="font-semibold text-slate-800">Notifikasi</span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">1 Baru</span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">2 Baru</span>
               </div>
               <div className="max-h-[300px] overflow-y-auto">
                 <button className="w-full text-left px-4 py-3 hover:bg-slate-50 transition flex items-start gap-3">
@@ -57,11 +56,24 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
                     <CheckCircle2 size={16} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-800">Pembayaran Berhasil</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Pembayaran SPP Bulan ini telah diterima.</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Hari ini</p>
+                    <p className="text-sm font-medium text-slate-800">Perizinan Disetujui</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Izin sakit Budi telah disetujui oleh wali kelas.</p>
+                    <p className="text-[10px] text-slate-400 mt-1">10 menit yang lalu</p>
                   </div>
                 </button>
+                <button className="w-full text-left px-4 py-3 hover:bg-slate-50 transition flex items-start gap-3">
+                  <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl shrink-0">
+                    <DollarSign size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">Pembayaran SPP Berhasil</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Pembayaran SPP Bulan Juli a.n. Siti Aminah telah diterima.</p>
+                    <p className="text-[10px] text-slate-400 mt-1">1 jam yang lalu</p>
+                  </div>
+                </button>
+              </div>
+              <div className="px-4 py-2 border-t border-slate-50 text-center">
+                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Lihat Semua Notifikasi</button>
               </div>
             </div>
           )}
@@ -71,8 +83,8 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
 
         <div className="flex items-center gap-3">
           <div className="hidden sm:block text-right">
-            <p className="text-sm font-semibold text-slate-800 leading-tight">{parentName || 'Wali Murid'}</p>
-            <p className="text-xs text-slate-500 capitalize">{studentName || 'Portal Orang Tua'}</p>
+            <p className="text-sm font-semibold text-slate-800 leading-tight">{user?.name || 'Admin'}</p>
+            <p className="text-xs text-slate-500 capitalize">{user?.role?.toLowerCase() || 'Administrator'}</p>
           </div>
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm text-white font-bold text-sm">
             {initials}

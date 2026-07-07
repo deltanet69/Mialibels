@@ -79,8 +79,9 @@ export async function proxy(request: NextRequest) {
 
     // RBAC validation
     const isSuperOrKepsek = role === 'superadmin' || role === 'kepsek'
+    const isGuruOrStaff = role === 'guru' || role === 'staff'
 
-    // Guru & Staff cannot access Users, Finance, Reports
+    // Only superadmin can access Users management
     if (pathname.startsWith('/users') && role !== 'superadmin') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
@@ -93,6 +94,22 @@ export async function proxy(request: NextRequest) {
     }
 
     if (pathname.startsWith('/reports') && !isSuperOrKepsek) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    // Staff can only access /content/posts — block other content sub-sections
+    if (role === 'staff' && pathname.startsWith('/content')) {
+      const allowedContentPaths = ['/content/posts']
+      const isAllowedContent = allowedContentPaths.some(
+        p => pathname === p || pathname.startsWith(p + '/')
+      )
+      if (!isAllowedContent) {
+        return NextResponse.redirect(new URL('/content/posts', request.url))
+      }
+    }
+
+    // Guru cannot access /content at all
+    if (role === 'guru' && pathname.startsWith('/content')) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }

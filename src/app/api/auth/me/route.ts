@@ -17,6 +17,7 @@ export async function GET() {
     const { payload } = await jwtVerify(token, secret)
 
     const res = NextResponse.json({
+      success: true,
       user: {
         id: payload.sub,
         email: payload.email,

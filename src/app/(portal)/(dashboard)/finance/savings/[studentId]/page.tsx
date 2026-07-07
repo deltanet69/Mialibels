@@ -48,7 +48,7 @@ export default function StudentSavingsDetail() {
   const { student, transactions } = data;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/finance/savings" className="p-2 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 rounded-xl transition shadow-sm">
