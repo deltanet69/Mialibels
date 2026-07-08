@@ -194,7 +194,7 @@ export default function GuruPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 text-sm font-semibold text-slate-500 uppercase tracking-wider">
@@ -298,6 +298,108 @@ export default function GuruPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Layout */}
+        <div className="block sm:hidden space-y-4">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm animate-pulse">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-slate-100 rounded w-32" />
+                    <div className="h-3 bg-slate-100 rounded w-24" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-100 rounded w-full" />
+                  <div className="h-3 bg-slate-100 rounded w-2/3" />
+                </div>
+              </div>
+            ))
+          ) : paginatedGuru.length === 0 ? (
+            <div className="text-center py-10 text-slate-500 bg-slate-50 rounded-xl border border-slate-100">
+              {hasActiveFilters
+                ? 'Tidak ada guru yang sesuai pencarian.'
+                : 'Tidak ada data guru/staff.'}
+            </div>
+          ) : (
+            paginatedGuru.map((guru) => (
+              <div key={guru.id} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm flex flex-col gap-3 relative">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Link href={`/guru/${guru.id}`} className="font-bold text-slate-800 text-lg hover:text-blue-600 transition block mb-0.5">
+                      {guru.name}
+                    </Link>
+                    <p className="text-sm font-semibold text-blue-600">{guru.position}</p>
+                  </div>
+                  {guru.is_active ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800">Aktif</span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">Nonaktif</span>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2 mt-1">
+                  {guru.phone && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Phone size={14} className="text-slate-400 shrink-0" /> {guru.phone}
+                    </div>
+                  )}
+                  {guru.email && (
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Mail size={14} className="text-slate-400 shrink-0" /> <span className="truncate">{guru.email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-50">
+                  {guru.homeroom_classrooms?.length > 0 && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold bg-indigo-50 border border-indigo-100 text-indigo-700 w-fit">
+                        Wali Kelas: {guru.homeroom_classrooms.map((c: any) => c.name).join(', ')}
+                      </span>
+                    </div>
+                  )}
+                  {guru.teaching_classes?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs text-slate-500 mr-1 flex items-center font-medium">Mengajar:</span>
+                      {guru.teaching_classes.map((cls: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                          {cls}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {!guru.homeroom_classrooms?.length && !guru.teaching_classes?.length && (
+                    <span className="text-slate-400 text-xs italic">Tidak ada tugas kelas</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 mt-1 border-t border-slate-50">
+                  <Link
+                    href={`/guru/${guru.id}`}
+                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                  >
+                    <Eye size={14} /> Detail
+                  </Link>
+                  <button
+                    onClick={() => { setEditingGuru(guru); setShowForm(true); }}
+                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition"
+                  >
+                    <Edit3 size={14} /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(guru.id, guru.name)}
+                    className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination Controls */}

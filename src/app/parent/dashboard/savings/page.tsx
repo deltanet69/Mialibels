@@ -108,7 +108,7 @@ export default function ParentSavingsPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center">

@@ -170,7 +170,7 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 text-sm font-semibold text-slate-500 uppercase tracking-wider">
@@ -243,6 +243,80 @@ export default function StudentsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Layout */}
+        <div className="block sm:hidden space-y-4">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm animate-pulse">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-slate-100 rounded w-32" />
+                    <div className="h-3 bg-slate-100 rounded w-24" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-100 rounded w-full" />
+                  <div className="h-3 bg-slate-100 rounded w-2/3" />
+                </div>
+              </div>
+            ))
+          ) : paginatedStudents.length === 0 ? (
+            <div className="text-center py-10 text-slate-500 bg-slate-50 rounded-xl border border-slate-100">
+              {search || classFilter !== 'all' ? `Tidak ada siswa yang sesuai pencarian.` : 'Tidak ada data siswa.'}
+            </div>
+          ) : (
+            paginatedStudents.map((student) => (
+              <div key={student.id} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm flex flex-col gap-3 relative">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Link href={`/students/${student.id}`} className="font-bold text-slate-800 text-lg hover:text-blue-600 transition block mb-0.5">
+                      {student.name}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
+                        Kelas {student.class}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">NIS: {student.student_number}</span>
+                    </div>
+                  </div>
+                  {student.is_active ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800">Aktif</span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800">Nonaktif</span>
+                  )}
+                </div>
+                
+                <div className="pt-3 border-t border-slate-50">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Data Wali Murid</p>
+                  <p className="text-sm font-semibold text-slate-700">{student.parent_name}</p>
+                  {student.parent_phone && <p className="text-xs text-slate-500 mt-0.5">{student.parent_phone}</p>}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 mt-1 border-t border-slate-50">
+                  <Link 
+                    href={`/students/${student.id}`}
+                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                  >
+                    <Eye size={14} /> Detail
+                  </Link>
+                  <button 
+                    onClick={() => { setEditingStudent(student); setShowForm(true); }}
+                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition"
+                  >
+                    <Edit3 size={14} /> Edit
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(student.id, student.name)}
+                    className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination Controls */}

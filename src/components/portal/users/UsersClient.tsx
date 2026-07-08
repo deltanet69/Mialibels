@@ -455,7 +455,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -560,6 +560,99 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card Layout */}
+        <div className="block sm:hidden space-y-4 p-4 pt-0">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm animate-pulse mt-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-slate-100 rounded w-32" />
+                    <div className="h-3 bg-slate-100 rounded w-24" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-100 rounded w-full" />
+                  <div className="h-3 bg-slate-100 rounded w-2/3" />
+                </div>
+              </div>
+            ))
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-slate-500 mt-4 bg-slate-50 rounded-xl border border-slate-100">
+              <Users size={40} className="mx-auto mb-3 text-slate-200" />
+              <p className="font-semibold text-slate-500">Tidak ada user ditemukan</p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              {filtered.map(user => {
+                const isSelf = currentUserId === user.id
+                const isDeleting = deletingId === user.id
+                return (
+                  <div key={user.id} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm flex flex-col gap-3 relative">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
+                            user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
+                              user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
+                                'bg-blue-100 text-blue-700'
+                          }`}>
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-800 text-base flex items-center gap-1.5">
+                            {user.name}
+                            {isSelf && (
+                              <span className="text-[10px] bg-blue-50 text-blue-500 border border-blue-100 px-1.5 py-0.5 rounded-md font-medium">
+                                Anda
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-400">{user.email}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2">
+                      <RoleBadge role={user.role} />
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${user.is_active
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                        }`}>
+                        {user.is_active ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                        {user.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+
+                    {isSuperAdmin && (
+                      <div className="flex items-center justify-end gap-2 pt-3 mt-1 border-t border-slate-50">
+                        <button
+                          onClick={() => { setEditingUser(user); setShowForm(true) }}
+                          className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                        >
+                          <Edit3 size={14} /> Edit
+                        </button>
+                        {!isSelf && (
+                          <button
+                            onClick={() => handleDelete(user)}
+                            disabled={isDeleting}
+                            className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition disabled:opacity-50"
+                          >
+                            {isDeleting
+                              ? <Loader2 size={16} className="animate-spin" />
+                              : <Trash2 size={16} />
+                            }
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {!loading && filtered.length > 0 && (
