@@ -93,7 +93,7 @@ export default function TiptapEditor({ content, onChange, onImageUpload }: Tipta
     const url = window.prompt('URL:', previousUrl)
     if (url === null) return
     if (url === '') { editor.chain().focus().unsetLink().run(); return }
-    editor.chain().focus().extendMarkToUrl().setLink({ href: url }).run()
+    editor.chain().focus().setLink({ href: url }).run()
   }, [editor])
 
   const addImage = useCallback(async () => {
