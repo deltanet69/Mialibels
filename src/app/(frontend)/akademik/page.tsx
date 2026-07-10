@@ -92,12 +92,12 @@ export default function AkademikPage() {
                   icon: <Award className="w-6 h-6 text-primary" />
                 },
                 {
-                  title: 'Kurikulum Khas Madrasah',
+                  title: 'Kurikulum Madrasah',
                   desc: 'Pendalaman ilmu agama Islam sebagai pondasi karakter dan spiritual siswa.',
                   icon: <Star className="w-6 h-6 text-accent" />
                 },
                 {
-                  title: 'Kokurikuler',
+                  title: 'Ekstrakurikuler',
                   desc: 'Pembelajaran mendalam berbasis proyek untuk melatih problem solving.',
                   icon: <Lightbulb className="w-6 h-6 text-green-500" />
                 }

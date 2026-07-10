@@ -47,13 +47,13 @@ export default function Header() {
 
             {/* ===== LOGO ===== */}
             <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-              <div className="relative w-30 h-30 sm:w-36 sm:h-36 flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+              <div className="relative w-[140px] h-[40px] sm:w-[170px] sm:h-[48px] flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
                 <Image
                   src="/logomi.png"
                   alt="Logo MI Attaqwa 15"
                   fill
                   priority
-                  className="object-contain"
+                  className="object-contain object-left"
                 />
               </div>
             </Link>

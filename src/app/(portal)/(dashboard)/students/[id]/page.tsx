@@ -51,7 +51,7 @@ export default function StudentDetailPage() {
   }
 
   const account = student.student_accounts?.[0]
-  const sppPayments = student.spp_payments || []
+  const sppPayments = student.spp_invoices || []
 
   return (
     <div className="space-y-6">

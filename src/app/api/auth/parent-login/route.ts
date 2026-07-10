@@ -5,9 +5,11 @@ import bcrypt from 'bcryptjs'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 
+// Use service role to bypass RLS for authentication
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { auth: { persistSession: false } }
 )
 
 export async function POST(request: NextRequest) {
@@ -16,35 +18,33 @@ export async function POST(request: NextRequest) {
 
     if (!nis || !password) {
       return NextResponse.json(
-        { error: 'NISN dan Password wajib diisi.' },
+        { error: 'NISN/NIS dan Password wajib diisi.' },
         { status: 400 }
       )
     }
 
-    // Authenticate parent by checking students table
-    const { data: student, error: dbError } = await supabase
+    const nisTrimmed = nis.trim()
+
+    // 1. Try by student_number (NIS internal, e.g. "2026001")
+    let { data: student } = await supabase
       .from('students')
-      .select('id, name, student_number, parent_name, parent_password, class, is_active')
-      .eq('student_number', nis.trim())
-      .single()
+      .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
+      .eq('student_number', nisTrimmed)
+      .maybeSingle()
 
-    if (dbError || !student) {
-      return NextResponse.json(
-        { error: 'NISN salah atau siswa tidak ditemukan.' },
-        { status: 401 }
-      )
+    // 2. Fallback: try by nisn (NISN national, e.g. "0123456701")
+    if (!student) {
+      const { data: byNisn } = await supabase
+        .from('students')
+        .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
+        .eq('nisn', nisTrimmed)
+        .maybeSingle()
+      student = byNisn
     }
 
-    let isPasswordValid = false;
-    if (student.parent_password) {
-      isPasswordValid = await bcrypt.compare(password, student.parent_password)
-    } else {
-      isPasswordValid = password === 'mialibels15'
-    }
-
-    if (!isPasswordValid) {
+    if (!student) {
       return NextResponse.json(
-        { error: 'Password salah.' },
+        { error: 'NISN/NIS tidak ditemukan dalam sistem.' },
         { status: 401 }
       )
     }
@@ -56,11 +56,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create JWT session token for parent
+    // Verify password
+    let isPasswordValid = false
+    if (student.parent_password) {
+      isPasswordValid = await bcrypt.compare(password, student.parent_password)
+    } else {
+      // Default password for all parents without custom password
+      isPasswordValid = password === 'mialibels15'
+    }
+
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: 'Password salah.' },
+        { status: 401 }
+      )
+    }
+
+    // Create JWT session with both NIS and NISN for fallback
     const secret = new TextEncoder().encode(JWT_SECRET)
     const token = await new SignJWT({
-      sub: student.id, // student id as subject
-      nis: student.student_number,
+      sub: student.id,                  // UUID — primary lookup key
+      nis: student.student_number,       // NIS internal (2026001)
+      nisn: student.nisn,               // NISN national (0123456701)
       studentName: student.name,
       parentName: student.parent_name,
       class: student.class,
@@ -76,13 +93,13 @@ export async function POST(request: NextRequest) {
       user: {
         studentId: student.id,
         nis: student.student_number,
+        nisn: student.nisn,
         studentName: student.name,
         parentName: student.parent_name,
         role: 'parent',
       },
     })
 
-    // Set parent session cookie
     response.cookies.set('parent_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

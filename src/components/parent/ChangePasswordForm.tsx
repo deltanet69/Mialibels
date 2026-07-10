@@ -57,8 +57,8 @@ export function ChangePasswordForm() {
           <KeyRound size={18} className="text-blue-600" />
         </div>
         <div>
-          <h3 className="font-bold text-slate-800">Ubah Password</h3>
-          <p className="text-xs text-slate-400">Password default: mialibels15</p>
+          <h3 className="font-bold text-xl text-slate-800">Ubah Password</h3>
+          <p className="text-md text-slate-400">Password default: mialibels15</p>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export function ChangePasswordForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-md transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</> : 'Simpan Password Baru'}
         </button>

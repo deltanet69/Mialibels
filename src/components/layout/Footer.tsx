@@ -19,18 +19,19 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
+const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
+    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
   </svg>
 );
 
 /* ── Data ─────────────────────────────────────── */
 const socialLinks = [
   { name: 'Facebook', href: '#', icon: FacebookIcon, hoverClass: 'hover:bg-[#1877F2] hover:border-[#1877F2]' },
-  { name: 'Instagram', href: 'https://instagram.com', icon: InstagramIcon, hoverClass: 'hover:bg-pink-500 hover:border-pink-500' },
-  { name: 'TikTok', href: '#', icon: TikTokIcon, hoverClass: 'hover:bg-gray-900 hover:border-gray-900' },
+  { name: 'Instagram', href: 'https://www.instagram.com/miattaqwa15/?hl=id', icon: InstagramIcon, hoverClass: 'hover:bg-pink-500 hover:border-pink-500' },
+  { name: 'Youtube', href: 'https://www.youtube.com/@miattaqwa15', icon: YoutubeIcon, hoverClass: 'hover:bg-red-600 hover:border-red-600' },
 ];
 
 const menuLinks = [
@@ -48,10 +49,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ─── Main Grid ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 py-12 border-b border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 py-12 border-b border-gray-100">
 
           {/* Col 1: Logo + tagline */}
-          <div className="sm:col-span-2 lg:col-span-1 flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-3 group w-fit">
               <Image
                 src="/logomi.png"
@@ -104,20 +105,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Col 3: Informasi Sekolah */}
-          <div className="flex flex-col gap-3">
-            <h4 className="font-headline font-bold text-sm text-secondary uppercase tracking-wider">
-              Informasi
-            </h4>
-            <ul className="flex flex-col gap-2 font-body text-sm text-gray-500">
-              <li>NPSN: <span className="font-semibold text-secondary">60709253</span></li>
-              <li>Akreditasi: <span className="font-semibold text-secondary">A (Unggul)</span></li>
-              <li>Status: <span className="font-semibold text-secondary">Swasta</span></li>
-              <li>Dibuka: <span className="font-semibold text-secondary">1 Januari 1970</span></li>
-            </ul>
-          </div>
 
-          {/* Col 4: Kontak & Alamat */}
+
+          {/* Col 3: Kontak & Alamat */}
           <div className="flex flex-col gap-3">
             <h4 className="font-headline font-bold text-sm text-secondary uppercase tracking-wider">
               Alamat

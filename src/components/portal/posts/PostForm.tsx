@@ -3,9 +3,8 @@
 import React, { useState } from 'react'
 import { X, FileText, Save } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import 'react-quill-new/dist/quill.snow.css'
 
-const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false })
+const TiptapEditor = dynamic(() => import('./TiptapEditor'), { ssr: false, loading: () => <div className="h-[400px] border border-slate-200 rounded-xl flex items-center justify-center text-slate-400">Memuat editor...</div> })
 
 type PostFormProps = {
   initialData?: any
@@ -29,8 +28,12 @@ export function PostForm({ initialData, onSuccess, onClose }: PostFormProps) {
     link: initialData?.link || '',
     reading_time: initialData?.reading_time || 0,
     content: initialData?.content || '',
-    // tags: initialData?.tags || [],
   })
+  
+  // Featured flag — stored as 'featured' in the tags array
+  const [isFeatured, setIsFeatured] = useState<boolean>(
+    Array.isArray(initialData?.tags) ? initialData.tags.includes('featured') : false
+  )
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -73,7 +76,11 @@ export function PostForm({ initialData, onSuccess, onClose }: PostFormProps) {
       const url = isEditing ? `/api/posts/${initialData.id}` : '/api/posts'
       const method = isEditing ? 'PUT' : 'POST'
 
-      const payload = { ...formData, reading_time: Number(formData.reading_time) }
+      const existingTags: string[] = Array.isArray(initialData?.tags) ? [...initialData.tags] : []
+      const tagsWithoutFeatured = existingTags.filter((t: string) => t !== 'featured')
+      const tags = isFeatured ? ['featured', ...tagsWithoutFeatured] : tagsWithoutFeatured
+
+      const payload = { ...formData, reading_time: Number(formData.reading_time), tags }
 
       const res = await fetch(url, {
         method,
@@ -209,9 +216,24 @@ export function PostForm({ initialData, onSuccess, onClose }: PostFormProps) {
               </div>
 
               <div className="space-y-1.5 col-span-1 md:col-span-2">
+                <label className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={isFeatured}
+                    onChange={(e) => setIsFeatured(e.target.checked)}
+                    className="w-4 h-4 rounded accent-blue-600"
+                  />
+                  <div>
+                    <span className="font-semibold text-slate-700 text-sm block">Jadikan Berita Unggulan (Featured)</span>
+                    <span className="text-xs text-slate-500">Berita unggulan akan tampil di slideshow utama halaman Berita & Artikel (maks. 3 artikel).</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="space-y-1.5 col-span-1 md:col-span-2">
                 <label className="text-sm font-medium text-slate-700">URL Eksternal / Tautan Tambahan (Opsional)</label>
-                <input 
-                  type="url" 
+                <input
+                  type="url"
                   name="link"
                   value={formData.link}
                   onChange={handleChange}
@@ -220,16 +242,19 @@ export function PostForm({ initialData, onSuccess, onClose }: PostFormProps) {
                 />
               </div>
 
-              <div className="space-y-1.5 col-span-1 md:col-span-2 pb-12">
+              <div className="space-y-1.5 col-span-1 md:col-span-2 pb-4">
                 <label className="text-sm font-medium text-slate-700">Konten Artikel *</label>
-                <div className="bg-white rounded-xl overflow-hidden border border-slate-200">
-                  <ReactQuill 
-                    theme="snow"
-                    value={formData.content}
-                    onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                    className="h-64 mb-10"
-                  />
-                </div>
+                <TiptapEditor
+                  content={formData.content}
+                  onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                  onImageUpload={async (file) => {
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                    const data = await res.json()
+                    return data.url || ''
+                  }}
+                />
               </div>
 
             </div>

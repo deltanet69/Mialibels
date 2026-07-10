@@ -23,7 +23,17 @@ export interface NewsArticle {
 // Helper to map Supabase post to NewsArticle
 function mapPostToArticle(post: any): NewsArticle {
   // Strip HTML tags for excerpt
-  const strippedContent = post.content ? post.content.replace(/<[^>]*>?/gm, '') : '';
+  let strippedContent = post.content ? post.content.replace(/<[^>]*>?/gm, '') : '';
+  // Decode common HTML entities
+  strippedContent = strippedContent
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+    
   const excerpt = strippedContent.length > 150 ? strippedContent.substring(0, 150) + '...' : strippedContent;
 
   return {

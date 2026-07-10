@@ -15,7 +15,7 @@ export async function GET(
       .select(`
         *,
         student_accounts (*),
-        spp_payments (*)
+        spp_invoices (*)
       `)
       .eq('id', id)
       .single()

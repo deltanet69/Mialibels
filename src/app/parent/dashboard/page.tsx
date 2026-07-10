@@ -17,11 +17,55 @@ import { createClient } from '@supabase/supabase-js';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-async function getDashboardData(studentId: string) {
-  const supabase = createClient(
+function getAdminSupabase() {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
   );
+}
+
+// Resolve the actual student UUID from JWT payload — handles stale tokens by falling back to NIS/NISN
+async function resolveStudentId(payload: any): Promise<string | null> {
+  const tokenId = payload.sub as string;
+  const tokenNis = payload.nis as string | undefined;
+  const tokenNisn = payload.nisn as string | undefined;
+
+  const supabase = getAdminSupabase();
+
+  // 1. Try by UUID (fastest path)
+  const { data: byId } = await supabase
+    .from('students')
+    .select('id')
+    .eq('id', tokenId)
+    .maybeSingle();
+  if (byId) return byId.id;
+
+  // 2. Fallback: student_number (NIS internal)
+  if (tokenNis) {
+    const { data: byNis } = await supabase
+      .from('students')
+      .select('id')
+      .eq('student_number', tokenNis)
+      .maybeSingle();
+    if (byNis) return byNis.id;
+  }
+
+  // 3. Fallback: nisn (NISN national)
+  if (tokenNisn) {
+    const { data: byNisn } = await supabase
+      .from('students')
+      .select('id')
+      .eq('nisn', tokenNisn)
+      .maybeSingle();
+    if (byNisn) return byNisn.id;
+  }
+
+  return null;
+}
+
+async function getDashboardData(studentId: string) {
+  const supabase = getAdminSupabase();
 
   const now = new Date();
   const year = now.getFullYear();
@@ -117,11 +161,14 @@ export default async function ParentDashboardHome() {
         nis: (payload.nis as string) || '',
         studentId: payload.sub as string,
       };
-      if (studentData.studentId) {
-        dashboardData = await getDashboardData(studentData.studentId);
+      // Resolve actual student ID (handles stale tokens)
+      const resolvedId = await resolveStudentId(payload);
+      if (resolvedId) {
+        studentData.studentId = resolvedId;
+        dashboardData = await getDashboardData(resolvedId);
       }
     } catch (e) {
-      console.error('Token verification failed on dashboard', e);
+      // Silent fail — token might be invalid/expired
     }
   }
 
@@ -159,7 +206,7 @@ export default async function ParentDashboardHome() {
       {/* Welcome Message */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-2 font-sans">
-          Halo, {studentData.parentName} <span className="text-2xl">👋</span>
+          Halo, {studentData.parentName} <span className="text-2xl"></span>
         </h1>
         <p className="text-slate-500 mt-1">
           Selamat datang di Portal Wali Murid MI Attaqwa 15.
@@ -216,7 +263,7 @@ export default async function ParentDashboardHome() {
             </div>
           </div>
           <div className="flex gap-4 border-t border-slate-50 pt-4">
-            <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">Lihat Riwayat &rarr;</span>
+            <span className="text-md font-semibold text-blue-600 flex items-center gap-1">Lihat Riwayat &rarr;</span>
           </div>
         </Link>
 
@@ -239,7 +286,7 @@ export default async function ParentDashboardHome() {
             </div>
           </div>
           <div className="flex gap-4 border-t border-slate-50 pt-4">
-            <span className="text-xs font-semibold text-amber-600 flex items-center gap-1">Buka Pembayaran &rarr;</span>
+            <span className="text-md font-semibold text-amber-600 flex items-center gap-1">Buka Pembayaran &rarr;</span>
           </div>
         </Link>
       </div>
@@ -250,11 +297,11 @@ export default async function ParentDashboardHome() {
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-lg text-slate-800 font-sans">Kehadiran Terkini</h3>
-            <Link href="/parent/dashboard/attendance" className="text-sm font-bold text-blue-600 hover:text-blue-700">Detail &rarr;</Link>
+            <Link href="/parent/dashboard/attendance" className="text-md font-bold text-blue-600 hover:text-blue-700">Detail &rarr;</Link>
           </div>
           <div className="space-y-4">
             {dashboardData.recentAttendance.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-sm">
+              <div className="text-center py-8 text-slate-400 text-md">
                 Belum ada data kehadiran
               </div>
             ) : (
@@ -271,7 +318,7 @@ export default async function ParentDashboardHome() {
                         </span>
                       </div>
                       {record.reason && (
-                        <p className="text-xs text-slate-500 mt-1 italic">Keterangan: {record.reason}</p>
+                        <p className="text-sm text-slate-500 mt-1 italic">Keterangan: {record.reason}</p>
                       )}
                     </div>
                   </div>
@@ -285,7 +332,7 @@ export default async function ParentDashboardHome() {
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-lg text-slate-800 font-sans">Tagihan Terbaru</h3>
-            <Link href="/parent/dashboard/spp" className="text-sm font-bold text-blue-600 hover:text-blue-700">Selengkapnya &rarr;</Link>
+            <Link href="/parent/dashboard/spp" className="text-md font-bold text-blue-600 hover:text-blue-700">Selengkapnya &rarr;</Link>
           </div>
           <div className="space-y-3">
             {dashboardData.sppInvoices.length === 0 ? (
