@@ -7,15 +7,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { data, error } = await supabase
       .from('learning_modules')
       .select('*, admins:created_by (name)')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) throw error
@@ -28,8 +29,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -37,7 +39,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { data: existing } = await supabase
       .from('learning_modules')
       .select('created_by')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
       
     if (!existing) return NextResponse.json({ error: 'Not Found' }, { status: 404 })
@@ -49,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { data, error } = await supabase
       .from('learning_modules')
       .update(body)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -62,8 +64,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     
@@ -72,7 +75,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       const { data: existing } = await supabase
         .from('learning_modules')
         .select('created_by')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
       if (!existing || existing.created_by !== session.id) {
          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -82,7 +85,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { error } = await supabase
       .from('learning_modules')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) throw error
 

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bot, ChevronRight, ChevronLeft, Save, Send, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Bot, ChevronRight, ChevronLeft, Save, Send, Loader2, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react'
 
 interface ModulFormProps {
   initialData?: any
@@ -88,7 +88,7 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
   }
 
   const removeArrayItem = (field: 'learning_objectives' | 'core_materials', index: number) => {
-    const newArray = formData[field].filter((_, i) => i !== index)
+    const newArray = formData[field].filter((_: string, i: number) => i !== index)
     setFormData({ ...formData, [field]: newArray })
   }
 
@@ -288,7 +288,7 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
                   <button onClick={() => addArrayItem('learning_objectives')} className="text-xs text-blue-600 hover:text-blue-700">+ Tambah TP</button>
                 </label>
                 <div className="space-y-3">
-                  {formData.learning_objectives.map((tp, i) => (
+                  {formData.learning_objectives.map((tp: string, i: number) => (
                     <div key={i} className="flex gap-3">
                       <div className="w-8 h-12 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 font-semibold">{i+1}</div>
                       <input type="text" value={tp} onChange={(e) => handleArrayChange('learning_objectives', i, e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder={`Tujuan Pembelajaran ${i+1}`} />
@@ -317,10 +317,10 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
                   <button onClick={() => addArrayItem('core_materials')} className="text-xs text-blue-600 hover:text-blue-700">+ Tambah Materi</button>
                 </label>
                 <div className="space-y-3">
-                  {formData.core_materials.map((mat, i) => (
+                  {formData.core_materials.map((materi: string, i: number) => (
                     <div key={i} className="flex gap-3">
                       <div className="w-8 h-12 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 font-semibold">{i+1}</div>
-                      <input type="text" value={mat} onChange={(e) => handleArrayChange('core_materials', i, e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder={`Materi Pokok ${i+1}`} />
+                      <input type="text" value={materi} onChange={(e) => handleArrayChange('core_materials', i, e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder={`Materi Pokok ${i+1}`} />
                       {formData.core_materials.length > 1 && (
                         <button onClick={() => removeArrayItem('core_materials', i)} className="p-3 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-colors"><Trash2 size={18} /></button>
                       )}
