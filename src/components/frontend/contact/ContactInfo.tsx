@@ -41,16 +41,16 @@ export default function ContactInfo() {
         <div>
           <h3 className="font-headline font-bold text-xl text-secondary mb-3">Alamat Lengkap</h3>
           <p className="font-body text-gray-600 leading-relaxed">
-            <strong>MI Attaqwa 15 Babelan Bekasi</strong><br />
-            Jl. Raya Pasar Babelan RT.05/RW.01<br />
-            Kec. Babelan, Kab. Bekasi<br />
-            Jawa Barat - Indonesia
+            <strong>MI Attaqwa 15 Babelan</strong><br />
+            Jl. Raya Ps. Babelan No.1,<br />
+            Babelan Kota, Kec. Babelan,<br />
+            Kabupaten Bekasi, Jawa Barat 17610
           </p>
         </div>
       </div>
 
       {/* Kontak Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-4">
         {CONTACT_DETAILS.map((contact, idx) => {
           const Icon = contact.icon;
           return (
@@ -73,16 +73,6 @@ export default function ContactInfo() {
         })}
       </div>
 
-      {/* Jam Kerja TU */}
-      <div className="bg-[#EFF3FB] rounded-3xl p-8 border border-blue-50 flex items-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm">
-          <Clock className="w-7 h-7 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-headline font-bold text-lg text-secondary mb-1">Jam Kerja Tata Usaha (TU)</h3>
-          <p className="font-body text-gray-600 font-medium">Senin - Jumat | 08.00 - 14.00 WIB</p>
-        </div>
-      </div>
     </div>
   );
 }

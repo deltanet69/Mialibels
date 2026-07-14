@@ -98,7 +98,7 @@ export default function ParentLoginPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-slate-700 ml-1">Nomor Induk Siswa Nasional (NISN)</label>
+              <label className="text-sm font-bold text-slate-700 ml-1">ID Siswa</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                 <input
@@ -106,10 +106,11 @@ export default function ParentLoginPage() {
                   required
                   value={nis}
                   onChange={(e) => setNis(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-800 font-medium"
-                  placeholder="Misal: 2023001"
+                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-800 font-medium uppercase tracking-widest"
+                  placeholder="Misal: 01A2026001"
                 />
               </div>
+              <p className="text-xs text-slate-400 ml-2 mt-1">Format: {'{Kelas}{Tahun}{Nomor Urut}'} — contoh: 01A2026001</p>
             </div>
 
             <div className="space-y-1.5">

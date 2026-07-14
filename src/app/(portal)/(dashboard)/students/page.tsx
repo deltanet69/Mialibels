@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, UploadCloud, Search, Trash2, Edit3, Eye } from 'lucide-react'
+import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, RefreshCw } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import Link from 'next/link'
@@ -39,6 +39,8 @@ export default function StudentsPage() {
   const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenerateResult, setRegenerateResult] = useState<string | null>(null)
 
   // Fetch ALL students once on mount — no search param needed
   const fetchStudents = useCallback(async () => {
@@ -112,6 +114,41 @@ export default function StudentsPage() {
     }
   }
 
+  const handleRegenerateIds = async () => {
+    if (!confirm(
+      'Fitur ini akan meng-update ID Siswa SEMUA siswa ke format baru (' +
+      'contoh: 01A2026001) berdasarkan kelas dan urutan pendaftaran.\n\n' +
+      'Orang tua yang sudah login harus menggunakan ID baru saat login berikutnya.\n\n' +
+      'Lanjutkan?'
+    )) return
+
+    setRegenerating(true)
+    setRegenerateResult(null)
+    try {
+      const res = await fetch('/api/students/regenerate-ids', { method: 'PATCH' })
+      const data = await res.json()
+      if (res.ok) {
+        setRegenerateResult(`✅ ${data.message}`)
+        await fetchStudents() // Reload data
+      } else {
+        setRegenerateResult(`❌ Error: ${data.error}`)
+      }
+    } catch (err: any) {
+      setRegenerateResult(`❌ Koneksi gagal: ${err.message}`)
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
+  // Deteksi apakah student_number masih format lama (hanya angka / bukan format baru)
+  const isOldFormat = (sn: string | null) => {
+    if (!sn) return true
+    // Format baru: diawali huruf atau angka+huruf+angka, minimal 10 karakter
+    // Contoh baru: 01A2026001 (10 chars)
+    // Format lama: 2021221 (7 chars, hanya angka)
+    return /^\d+$/.test(sn) || sn.length < 10
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -119,7 +156,16 @@ export default function StudentsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Data Siswa</h1>
           <p className="text-slate-500">Kelola data siswa, absensi, dan profil.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+          <button 
+            onClick={handleRegenerateIds}
+            disabled={regenerating || loading}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-amber-300 text-amber-700 px-4 py-2.5 rounded-xl hover:bg-amber-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Update semua ID siswa ke format baru (01A2026001)"
+          >
+            <RefreshCw size={18} className={regenerating ? 'animate-spin' : ''} />
+            {regenerating ? 'Memperbarui...' : 'Perbarui ID Siswa'}
+          </button>
           <button 
             onClick={() => setShowImport(true)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
@@ -137,6 +183,18 @@ export default function StudentsPage() {
         </div>
       </div>
 
+      {/* Result notification */}
+      {regenerateResult && (
+        <div className={`px-5 py-4 rounded-xl text-sm font-medium flex items-start justify-between gap-4 border ${
+          regenerateResult.startsWith('✅') 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <span>{regenerateResult}</span>
+          <button onClick={() => setRegenerateResult(null)} className="shrink-0 font-bold opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
@@ -144,7 +202,7 @@ export default function StudentsPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input 
                 type="text" 
-                placeholder="Cari nama, NIS, atau kelas..." 
+                placeholder="Cari nama, ID Siswa, atau kelas..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
@@ -174,7 +232,7 @@ export default function StudentsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="pb-3 pr-4">NIS / NISN</th>
+                <th className="pb-3 pr-4">ID Siswa / NISN</th>
                 <th className="pb-3 pr-4">Nama Lengkap</th>
                 <th className="pb-3 pr-4">Kelas</th>
                 <th className="pb-3 pr-4">Orang Tua</th>
@@ -195,8 +253,17 @@ export default function StudentsPage() {
                 paginatedStudents.map((student) => (
                   <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition group">
                     <td className="py-3 pr-4">
-                      <div className="font-medium text-slate-700">{student.student_number}</div>
-                      {student.nisn && <div className="text-xs text-slate-500">{student.nisn}</div>}
+                      <div className={`font-mono font-semibold text-sm ${
+                        isOldFormat(student.student_number) ? 'text-amber-700' : 'text-blue-700'
+                      }`}>
+                        {student.student_number || '—'}
+                        {isOldFormat(student.student_number) && (
+                          <span className="ml-1.5 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                            Lama
+                          </span>
+                        )}
+                      </div>
+                      {student.nisn && <div className="text-xs text-slate-400 mt-0.5">NISN: {student.nisn}</div>}
                     </td>
                     <td className="py-3 pr-4">
                       <div className="font-medium text-slate-800">{student.name}</div>
@@ -278,7 +345,7 @@ export default function StudentsPage() {
                       <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
                         Kelas {student.class}
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">NIS: {student.student_number}</span>
+                      <span className="text-xs text-slate-500 font-medium">ID Siswa: {student.student_number}</span>
                     </div>
                   </div>
                   {student.is_active ? (

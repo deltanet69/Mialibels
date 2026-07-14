@@ -19,7 +19,7 @@ export default function ContactMap() {
 
         <div className="w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-lg border-4 border-white relative z-10">
           <iframe 
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1983.568478440786!2d107.03719003848777!3d-6.173873998971161!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69896395b057bf%3A0x6431952e391bd3fc!2sMI%20Attaqwa%2015%20Babelan%20Kota!5e0!3m2!1sen!2sid!4v1700000000000!5m2!1sen!2sid" 
+            src="https://www.google.com/maps?q=Jl.+Raya+Ps.+Babelan+No.1,+Babelan+Kota,+Kec.+Babelan,+Kabupaten+Bekasi,+Jawa+Barat+17610&output=embed" 
             width="100%" 
             height="100%" 
             style={{ border: 0 }} 

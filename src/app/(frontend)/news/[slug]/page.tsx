@@ -113,13 +113,21 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
         */}
         <article 
           className="max-w-none font-body text-gray-700 text-lg leading-relaxed
-            [&>p]:mb-6
-            [&>h2]:font-headline [&>h2]:font-bold [&>h2]:text-2xl [&>h2]:text-secondary [&>h2]:mt-10 [&>h2]:mb-4
-            [&>h3]:font-headline [&>h3]:font-bold [&>h3]:text-xl [&>h3]:text-secondary [&>h3]:mt-8 [&>h3]:mb-3
-            [&>blockquote]:border-l-4 [&>blockquote]:border-primary [&>blockquote]:bg-gray-50 [&>blockquote]:py-4 [&>blockquote]:px-6 [&>blockquote]:rounded-r-2xl [&>blockquote]:italic [&>blockquote]:text-secondary [&>blockquote]:font-medium [&>blockquote]:my-8
-            [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:mb-6 [&>ul>li]:mb-2
-            [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:mb-6 [&>ol>li]:mb-2
-            [&>a]:text-primary [&>a]:underline hover:[&>a]:text-blue-700"
+            [&_p]:mb-6
+            [&_h1]:font-headline [&_h1]:font-bold [&_h1]:text-3xl [&_h1]:text-secondary [&_h1]:mt-10 [&_h1]:mb-4
+            [&_h2]:font-headline [&_h2]:font-bold [&_h2]:text-2xl [&_h2]:text-secondary [&_h2]:mt-10 [&_h2]:mb-4
+            [&_h3]:font-headline [&_h3]:font-bold [&_h3]:text-xl [&_h3]:text-secondary [&_h3]:mt-8 [&_h3]:mb-3
+            [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:bg-gray-50 [&_blockquote]:py-4 [&_blockquote]:px-6 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:text-secondary [&_blockquote]:font-medium [&_blockquote]:my-8
+            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-6 [&_ul_li]:mb-2
+            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-6 [&_ol_li]:mb-2
+            [&_a]:text-primary [&_a]:underline hover:[&_a]:text-blue-700
+            [&_table]:w-full [&_table]:border-collapse [&_table]:my-6
+            [&_th]:border [&_th]:border-gray-300 [&_th]:p-3 [&_th]:bg-gray-50 [&_th]:font-bold
+            [&_td]:border [&_td]:border-gray-300 [&_td]:p-3
+            [&_img]:rounded-2xl [&_img]:max-w-full [&_img]:mx-auto [&_img]:my-8
+            [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-2xl [&_iframe]:my-8
+            [&_pre]:bg-slate-800 [&_pre]:text-slate-100 [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:overflow-x-auto [&_pre]:my-6
+            [&_code]:bg-gray-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono"
           dangerouslySetInnerHTML={{ __html: article.content }}
         />
 

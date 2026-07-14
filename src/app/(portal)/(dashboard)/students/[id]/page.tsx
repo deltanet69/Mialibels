@@ -75,7 +75,13 @@ export default function StudentDetailPage() {
             <User size={40} />
           </div>
           <h2 className="text-xl font-bold text-slate-800">{student.name}</h2>
-          <p className="text-slate-500 font-medium mt-1">{student.student_number} • {student.class}</p>
+          <div className="mt-1 flex items-center justify-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-mono tracking-widest">
+              {student.student_number || 'Belum ada ID'}
+            </span>
+            <span className="text-slate-400 text-sm">·</span>
+            <span className="text-slate-500 font-medium text-sm">{student.class}</span>
+          </div>
           
           <div className="mt-4">
             {student.is_active ? (
@@ -123,6 +129,13 @@ export default function StudentDetailPage() {
           >
             <Edit3 size={18} /> Edit Profil
           </button>
+
+          <button 
+            onClick={() => alert('Fitur Cetak Kartu Siswa sedang dalam pengembangan.')}
+            className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2.5 rounded-xl hover:bg-blue-100 transition font-medium"
+          >
+            <ShieldCheck size={18} /> Download Kartu Siswa
+          </button>
         </div>
 
         {/* Right Column: Tabs */}
@@ -151,8 +164,22 @@ export default function StudentDetailPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 min-h-[400px]">
             {activeTab === 'profil' && (
               <div className="space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">Informasi Tambahan</h3>
+                <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">Informasi Siswa</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* ID Siswa Unik */}
+                  <div className="md:col-span-2 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">ID Unik Siswa (untuk Login Portal Wali Murid)</p>
+                    <p className="text-2xl font-black font-mono tracking-widest text-blue-700">{student.student_number || '—'}</p>
+                    <p className="text-xs text-blue-500 mt-1">Berikan ID ini kepada Wali Murid untuk login ke Portal Orang Tua.</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">NISN (Nasional)</p>
+                    <p className="text-slate-800 font-medium">{student.nisn || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">Kelas</p>
+                    <p className="text-slate-800 font-medium">{student.class || '—'}</p>
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">Didaftarkan Pada</p>
                     <p className="text-slate-800">{new Date(student.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>

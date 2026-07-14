@@ -7,24 +7,32 @@ import { jwtVerify } from 'jose'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 
+import { redirect } from 'next/navigation'
+
 async function getSessionData() {
   const cookieStore = await cookies()
   const token = cookieStore.get('parent_session')?.value
-  if (!token) return { studentName: '', parentName: '' }
+  if (!token) redirect('/parent/login') // Also enforce login just in case
   try {
     const secret = new TextEncoder().encode(JWT_SECRET)
     const { payload } = await jwtVerify(token, secret)
     return {
       studentName: (payload.studentName as string) || '',
       parentName: (payload.parentName as string) || '',
+      isDefaultPassword: payload.isDefaultPassword === true,
     }
   } catch {
-    return { studentName: '', parentName: '' }
+    redirect('/parent/login')
   }
 }
 
 export default async function ParentDashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSessionData()
+
+  // Redirect to change-password if they are using the default password
+  if (session.isDefaultPassword) {
+    redirect('/parent/change-password')
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">

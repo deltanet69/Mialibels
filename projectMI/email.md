@@ -48,3 +48,8 @@ Kenapa Mailgun?
 | **Gmail SMTP**        | ⭐⭐⭐⭐⭐                          | Gratis, simple, 500/hari cukup          |
 | **SMTP2GO**           | ⭐⭐⭐⭐                             | 1000/bulan, no domain verify            |
 | **Zoho Mail**         | ⭐⭐⭐                               | Gratis, setup DNS diperlukan           |
+
+
+
+
+Email ini nantinya akan digunakan sebagai push notifikasi kepada orang tua terkait pembayaran SPP Sekolah, informasi kegiatan, event sekolah, dan lainnya.

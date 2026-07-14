@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, AlertCircle, Clock, Save, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertCircle, Clock, Save, Loader2, CalendarDays, BarChart2 } from 'lucide-react';
+import { ClassroomAttendanceRecap } from './ClassroomAttendanceRecap';
 
 type Student = { id: string; name: string; student_number: string };
 type AttendanceStatus = 'Hadir' | 'Izin' | 'Sakit' | 'Alpha' | '';
@@ -24,6 +25,7 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'daily' | 'recap'>('daily');
 
   useEffect(() => {
     if (!classroomId) return;
@@ -145,8 +147,32 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Mode Toggle */}
+      <div className="bg-slate-100 p-1 rounded-xl inline-flex mb-2">
+        <button
+          onClick={() => setViewMode('daily')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            viewMode === 'daily' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <CalendarDays size={16} /> Pencatatan Harian
+        </button>
+        <button
+          onClick={() => setViewMode('recap')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            viewMode === 'recap' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <BarChart2 size={16} /> Rekap Bulanan
+        </button>
+      </div>
+
+      {viewMode === 'recap' ? (
+        <ClassroomAttendanceRecap classroomId={classroomId} />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold text-slate-800">Absensi Kelas</h3>
           <p className="text-sm text-slate-500">Pilih tanggal untuk melihat/mengubah absensi</p>
@@ -259,5 +285,7 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
         </table>
       </div>
     </div>
+    )}
+  </div>
   );
 }

@@ -1,130 +1,230 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { jwtVerify } from 'jose'
+import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET!
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Route Groups
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Routes that are fully public — no auth required */
+const PUBLIC_PATHS: string[] = [
+  '/',
+  '/login',
+  '/berita',
+  '/galeri',
+  '/tentang',
+  '/prestasi',
+  '/kontak',
+  '/parent/login',
+  '/parent/change-password',
+];
+
+/** API routes that are publicly accessible (no session check) */
+const PUBLIC_API_PREFIXES: string[] = [
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/auth/parent-login',
+  '/api/auth/parent-change-password',
+  '/api/public',
+  '/api/posts',
+  '/api/galleries',
+  '/api/banners',
+  '/api/testimonials',
+  '/api/staffs',         // public staff list for frontend
+];
+
+/** Admin portal pages — require valid admin_session */
+const ADMIN_PREFIXES: string[] = [
+  '/dashboard',
+  '/students',
+  '/classroom',
+  '/guru',
+  '/absensi-guru',
+  '/attendance',
+  '/finance',
+  '/content',
+  '/reports',
+  '/users',
+  '/profile',
+];
+
+/** API routes that require admin_session */
+const ADMIN_API_PREFIXES: string[] = [
+  '/api/students',
+  '/api/classrooms',
+  '/api/guru',
+  '/api/attendance',
+  '/api/finance',
+  '/api/content',
+  '/api/reports',
+  '/api/users',
+  '/api/profile',
+];
+
+/** Parent portal — requires valid parent_session */
+const PARENT_PREFIX = '/parent/dashboard';
+
+/** Parent API — requires valid parent_session */
+const PARENT_API_PREFIX = '/api/parent';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function matchesAny(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((prefix) =>
+    pathname === prefix || pathname.startsWith(prefix + '/') || pathname.startsWith(prefix + '?')
+  );
+}
+
+function isPublicPath(pathname: string): boolean {
+  // Exact match or starts with /berita/, /galeri/, etc.
+  return PUBLIC_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p + '?')
+  );
+}
+
+async function verifyJWT(token: string): Promise<{ payload: any } | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return { payload };
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Middleware
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
-  
-  // Define admin paths to protect
-  const protectedPrefixes = [
-    '/dashboard',
-    '/guru',
-    '/students',
-    '/classroom',
-    '/attendance',
-    '/finance',
-    '/content',
-    '/reports',
-    '/users'
-  ]
-  
-  const isProtectedPath = protectedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'))
-  const isLoginPage = pathname === '/login'
+  const { pathname } = request.nextUrl;
 
-  const isParentPath = pathname.startsWith('/parent/')
-  const isParentLoginPage = pathname === '/parent/login'
-
-  // Get user session from cookie
-  const token = request.cookies.get('admin_session')?.value
-  const parentToken = request.cookies.get('parent_session')?.value
-  
-  let user: any = null
-  let parentUser: any = null
-
-  if (token && JWT_SECRET) {
-    try {
-      const secret = new TextEncoder().encode(JWT_SECRET)
-      const { payload } = await jwtVerify(token, secret)
-      user = payload
-    } catch (err) {
-      user = null
-    }
+  // ── 1. Static assets & Next.js internals ─────────────────────────────────
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/logomi') ||
+    /\.(ico|png|jpg|jpeg|svg|webp|gif|woff2?|ttf|otf|css|js|map)$/.test(pathname)
+  ) {
+    return NextResponse.next();
   }
 
-  if (parentToken && JWT_SECRET) {
-    try {
-      const secret = new TextEncoder().encode(JWT_SECRET)
-      const { payload } = await jwtVerify(parentToken, secret)
-      parentUser = payload
-    } catch (err) {
-      parentUser = null
-    }
+  // ── 2. Public pages ───────────────────────────────────────────────────────
+  if (isPublicPath(pathname)) {
+    return NextResponse.next();
   }
 
-  // Guard Parent paths
-  if (isParentPath && !isParentLoginPage) {
-    if (!parentUser) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/parent/login'
-      return NextResponse.redirect(url)
-    }
+  // ── 3. Public API prefixes ────────────────────────────────────────────────
+  if (matchesAny(pathname, PUBLIC_API_PREFIXES)) {
+    return NextResponse.next();
   }
 
-  if (isParentLoginPage && parentUser) {
-    return NextResponse.redirect(new URL('/parent/dashboard', request.url))
+  // ── 4. Admin API routes ───────────────────────────────────────────────────
+  if (matchesAny(pathname, ADMIN_API_PREFIXES)) {
+    const token = request.cookies.get('admin_session')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized. Sesi tidak ditemukan.' }, { status: 401 });
+    }
+    const verified = await verifyJWT(token);
+    if (!verified) {
+      const response = NextResponse.json({ error: 'Sesi tidak valid atau sudah kadaluarsa.' }, { status: 401 });
+      response.cookies.delete('admin_session');
+      return response;
+    }
+    return NextResponse.next();
   }
 
-  // Guard protected admin paths
-  if (isProtectedPath) {
-    if (!user) {
-      // Not logged in -> redirect to login
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
+  // ── 5. Parent API routes ──────────────────────────────────────────────────
+  if (pathname.startsWith(PARENT_API_PREFIX)) {
+    const token = request.cookies.get('parent_session')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized. Sesi orang tua tidak ditemukan.' }, { status: 401 });
     }
-
-    const role = user.role // 'superadmin', 'kepsek', 'guru', 'staff'
-
-    // RBAC validation
-    const isSuperOrKepsek = role === 'superadmin' || role === 'kepsek'
-    const isGuruOrStaff = role === 'guru' || role === 'staff'
-
-    // Only superadmin can access Users management
-    if (pathname.startsWith('/users') && role !== 'superadmin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    const verified = await verifyJWT(token);
+    if (!verified) {
+      const response = NextResponse.json({ error: 'Sesi tidak valid atau sudah kadaluarsa.' }, { status: 401 });
+      response.cookies.delete('parent_session');
+      return response;
     }
-    
-    if (pathname.startsWith('/finance') && !isSuperOrKepsek) {
-      // Temporary fallback for bendahara if still needed, but per new RBAC, superadmin & kepsek have access
-      if (role !== 'bendahara') {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      }
-    }
-
-    if (pathname.startsWith('/reports') && !isSuperOrKepsek) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-    // Staff can only access /content/posts — block other content sub-sections
-    if (role === 'staff' && pathname.startsWith('/content')) {
-      const allowedContentPaths = ['/content/posts']
-      const isAllowedContent = allowedContentPaths.some(
-        p => pathname === p || pathname.startsWith(p + '/')
-      )
-      if (!isAllowedContent) {
-        return NextResponse.redirect(new URL('/content/posts', request.url))
-      }
-    }
-
-    // Guru cannot access /content at all
-    if (role === 'guru' && pathname.startsWith('/content')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+    return NextResponse.next();
   }
 
-  // If user is already logged in and tries to access /login, redirect to /dashboard
-  if (isLoginPage && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  // ── 6. Admin portal pages ─────────────────────────────────────────────────
+  if (matchesAny(pathname, ADMIN_PREFIXES)) {
+    const token = request.cookies.get('admin_session')?.value;
+
+    if (!token) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const verified = await verifyJWT(token);
+    if (!verified) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('expired', '1');
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete('admin_session');
+      return response;
+    }
+
+    // ── RBAC: Role-based route restriction ──────────────────────────────────
+    const role = verified.payload.role as string;
+
+    const SUPERADMIN_ONLY: string[] = ['/users'];
+    const FINANCE_ONLY: string[] = ['/finance'];
+
+    if (matchesAny(pathname, SUPERADMIN_ONLY) && role !== 'superadmin') {
+      // Redirect to dashboard with access denied notice
+      return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
+    }
+
+    if (matchesAny(pathname, FINANCE_ONLY) && !['superadmin', 'kepsek'].includes(role)) {
+      return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
+    }
+
+    return NextResponse.next();
   }
 
-  return NextResponse.next()
+  // ── 7. Parent portal pages ────────────────────────────────────────────────
+  if (pathname.startsWith(PARENT_PREFIX)) {
+    const token = request.cookies.get('parent_session')?.value;
+
+    if (!token) {
+      const loginUrl = new URL('/parent/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const verified = await verifyJWT(token);
+    if (!verified) {
+      const loginUrl = new URL('/parent/login', request.url);
+      loginUrl.searchParams.set('expired', '1');
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete('parent_session');
+      return response;
+    }
+
+    return NextResponse.next();
+  }
+
+  // ── 8. Default: allow through ─────────────────────────────────────────────
+  return NextResponse.next();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Matcher — only intercept relevant paths (skip static files)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|images|.*\\..*).*)',
+    /*
+     * Match everything EXCEPT:
+     * - _next/static, _next/image  (Next.js internal)
+     * - public static files with extensions
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
-}
-
+};

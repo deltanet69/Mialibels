@@ -18,18 +18,19 @@ export async function POST(request: NextRequest) {
 
     if (!nis || !password) {
       return NextResponse.json(
-        { error: 'NISN/NIS dan Password wajib diisi.' },
+        { error: 'ID Siswa dan Password wajib diisi.' },
         { status: 400 }
       )
     }
 
-    const nisTrimmed = nis.trim()
+    // Normalize: trim and uppercase (since ID Siswa is like 01A2026001)
+    const nisTrimmed = nis.trim().toUpperCase()
 
-    // 1. Try by student_number (NIS internal, e.g. "2026001")
+    // 1. Try by student_number (ID Unik Siswa, e.g. "01A2026001")
     let { data: student } = await supabase
       .from('students')
       .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
-      .eq('student_number', nisTrimmed)
+      .ilike('student_number', nisTrimmed)
       .maybeSingle()
 
     // 2. Fallback: try by nisn (NISN national, e.g. "0123456701")
@@ -37,14 +38,14 @@ export async function POST(request: NextRequest) {
       const { data: byNisn } = await supabase
         .from('students')
         .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
-        .eq('nisn', nisTrimmed)
+        .eq('nisn', nis.trim()) // NISN is numeric, keep original case
         .maybeSingle()
       student = byNisn
     }
 
     if (!student) {
       return NextResponse.json(
-        { error: 'NISN/NIS tidak ditemukan dalam sistem.' },
+        { error: 'ID Siswa tidak ditemukan. Hubungi pihak sekolah untuk mendapatkan ID Siswa Anda.' },
         { status: 401 }
       )
     }
@@ -72,6 +73,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const isDefaultPassword = !student.parent_password
+
     // Create JWT session with both NIS and NISN for fallback
     const secret = new TextEncoder().encode(JWT_SECRET)
     const token = await new SignJWT({
@@ -82,6 +85,7 @@ export async function POST(request: NextRequest) {
       parentName: student.parent_name,
       class: student.class,
       role: 'parent',
+      isDefaultPassword,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -97,6 +101,7 @@ export async function POST(request: NextRequest) {
         studentName: student.name,
         parentName: student.parent_name,
         role: 'parent',
+        isDefaultPassword,
       },
     })
 

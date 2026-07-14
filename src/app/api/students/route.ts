@@ -70,12 +70,58 @@ export async function POST(request: NextRequest) {
       return classMap[cleanName] || null
     }
 
+    // Helper to generate unique student IDs
+    // Format: {2-digit class number}{class letter}{4-digit year}{3-digit sequence}
+    // Example: Kelas 1A → 01A2026001, Kelas 5B → 05B2026024
+    const sequenceMap: Record<string, number> = {}
+    const getNextStudentId = async (rawClass: string) => {
+      if (!rawClass) return `TMP${Date.now()}${Math.floor(Math.random() * 1000)}`
+
+      // Strip prefix "Kelas" and normalize
+      const cleanClass = rawClass.replace(/^kelas\s*/i, '').trim().toUpperCase()
+      // Extract leading digits (class number) and trailing letters (class letter)
+      const matchResult = cleanClass.match(/^(\d+)([A-Z]?)$/)
+      if (!matchResult) return `TMP${Date.now()}`
+      
+      const classNum  = matchResult[1].padStart(2, '0')  // e.g. "1" → "01"
+      const classLetter = matchResult[2] || ''            // e.g. "A"
+      const classCode = `${classNum}${classLetter}`       // e.g. "01A"
+      const year = new Date().getFullYear().toString()    // e.g. "2026"
+      const prefix = `${classCode}${year}`               // e.g. "01A2026"
+
+      if (sequenceMap[prefix] === undefined) {
+        // Query the DB for the last existing student_number with this prefix
+        const { data } = await supabase
+          .from('students')
+          .select('student_number')
+          .like('student_number', `${prefix}%`)
+          .order('student_number', { ascending: false })
+          .limit(1)
+        
+        let seq = 1
+        if (data && data.length > 0 && data[0].student_number) {
+          const suffix = data[0].student_number.slice(prefix.length) // last 3 digits
+          const parsed = parseInt(suffix, 10)
+          if (!isNaN(parsed) && parsed > 0) seq = parsed + 1
+        }
+        sequenceMap[prefix] = seq
+      } else {
+        sequenceMap[prefix]++
+      }
+
+      return `${prefix}${sequenceMap[prefix].toString().padStart(3, '0')}`
+    }
+
     if (isBulk && Array.isArray(students)) {
       // Bulk Insert Mode (e.g. from CSV)
-      const studentsToInsert = students.map(s => ({
-        ...s,
-        class_id: getClassId(s.class)
-      }))
+      const studentsToInsert = []
+      for (const s of students) {
+        studentsToInsert.push({
+          ...s,
+          student_number: await getNextStudentId(s.class),
+          class_id: getClassId(s.class)
+        })
+      }
 
       const { data: newStudents, error: insertError } = await supabase
         .from('students')
@@ -103,8 +149,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: newStudents?.length || 0 })
     } else {
       // Single Insert Mode
+      const generatedId = await getNextStudentId(body.class)
       const payload = {
         ...body,
+        student_number: generatedId,
         class_id: getClassId(body.class)
       }
 

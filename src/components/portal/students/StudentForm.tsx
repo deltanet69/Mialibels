@@ -18,7 +18,6 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
   const [formData, setFormData] = useState({
     nisn: initialData?.nisn || '',
     name: initialData?.name || '',
-    student_number: initialData?.student_number || '',
     class: initialData?.class || '',
     parent_name: initialData?.parent_name || '',
     parent_phone: initialData?.parent_phone || '',
@@ -98,18 +97,14 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Nomor Induk Siswa (NIS) *</label>
-                <input 
-                  required
-                  type="text" 
-                  name="student_number"
-                  value={formData.student_number}
-                  onChange={handleChange}
-                  placeholder="Misal: 2023001"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
-                />
-              </div>
+              {/* Nomor Induk Siswa dihilangkan karena di-generate otomatis oleh sistem */}
+
+              {!isEditing && (
+                <div className="col-span-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 flex items-start gap-2">
+                  <span className="text-blue-500 font-bold shrink-0 mt-0.5">ℹ</span>
+                  <span><strong>ID Siswa</strong> akan digenerate otomatis oleh sistem setelah data disimpan.<br/>Format: <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-xs">01A2026001</code> → {`{Kelas}{Tahun}{No Urut}`}</span>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">Nama Lengkap Siswa *</label>
@@ -134,18 +129,42 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
                 >
                   <option value="" disabled>Pilih Kelas</option>
-                  <option value="Kelas 1A">Kelas 1A</option>
-                  <option value="Kelas 1B">Kelas 1B</option>
-                  <option value="Kelas 2A">Kelas 2A</option>
-                  <option value="Kelas 2B">Kelas 2B</option>
-                  <option value="Kelas 3A">Kelas 3A</option>
-                  <option value="Kelas 3B">Kelas 3B</option>
-                  <option value="Kelas 4A">Kelas 4A</option>
-                  <option value="Kelas 4B">Kelas 4B</option>
-                  <option value="Kelas 5A">Kelas 5A</option>
-                  <option value="Kelas 5B">Kelas 5B</option>
-                  <option value="Kelas 6A">Kelas 6A</option>
-                  <option value="Kelas 6B">Kelas 6B</option>
+                  <optgroup label="Kelas 1">
+                    <option value="Kelas 1A">Kelas 1A</option>
+                    <option value="Kelas 1B">Kelas 1B</option>
+                    <option value="Kelas 1C">Kelas 1C</option>
+                    <option value="Kelas 1D">Kelas 1D</option>
+                  </optgroup>
+                  <optgroup label="Kelas 2">
+                    <option value="Kelas 2A">Kelas 2A</option>
+                    <option value="Kelas 2B">Kelas 2B</option>
+                    <option value="Kelas 2C">Kelas 2C</option>
+                    <option value="Kelas 2D">Kelas 2D</option>
+                  </optgroup>
+                  <optgroup label="Kelas 3">
+                    <option value="Kelas 3A">Kelas 3A</option>
+                    <option value="Kelas 3B">Kelas 3B</option>
+                    <option value="Kelas 3C">Kelas 3C</option>
+                    <option value="Kelas 3D">Kelas 3D</option>
+                  </optgroup>
+                  <optgroup label="Kelas 4">
+                    <option value="Kelas 4A">Kelas 4A</option>
+                    <option value="Kelas 4B">Kelas 4B</option>
+                    <option value="Kelas 4C">Kelas 4C</option>
+                    <option value="Kelas 4D">Kelas 4D</option>
+                  </optgroup>
+                  <optgroup label="Kelas 5">
+                    <option value="Kelas 5A">Kelas 5A</option>
+                    <option value="Kelas 5B">Kelas 5B</option>
+                    <option value="Kelas 5C">Kelas 5C</option>
+                    <option value="Kelas 5D">Kelas 5D</option>
+                  </optgroup>
+                  <optgroup label="Kelas 6">
+                    <option value="Kelas 6A">Kelas 6A</option>
+                    <option value="Kelas 6B">Kelas 6B</option>
+                    <option value="Kelas 6C">Kelas 6C</option>
+                    <option value="Kelas 6D">Kelas 6D</option>
+                  </optgroup>
                 </select>
               </div>
 

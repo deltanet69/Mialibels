@@ -13,6 +13,7 @@ import {
   CreditCard,
   PiggyBank,
   FileText,
+  BookOpen,
   Image as ImageIcon,
   Megaphone,
   MessageSquare,
@@ -147,6 +148,9 @@ export function SidebarClient({ role, userName }: Props) {
                   </Link>
                   <Link href="/classroom" className={linkClass('/classroom')} onClick={() => setIsOpen(false)}>
                     <School size={20} /> <span className="font-medium">Classroom</span>
+                  </Link>
+                  <Link href="/modul-pembelajaran" className={linkClass('/modul-pembelajaran')} onClick={() => setIsOpen(false)}>
+                    <BookOpen size={20} /> <span className="font-medium">Modul Pembelajaran</span>
                   </Link>
                 </div>
               </div>

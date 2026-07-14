@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Mail } from 'lucide-react';
+import { Mail, Clock } from 'lucide-react';
 
 export default function ContactHero() {
   return (
@@ -38,6 +38,17 @@ export default function ContactHero() {
         <p className="font-body text-gray-600 text-lg md:text-xl leading-relaxed max-w-2xl animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           Kami siap membantu! Silakan hubungi kami melalui informasi di bawah atau kirimkan pesan langsung melalui formulir kontak.
         </p>
+
+        {/* Jam Kerja TU */}
+        <div className="mt-10 inline-flex items-center gap-4 bg-white px-6 py-4 rounded-full border border-blue-100 shadow-sm animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5 text-primary" />
+          </div>
+          <div className="text-left">
+            <p className="font-headline font-bold text-sm text-secondary leading-tight">Jam Kerja Tata Usaha (TU)</p>
+            <p className="font-body text-sm text-gray-600 font-medium leading-tight mt-0.5">Senin - Jumat | 08.00 - 14.00 WIB</p>
+          </div>
+        </div>
       </div>
     </section>
   );

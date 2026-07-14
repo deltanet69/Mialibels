@@ -1,18 +1,26 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Bell, CheckCircle2, DollarSign } from 'lucide-react';
+import { Menu, Bell, CheckCircle2, DollarSign, User, LogOut } from 'lucide-react';
 import { useSidebar } from './SidebarProvider';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export function NavbarClient({ user }: { user: any }) {
   const { setIsOpen } = useSidebar();
+  const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -22,6 +30,12 @@ export function NavbarClient({ user }: { user: any }) {
   const initials = user?.name 
     ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
     : 'U';
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30">
@@ -81,14 +95,45 @@ export function NavbarClient({ user }: { user: any }) {
         
         <div className="h-8 w-px bg-slate-200"></div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:block text-right">
-            <p className="text-sm font-semibold text-slate-800 leading-tight">{user?.name || 'Admin'}</p>
-            <p className="text-xs text-slate-500 capitalize">{user?.role?.toLowerCase() || 'Administrator'}</p>
+        <div className="relative" ref={profileRef}>
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1.5 rounded-xl transition"
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+          >
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-semibold text-slate-800 leading-tight">{user?.name || 'Admin'}</p>
+              <p className="text-xs text-slate-500 capitalize">{user?.role?.toLowerCase() || 'Administrator'}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center overflow-hidden shadow-sm text-white font-bold text-sm">
+              {initials}
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center overflow-hidden cursor-pointer shadow-sm text-white font-bold text-sm">
-            {initials}
-          </div>
+
+          {showProfileMenu && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-4 duration-200">
+              <div className="px-4 py-3 border-b border-slate-50 mb-1">
+                <p className="text-sm font-bold text-slate-800">{user?.name || 'Admin'}</p>
+                <p className="text-xs text-slate-500 truncate">{user?.email || 'admin@miattaqwa15.sch.id'}</p>
+              </div>
+              <div className="px-2">
+                <Link 
+                  href="/profile"
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-3 w-full text-left px-3 py-2.5 hover:bg-slate-50 rounded-xl transition text-sm font-medium text-slate-700"
+                >
+                  <User size={18} className="text-slate-400" />
+                  Profil Saya
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full text-left px-3 py-2.5 hover:bg-red-50 rounded-xl transition text-sm font-medium text-red-600 mt-1"
+                >
+                  <LogOut size={18} />
+                  Keluar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
