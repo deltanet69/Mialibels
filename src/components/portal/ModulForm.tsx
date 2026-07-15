@@ -93,8 +93,8 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
   }
 
   const handleGenerateAI = async () => {
-    if (!formData.title || !formData.subject || !formData.grade || !formData.phase) {
-      setError('Mohon lengkapi Informasi Dasar (Judul, Mapel, Kelas, Fase) sebelum menggunakan AI.')
+    if (!formData.title || !formData.subject || !formData.grade) {
+      setError('Mohon lengkapi Informasi Dasar (Judul, Mapel, dan Kelas) sebelum menggunakan Generate dengan AI.')
       return
     }
     

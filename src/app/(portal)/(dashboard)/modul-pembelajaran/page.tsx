@@ -19,7 +19,8 @@ interface Modul {
 export default function ModulPembelajaranPage() {
   const [modules, setModules] = useState<Modul[]>([])
   const [allModules, setAllModules] = useState<Modul[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [initialLoad, setInitialLoad] = useState(true)
   
   // Filters
   const [search, setSearch] = useState('')
@@ -49,6 +50,7 @@ export default function ModulPembelajaranPage() {
       console.error(err)
     } finally {
       setLoading(false)
+      setInitialLoad(false)
     }
   }
 
@@ -101,7 +103,11 @@ export default function ModulPembelajaranPage() {
       <div className="bg-white/60 backdrop-blur-md p-4 rounded-3xl border border-slate-200/60 shadow-[0_2px_20px_rgb(0,0,0,0.02)] flex flex-col lg:flex-row gap-4">
         <div className="relative flex-grow group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500">
-            <Search className="text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+            {loading && !initialLoad ? (
+              <Loader2 className="text-blue-500 animate-spin" size={18} />
+            ) : (
+              <Search className="text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+            )}
           </div>
           <input
             type="text"
@@ -153,7 +159,7 @@ export default function ModulPembelajaranPage() {
       </div>
 
       {/* Modules Grid */}
-      {loading ? (
+      {initialLoad ? (
         <div className="flex flex-col items-center justify-center py-24">
           <div className="relative">
             <div className="absolute inset-0 bg-blue-100 rounded-full blur-xl animate-pulse"></div>

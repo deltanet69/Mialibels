@@ -53,7 +53,10 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, data })
+    const res = NextResponse.json({ success: true, data })
+    // Cache for 10 seconds, then serve stale while revalidating in background (instant load UX)
+    res.headers.set('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
+    return res
   } catch (error: any) {
     console.error('Error fetching learning modules:', error)
     return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })

@@ -1,4 +1,4 @@
-# Laporan Capaian Proyek MI Al-Wathoniyah 15
+# Laporan Capaian Proyek MI Attaqwa 15
 
 Dokumen ini merangkum seluruh fitur yang **telah berhasil diimplementasikan**, fitur yang **belum ada**, serta **rekomendasi fitur masa depan** yang sangat esensial untuk memaksimalkan ekosistem digital madrasah ini.
 
