@@ -133,9 +133,11 @@ export async function proxy(request: NextRequest) {
   // ADMIN SUBDOMAIN — smart.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'admin') {
+    // Public: login page & all public API (auth login, logout, etc.)
     if (pathname === '/login') return NextResponse.next();
+    if (matchesAny(pathname, PUBLIC_API_PREFIXES)) return NextResponse.next();
 
-    // Admin API on subdomain
+    // Admin API on subdomain — require admin_session
     if (matchesAny(pathname, ADMIN_API_PREFIXES)) {
       const token = request.cookies.get('admin_session')?.value;
       if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -175,13 +177,14 @@ export async function proxy(request: NextRequest) {
   // PARENT SUBDOMAIN — parent.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'parent') {
-    // Public: login & change-password
+    // Public: login page, change-password & all public API
     if (
       pathname === '/parent/login' ||
       pathname === '/parent/change-password'
     ) return NextResponse.next();
+    if (matchesAny(pathname, PUBLIC_API_PREFIXES)) return NextResponse.next();
 
-    // Parent API on subdomain
+    // Parent API on subdomain — require parent_session
     if (pathname.startsWith(PARENT_API_PREFIX)) {
       const token = request.cookies.get('parent_session')?.value;
       if (!token) return NextResponse.json({ error: 'Unauthorized. Sesi orang tua tidak ditemukan.' }, { status: 401 });
