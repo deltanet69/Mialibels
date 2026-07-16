@@ -231,7 +231,7 @@ export default function StudentsPage() {
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-slate-100 text-sm font-semibold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-100 text-md font-semibold text-slate-500 uppercase tracking-wider">
                 <th className="pb-3 pr-4">ID Siswa / NISN</th>
                 <th className="pb-3 pr-4">Nama Lengkap</th>
                 <th className="pb-3 pr-4">Kelas</th>
@@ -253,7 +253,7 @@ export default function StudentsPage() {
                 paginatedStudents.map((student) => (
                   <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition group">
                     <td className="py-3 pr-4">
-                      <div className={`font-mono font-semibold text-sm ${
+                      <div className={` font-semibold text-md ${
                         isOldFormat(student.student_number) ? 'text-amber-700' : 'text-blue-700'
                       }`}>
                         {student.student_number || '—'}
@@ -266,18 +266,18 @@ export default function StudentsPage() {
                       {student.nisn && <div className="text-xs text-slate-400 mt-0.5">NISN: {student.nisn}</div>}
                     </td>
                     <td className="py-3 pr-4">
-                      <div className="font-medium text-slate-800">{student.name}</div>
+                      <div className="font-medium text-md text-slate-800">{student.name}</div>
                     </td>
                     <td className="py-3 pr-4 text-slate-600">{student.class}</td>
                     <td className="py-3 pr-4">
-                      <div className="text-sm text-slate-800">{student.parent_name}</div>
+                      <div className="text-md text-slate-800">{student.parent_name}</div>
                       <div className="text-xs text-slate-500">{student.parent_phone}</div>
                     </td>
                     <td className="py-3 pr-4">
                       {student.is_active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Aktif</span>
+                        <span className="inline-flex items-center px-4 py-0.5 rounded-full text-md bg-green-100 text-green-800">Aktif</span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Nonaktif</span>
+                        <span className="inline-flex items-center px-4 py-0.5 rounded-full text-md bg-red-100 text-red-800">Nonaktif</span>
                       )}
                     </td>
                     <td className="py-3 pr-4 text-right">

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X } from 'lucide-react'
+import Link from 'next/link'
 import { supabase } from '../../../../lib/supabase/client'
 
 // Types
@@ -271,39 +272,39 @@ export default function AbsensiGuruPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                 <CheckCircle2 size={20} />
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Hadir</p>
+              <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Hadir</p>
             </div>
             <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.HADIR}</p>
           </div>
           <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                 <Clock size={20} />
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Izin</p>
+              <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Izin</p>
             </div>
             <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.IZIN}</p>
           </div>
           <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
                 <AlertCircle size={20} />
               </div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sakit</p>
+              <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Sakit</p>
             </div>
             <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.SAKIT}</p>
           </div>
           {filterType === 'hari' && (
             <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
                   <XCircle size={20} />
                 </div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tidak Masuk</p>
+                <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Tidak Masuk</p>
               </div>
               <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.TIDAK_MASUK}</p>
             </div>
@@ -335,19 +336,19 @@ export default function AbsensiGuruPage() {
                 if (status === 'TIDAK MASUK' || status === 'ALPA') statusColor = 'bg-red-50 text-red-700 border-red-200'
                 
                 return (
-                  <div key={staff.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5">
+                  <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5 cursor-pointer hover:border-slate-300">
                     {/* Top info: Avatar + Name + Overall Status */}
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner">
                           {getInitials(staff.name)}
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-800 text-sm">{staff.name}</h3>
-                          <p className="text-[11px] font-medium text-slate-500 mt-0.5">{staff.position}</p>
+                          <h3 className="font-bold text-slate-800 text-md">{staff.name}</h3>
+                          <p className="text-[14px]  text-slate-500 ">{staff.position}</p>
                         </div>
                       </div>
-                      <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${statusColor}`}>
+                      <div className={`px-4 py-1 mt-2 rounded-full text-[10px] font-bold border ${statusColor}`}>
                         {status}
                       </div>
                     </div>
@@ -355,25 +356,25 @@ export default function AbsensiGuruPage() {
                     {/* Bottom info: Check-in & Check-out Times */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500 flex-shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500 flex-shrink-0">
                           <LogIn size={14} />
                         </div>
                         <div className="overflow-hidden">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Masuk</p>
-                          <p className="text-sm font-semibold text-slate-700 truncate">{formatTime(att?.check_in_time)}</p>
+                          <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Masuk</p>
+                          <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_in_time)}</p>
                         </div>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center text-orange-500 flex-shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-orange-500 flex-shrink-0">
                           <LogOut size={14} />
                         </div>
                         <div className="overflow-hidden">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Keluar</p>
-                          <p className="text-sm font-semibold text-slate-700 truncate">{formatTime(att?.check_out_time)}</p>
+                          <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Keluar</p>
+                          <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_out_time)}</p>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )
               } else {
                 // Summary View for Week / Month
@@ -385,7 +386,7 @@ export default function AbsensiGuruPage() {
                 })
 
                 return (
-                  <div key={staff.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5">
+                  <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5 cursor-pointer hover:border-slate-300">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner">
                         {getInitials(staff.name)}
@@ -410,7 +411,7 @@ export default function AbsensiGuruPage() {
                         <p className="text-lg font-black text-orange-700">{sum.SAKIT}</p>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )
               }
             })

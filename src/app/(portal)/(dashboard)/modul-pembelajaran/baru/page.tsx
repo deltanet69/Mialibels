@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function BaruModulPage() {
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="p-4 md:p-8 max-w-full mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center gap-4">
         <Link 
           href="/modul-pembelajaran"
@@ -20,7 +20,7 @@ export default function BaruModulPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <BookOpen className="text-blue-500" size={24} />
+            
             Buat Modul Ajar Baru
           </h1>
           <p className="text-slate-500 text-sm mt-1">Lengkapi informasi di bawah untuk menyusun modul ajar interaktif.</p>

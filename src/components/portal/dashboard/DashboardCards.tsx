@@ -87,8 +87,8 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
           <div className="flex-1 w-full flex flex-col gap-4">
             <div>
               <div className="flex justify-between items-end mb-1.5">
-                <span className="text-xs font-medium text-blue-100">Kehadiran Siswa</span>
-                <span className="text-xs font-bold text-white">{studentAttendanceRate}%</span>
+                <span className="text-md font-medium text-blue-100">Kehadiran Siswa</span>
+                <span className="text-md font-bold text-white">{studentAttendanceRate}%</span>
               </div>
               <div className="w-full bg-black/20 rounded-full h-2 overflow-hidden shadow-inner">
                 <div className="bg-teal-400 h-2 rounded-full shadow-[0_0_10px_rgba(45,212,191,0.6)]" style={{ width: `${studentAttendanceRate}%` }}></div>
@@ -97,8 +97,8 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
             
             <div>
               <div className="flex justify-between items-end mb-1.5">
-                <span className="text-xs font-medium text-blue-100">Kehadiran Guru</span>
-                <span className="text-xs font-bold text-white">{staffAttendanceRate}%</span>
+                <span className="text-md font-medium text-blue-100">Kehadiran Guru</span>
+                <span className="text-md font-bold text-white">{staffAttendanceRate}%</span>
               </div>
               <div className="w-full bg-black/20 rounded-full h-2 overflow-hidden shadow-inner">
                 <div className="bg-blue-300 h-2 rounded-full shadow-[0_0_10px_rgba(147,197,253,0.6)]" style={{ width: `${staffAttendanceRate}%` }}></div>
@@ -121,18 +121,18 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
         </div>
         <div className="flex gap-4 border-t border-slate-50 pt-4">
           <div className="flex items-center gap-1.5 flex-1">
-            <UserCheck size={14} className="text-emerald-500" />
+            <UserCheck size={20} className="text-emerald-500 mr-4" />
             <div className="flex flex-col">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Aktif</span>
-              <span className="text-sm font-bold text-slate-700">{stats.students.active}</span>
+              <span className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">Aktif</span>
+              <span className="text-lg font-bold text-slate-700">{stats.students.active}</span>
             </div>
           </div>
           <div className="w-px bg-slate-100"></div>
           <div className="flex items-center gap-1.5 flex-1">
-            <UserX size={14} className="text-rose-500" />
+            <UserX size={20} className="text-rose-500 mr-4" />
             <div className="flex flex-col">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Nonaktif</span>
-              <span className="text-sm font-bold text-slate-700">{stats.students.inactive}</span>
+              <span className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">Nonaktif</span>
+              <span className="text-lg font-bold text-slate-700">{stats.students.inactive}</span>
             </div>
           </div>
         </div>
@@ -151,10 +151,10 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
         </div>
         <div className="flex gap-4 border-t border-slate-50 pt-4">
           <div className="flex items-center gap-1.5 flex-1">
-            <UserCheck size={14} className="text-emerald-500" />
+            <UserCheck size={20} className="text-emerald-500 mr-4" />
             <div className="flex flex-col">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Aktif</span>
-              <span className="text-sm font-bold text-slate-700">{stats.staffs.active}</span>
+              <span className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">Aktif</span>
+              <span className="text-lg font-bold text-slate-700">{stats.staffs.active}</span>
             </div>
           </div>
           <div className="w-px bg-slate-100"></div>

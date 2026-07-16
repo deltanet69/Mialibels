@@ -141,8 +141,8 @@ export default function ClassroomPage() {
             />
           </div>
           {!loading && (
-            <span className="text-sm text-slate-400 shrink-0">
-              {sortedClassrooms.length} kelas
+            <span className="text-md text-slate-400 shrink-0 ml-4">
+              Total : {sortedClassrooms.length} kelas
             </span>
           )}
         </div>
@@ -175,23 +175,23 @@ export default function ClassroomPage() {
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-extrabold text-xl mb-3 group-hover:scale-110 transition-transform duration-300 shadow-md">
                     {classroom.name}
                   </div>
-                  <h3 className="font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">
+                  <h3 className="font-bold text-lg text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">
                     Kelas {classroom.name}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
-                    <Users className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-1.5 text-md text-slate-500 mb-1 mt-4">
+                    <Users className="w-4 h-4" />
                     <span>{classroom.enrolledStudents || 0} Siswa</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-slate-400">
-                    <UserCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate max-w-[90px]" title={classroom.homeroomTeacher}>
+                  <div className="flex items-center gap-1 text-md text-slate-400 mt-1">
+                    {/* <UserCircle2 className="w-4 h-4 mt-2" /> */}
+                    <span className="text-md truncate" title={classroom.homeroomTeacher}>
                       {classroom.homeroomTeacher || 'Belum Ditugaskan'}
                     </span>
                   </div>
                 </div>
-                <div className="px-4 py-2.5 bg-slate-50 flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 group-hover:text-blue-600 group-hover:bg-blue-50 transition-colors">
+                <div className="px-4 py-2.5 bg-slate-50 flex items-center justify-center gap-1 text-md font-semibold text-slate-500 group-hover:text-blue-600 group-hover:bg-blue-50 transition-colors">
                   <span>Detail</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </Link>
             ))}

@@ -76,14 +76,12 @@ export default function ModulPembelajaranPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-4 md:p-8 max-w-full mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-slate-100">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl shadow-sm border border-blue-100/50">
-              <BookOpen size={28} strokeWidth={2.5} />
-            </div>
+            
             Modul Pembelajaran
           </h1>
           <p className="text-slate-500 mt-3 text-[15px] max-w-2xl leading-relaxed">
@@ -112,14 +110,14 @@ export default function ModulPembelajaranPage() {
           <input
             type="text"
             placeholder="Cari modul berdasarkan judul..."
-            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 rounded-2xl outline-none transition-all text-[15px] shadow-sm placeholder:text-slate-400"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 rounded-2xl outline-none transition-all text-[15px]  placeholder:text-slate-400"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         
         <div className="flex gap-3 overflow-x-auto pb-2 lg:pb-0 hide-scrollbar items-center">
-          <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl border border-slate-200 shadow-sm transition-all hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10">
+          <div className="flex items-center gap-2 px-4 py-3 bg-white rounded-2xl border border-slate-200 transition-all hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-500/10">
             <Filter size={16} className="text-slate-400" />
             <select 
               className="bg-transparent border-none text-[14px] font-semibold text-slate-600 focus:ring-0 cursor-pointer outline-none w-full min-w-[120px]"
@@ -134,7 +132,7 @@ export default function ModulPembelajaranPage() {
           </div>
           
           <select 
-            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-[14px] font-semibold text-slate-600 shadow-sm focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none cursor-pointer transition-all hover:border-slate-300 min-w-[130px]"
+            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-[14px] font-semibold text-slate-600 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none cursor-pointer transition-all hover:border-slate-300 min-w-[130px]"
             value={gradeFilter}
             onChange={(e) => setGradeFilter(e.target.value)}
           >
@@ -145,7 +143,7 @@ export default function ModulPembelajaranPage() {
           </select>
           
           <select 
-            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-[14px] font-semibold text-slate-600 shadow-sm focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none cursor-pointer transition-all hover:border-slate-300 min-w-[140px]"
+            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-[14px] font-semibold text-slate-600 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 outline-none cursor-pointer transition-all hover:border-slate-300 min-w-[140px]"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >

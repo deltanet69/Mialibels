@@ -164,14 +164,14 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
     <div className="bg-white rounded-3xl border border-slate-200/60 shadow-[0_2px_30px_rgb(0,0,0,0.03)] overflow-hidden flex flex-col md:flex-row">
       
       {/* Sidebar Steps */}
-      <div className="md:w-64 bg-slate-50 border-r border-slate-100 p-6 flex flex-col">
-        <h3 className="font-bold text-slate-800 mb-6 uppercase tracking-wider text-xs">Tahapan</h3>
+      <div className="md:w-82 bg-slate-50 border-r border-slate-100 p-6 flex flex-col">
+        <h3 className="font-bold text-slate-800 mb-6 mt-2 uppercase tracking-wider text-xl">Tahapan</h3>
         <div className="flex flex-col gap-2">
           {STEPS.map((step, idx) => (
             <button
               key={idx}
               onClick={() => setCurrentStep(idx)}
-              className={`text-left px-4 py-3 rounded-xl transition-all text-sm font-semibold flex items-center gap-3 ${
+              className={`text-left px-4 py-3 rounded-xl transition-all text-md font-semibold flex items-center gap-4 mb-2 ${
                 currentStep === idx 
                   ? 'bg-blue-600 text-white shadow-md' 
                   : currentStep > idx 
@@ -191,16 +191,16 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
 
         <div className="mt-auto pt-8">
           <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
-            <h4 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
-              <Bot size={16} /> AI Assistant
+            <h4 className="text-lg font-bold text-indigo-800 mb-2 flex items-center gap-2">
+              <Bot size={23} /> AI Assistant
             </h4>
-            <p className="text-xs text-indigo-600/80 mb-3 leading-relaxed">
+            <p className="text-md text-indigo-600/80 mb-6 leading-relaxed">
               Isi Informasi Dasar, lalu gunakan AI untuk membantu merumuskan kurikulum otomatis.
             </p>
             <button
               onClick={handleGenerateAI}
               disabled={aiLoading}
-              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-70"
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-md font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-70"
             >
               {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Bot size={14} />}
               Generate dengan AI
@@ -224,12 +224,12 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Informasi Dasar</h2>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Judul Modul <span className="text-rose-500">*</span></label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Judul Modul <span className="text-rose-500">*</span></label>
                 <input required type="text" name="title" value={formData.title} onChange={handleChange} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Misal: Fikih Ibadah Puasa" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mata Pelajaran <span className="text-rose-500">*</span></label>
+                  <label className="block text-md font-semibold text-slate-700 mb-1.5">Mata Pelajaran <span className="text-rose-500">*</span></label>
                   <select required name="subject" value={formData.subject} onChange={handleChange} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all cursor-pointer">
                     <option value="">Pilih Mapel</option>
                     <option value="Al-Quran Hadis">Al-Quran Hadis</option>
@@ -248,21 +248,21 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kelas <span className="text-rose-500">*</span></label>
+                  <label className="block text-md font-semibold text-slate-700 mb-1.5">Kelas <span className="text-rose-500">*</span></label>
                   <select required name="grade" value={formData.grade} onChange={handleChange} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all cursor-pointer">
                     <option value="">Pilih Kelas</option>
                     {classrooms.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <label className="block text-md font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
                     <span>Fase <span className="text-rose-500">*</span></span>
                     <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">Otomatis dari Kelas</span>
                   </label>
                   <input readOnly type="text" name="phase" value={formData.phase ? `Fase ${formData.phase}` : ''} className="w-full p-3 bg-slate-100 text-slate-500 border border-slate-200 rounded-xl outline-none cursor-not-allowed" placeholder="Otomatis" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Semester <span className="text-rose-500">*</span></label>
+                  <label className="block text-md font-semibold text-slate-700 mb-1.5">Semester <span className="text-rose-500">*</span></label>
                   <select required name="semester" value={formData.semester} onChange={handleChange} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all cursor-pointer">
                     <option value="">Pilih Semester</option>
                     <option value="Ganjil">Ganjil</option>
@@ -278,14 +278,14 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Capaian & Tujuan Pembelajaran</h2>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Capaian Pembelajaran (CP)</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Capaian Pembelajaran (CP)</label>
                 <textarea name="learning_outcomes" value={formData.learning_outcomes} onChange={handleChange} rows={4} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Tuliskan capaian pembelajaran akhir fase..." />
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex justify-between items-center">
+                <label className="block text-md font-semibold text-slate-700 mb-1.5 flex justify-between items-center">
                   Tujuan Pembelajaran (TP)
-                  <button onClick={() => addArrayItem('learning_objectives')} className="text-xs text-blue-600 hover:text-blue-700">+ Tambah TP</button>
+                  <button onClick={() => addArrayItem('learning_objectives')} className="text-md text-blue-600 hover:text-blue-700">+ Tambah TP</button>
                 </label>
                 <div className="space-y-3">
                   {formData.learning_objectives.map((tp: string, i: number) => (
@@ -301,7 +301,7 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Alur Tujuan Pembelajaran (ATP)</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Alur Tujuan Pembelajaran (ATP)</label>
                 <textarea name="learning_flow" value={formData.learning_flow} onChange={handleChange} rows={4} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Jelaskan alur atau urutan pencapaian materi..." />
               </div>
             </div>
@@ -312,9 +312,9 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Materi & Metode</h2>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex justify-between items-center">
+                <label className="block text-md font-semibold text-slate-700 mb-1.5 flex justify-between items-center">
                   Materi Pokok
-                  <button onClick={() => addArrayItem('core_materials')} className="text-xs text-blue-600 hover:text-blue-700">+ Tambah Materi</button>
+                  <button onClick={() => addArrayItem('core_materials')} className="text-md text-blue-600 hover:text-blue-700">+ Tambah Materi</button>
                 </label>
                 <div className="space-y-3">
                   {formData.core_materials.map((materi: string, i: number) => (
@@ -330,7 +330,7 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Metode Pembelajaran</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Metode Pembelajaran</label>
                 <textarea name="teaching_method" value={formData.teaching_method} onChange={handleChange} rows={4} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Misal: Problem Based Learning, Diskusi, Ceramah interaktif..." />
               </div>
             </div>
@@ -341,24 +341,24 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Asesmen & Refleksi</h2>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Asesmen Diagnostik (Awal)</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Asesmen Diagnostik (Awal)</label>
                 <textarea name="assessment_diagnostic" value={formData.assessment_diagnostic} onChange={handleChange} rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Pertanyaan pemantik atau tes awal..." />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Asesmen Formatif (Proses)</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Asesmen Formatif (Proses)</label>
                 <textarea name="assessment_formative" value={formData.assessment_formative} onChange={handleChange} rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Penilaian selama proses pembelajaran berlangsung..." />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Asesmen Sumatif (Akhir)</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">Asesmen Sumatif (Akhir)</label>
                 <textarea name="assessment_summative" value={formData.assessment_summative} onChange={handleChange} rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Penilaian akhir kompetensi..." />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Refleksi Guru</label>
+                  <label className="block text-md font-semibold text-slate-700 mb-1.5">Refleksi Guru</label>
                   <textarea name="teacher_reflection" value={formData.teacher_reflection} onChange={handleChange} rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Pertanyaan panduan refleksi guru..." />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Refleksi Siswa</label>
+                  <label className="block text-md font-semibold text-slate-700 mb-1.5">Refleksi Siswa</label>
                   <textarea name="student_reflection" value={formData.student_reflection} onChange={handleChange} rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="Pertanyaan panduan refleksi siswa..." />
                 </div>
               </div>
@@ -370,13 +370,13 @@ export default function ModulForm({ initialData, isEdit }: ModulFormProps) {
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Lampiran & Status Publikasi</h2>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">URL Lampiran (Opsional)</label>
+                <label className="block text-md font-semibold text-slate-700 mb-1.5">URL Lampiran (Opsional)</label>
                 <input type="url" name="attachment_url" value={formData.attachment_url} onChange={handleChange} className="w-full p-3 bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition-all" placeholder="https://drive.google.com/..." />
                 <p className="text-xs text-slate-500 mt-2">Masukkan tautan Google Drive / dokumen lain terkait materi pendukung.</p>
               </div>
               
               <div className="pt-6 border-t border-slate-100">
-                <label className="block text-sm font-semibold text-slate-700 mb-3">Tindakan Penyimpanan</label>
+                <label className="block text-md font-semibold text-slate-700 mb-3">Tindakan Penyimpanan</label>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button 
                     onClick={() => handleSubmit('Draft')}
