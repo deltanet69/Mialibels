@@ -112,7 +112,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
           since @tailwindcss/typography might not be installed
         */}
         <article 
-          className="max-w-none font-body text-gray-700 text-lg leading-relaxed
+          className="max-w-none font-body text-gray-700 text-lg leading-relaxed break-words overflow-hidden
             [&_p]:mb-6
             [&_h1]:font-headline [&_h1]:font-bold [&_h1]:text-3xl [&_h1]:text-secondary [&_h1]:mt-10 [&_h1]:mb-4
             [&_h2]:font-headline [&_h2]:font-bold [&_h2]:text-2xl [&_h2]:text-secondary [&_h2]:mt-10 [&_h2]:mb-4

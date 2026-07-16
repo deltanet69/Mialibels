@@ -9,6 +9,7 @@ import NewsCard from '@/components/frontend/NewsCard'
 import AnimatedSection from '@/components/frontend/AnimatedSection'
 
 const CATEGORIES = ['Semua Berita', 'Berita Sekolah', 'Artikel Pendidikan', 'Prestasi']
+const PAGE_SIZE = 9
 
 // ─────────────────────────────────────────────────────────
 // Featured Slideshow — up to 3 featured articles
@@ -113,20 +114,125 @@ function FeaturedSlideshow({ articles }: { articles: NewsArticle[] }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Main News Page (client-side, instant filtering)
+// Pagination Component
+// ─────────────────────────────────────────────────────────
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}) {
+  if (totalPages <= 1) return null
+
+  const getPageNumbers = (): (number | 'ellipsis')[] => {
+    const pages: (number | 'ellipsis')[] = []
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      pages.push(1)
+      if (currentPage > 3) pages.push('ellipsis')
+      const start = Math.max(2, currentPage - 1)
+      const end = Math.min(totalPages - 1, currentPage + 1)
+      for (let i = start; i <= end; i++) pages.push(i)
+      if (currentPage < totalPages - 2) pages.push('ellipsis')
+      pages.push(totalPages)
+    }
+    return pages
+  }
+
+  return (
+    <nav aria-label="Halaman berita" className="flex items-center justify-center gap-1 mt-12 select-none">
+      {/* Prev */}
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Halaman sebelumnya"
+        className="inline-flex items-center justify-center h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 hover:text-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {/* Page numbers */}
+      {getPageNumbers().map((page, idx) =>
+        page === 'ellipsis' ? (
+          <span
+            key={`ellipsis-${idx}`}
+            className="inline-flex items-center justify-center h-10 w-10 text-gray-400 text-sm"
+          >
+            &hellip;
+          </span>
+        ) : (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            aria-label={`Halaman ${page}`}
+            aria-current={currentPage === page ? 'page' : undefined}
+            className={`inline-flex items-center justify-center h-10 w-10 rounded-lg border text-sm font-semibold transition-colors ${
+              currentPage === page
+                ? 'bg-secondary text-white border-secondary'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-secondary'
+            }`}
+          >
+            {page}
+          </button>
+        )
+      )}
+
+      {/* Next */}
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Halaman selanjutnya"
+        className="inline-flex items-center justify-center h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 hover:text-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </nav>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// Main News Page (client-side, instant filtering + pagination)
 // ─────────────────────────────────────────────────────────
 export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) {
   const [currentCategory, setCurrentCategory] = useState('Semua Berita')
+  const [currentPage, setCurrentPage] = useState(1)
 
   // Featured: up to 3 articles tagged 'featured'
   const featuredArticles = allNews.filter(n => n.isFeatured).slice(0, 3)
-  // Fallback: use first 3 articles if none are explicitly featured
+  // Fallback: use first article if none are explicitly featured
   const slideshowArticles = featuredArticles.length > 0 ? featuredArticles : allNews.slice(0, 1)
 
-  // Filtered grid — always excludes featured articles from main list on "Semua Berita"
+  // Filter by category
   const filteredNews = currentCategory === 'Semua Berita'
-    ? allNews.filter(n => !n.isFeatured || featuredArticles.length === 0)
+    ? allNews
     : allNews.filter(n => n.category === currentCategory)
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredNews.length / PAGE_SIZE))
+  const paginatedNews = filteredNews.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
+
+  // Reset to page 1 when category changes
+  const handleCategoryChange = (cat: string) => {
+    setCurrentCategory(cat)
+    setCurrentPage(1)
+  }
+
+  // Scroll to grid top when page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    const grid = document.getElementById('news-grid')
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-[#EFF3FB]">
@@ -143,7 +249,7 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
               <Newspaper className="w-5 h-5 text-btn-secondary" /> Pusat Informasi
             </span>
             <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl mb-6 leading-tight text-secondary">
-              Berita & <span className="text-primary">Artikel</span>
+              Berita &amp; <span className="text-primary">Artikel</span>
             </h1>
             <p className="font-body text-gray-600 text-lg md:text-xl max-w-2xl mx-auto">
               Ikuti perkembangan terbaru, prestasi siswa, dan artikel pendidikan menarik seputar MI Attaqwa 15 Babelan.
@@ -152,7 +258,7 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
         </section>
       </AnimatedSection>
 
-      {/* Featured Slideshow (always visible on all categories, shows featured/top articles) */}
+      {/* Featured Slideshow */}
       <AnimatedSection direction="up" delay={0.2}>
         <section className="py-8 -mt-8 lg:-mt-12 relative z-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -167,32 +273,50 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
         </section>
       </AnimatedSection>
 
-      {/* Category Tabs — instant, no page reload */}
-      <section className="pb-6 pt-4">
+      {/* Category Tabs */}
+      <section id="news-grid" className="pb-6 pt-4 scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-3 border-b border-gray-200 pb-6">
             {CATEGORIES.map(cat => (
               <button
                 key={cat}
-                onClick={() => setCurrentCategory(cat)}
+                onClick={() => handleCategoryChange(cat)}
                 className={`px-6 py-2.5 rounded-full font-body text-sm font-bold shadow-sm transition-all border ${currentCategory === cat ? 'bg-secondary text-white border-secondary' : 'bg-white text-gray-600 hover:text-secondary hover:bg-gray-50 border-gray-200'}`}
               >
                 {cat}
               </button>
             ))}
           </div>
+
+          {/* Article count info */}
+          {filteredNews.length > 0 && (
+            <p className="text-center font-body text-sm text-gray-400 mt-4">
+              Menampilkan{' '}
+              <strong className="text-secondary">
+                {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredNews.length)}
+              </strong>{' '}
+              dari <strong className="text-secondary">{filteredNews.length}</strong> artikel
+            </p>
+          )}
         </div>
       </section>
 
       {/* Article Grid */}
       <section className="pb-20 lg:pb-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {filteredNews.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredNews.map(article => (
-                <NewsCard key={article.id} article={article} />
-              ))}
-            </div>
+          {paginatedNews.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {paginatedNews.map(article => (
+                  <NewsCard key={article.id} article={article} />
+                ))}
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
           ) : (
             <div className="bg-white p-12 rounded-3xl text-center text-gray-500 shadow-sm border border-gray-100">
               Belum ada artikel untuk kategori <strong>{currentCategory}</strong> saat ini.
