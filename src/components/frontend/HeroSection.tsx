@@ -71,13 +71,7 @@ export default function HeroSection() {
               </Link>
             </div>
 
-            {/* Address Info */}
-            <div className="flex items-center gap-2.5 pt-2 text-gray-600 font-body text-sm bg-white/60 backdrop-blur-sm px-4 py-2.5 rounded-xl border border-white/50">
-              <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
-              <span className="font-medium">
-                Jl. Raya Pasar Babelan RT.05/RW.01, Kec. Babelan, Bekasi, Jawa Barat
-              </span>
-            </div>
+            
 
           </div>
 
@@ -85,7 +79,7 @@ export default function HeroSection() {
           <div className="lg:col-span-5 relative flex justify-center items-center w-full min-h-[400px] sm:min-h-[500px]">
 
             {/* Main Floating Image 1 (Students) */}
-            <div className="absolute left-4 top-4 w-[200px] sm:w-[240px] aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white z-10 rotate-[-2deg] transition-transform duration-500 hover:scale-105 hover:z-20">
+            <div className="absolute left-2 top-2 w-[200px] sm:w-[300px] aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white z-10 rotate-[-2deg] transition-transform duration-500 hover:scale-105 hover:z-20">
               <Image
                 src="/images/student_activity.png"
                 alt="Siswa MI Attaqwa 15"
@@ -93,18 +87,18 @@ export default function HeroSection() {
                 priority
                 className="object-cover"
               />
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
+              {/* <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
                 <span className="font-headline font-bold text-white text-sm block">
                   MI ATTAQWA 15
                 </span>
                 <span className="font-body text-gray-300 text-xs block">
                   Babelan, Bekasi
                 </span>
-              </div>
+              </div> */}
             </div>
 
             {/* Main Floating Image 2 (Graduation) */}
-            <div className="absolute right-4 bottom-4 w-[200px] sm:w-[240px] aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white z-0 rotate-[3deg] transition-transform duration-500 hover:scale-105 hover:z-20">
+            <div className="absolute right-0 bottom-0 w-[200px] sm:w-[320px] aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white z-0 rotate-[3deg] transition-transform duration-500 hover:scale-105 hover:z-20">
               <Image
                 src="/images/graduation_day.png"
                 alt="Kelulusan MI Attaqwa 15"
@@ -115,7 +109,7 @@ export default function HeroSection() {
             </div>
 
             {/* Floating Badge */}
-            <div className="absolute bottom-[20%] left-[28%] sm:left-[33%] z-20 bg-white/95 backdrop-blur-sm px-5 py-3.5 rounded-2xl shadow-xl border border-yellow-100 flex items-center gap-3 transition-transform duration-300 hover:scale-105">
+            <div className="absolute bottom-[20%] left-[28%] sm:left-[10%] sm:bottom-[12%] z-20 bg-white/95 backdrop-blur-sm px-5 py-2 rounded-2xl shadow-xl border border-yellow-100 flex items-center gap-3 transition-transform duration-300 hover:scale-105">
               <div className="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0">
                 <Award className="w-6 h-6 text-yellow-600 animate-bounce" />
               </div>
@@ -134,8 +128,10 @@ export default function HeroSection() {
             <div className="absolute w-[200px] h-[200px] rounded-full bg-btn-secondary/15 blur-3xl -z-10 bottom-0 right-0" />
 
           </div>
+          
 
         </div>
+        
       </div>
     </section>
   );

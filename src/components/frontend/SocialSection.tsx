@@ -89,7 +89,7 @@ export default function SocialSection() {
         
         {/* Section Header */}
         <div className="text-center flex flex-col items-center space-y-3 mb-16">
-          <span className="font-body text-sm font-bold text-accent tracking-wider uppercase">
+          <span className="font-body text-sm font-bold text-primary tracking-wider uppercase">
             Social Media
           </span>
           <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">

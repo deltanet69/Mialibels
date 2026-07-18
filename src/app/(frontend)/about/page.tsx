@@ -31,12 +31,12 @@ export default function AboutPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#EFF3FB]/60 z-0" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <span className="inline-block py-1.5 px-4 rounded-full bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 text-primary font-body text-sm font-bold tracking-wider uppercase mb-6">
+          <span className="inline-block py-2 px-7 rounded-full bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 text-primary font-body text-sm font-bold tracking-wider uppercase mb-6">
             Tentang MI Attaqwa 15
           </span>
           <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl leading-tight text-secondary">
             Madrasah Ibtidaiyah Unggulan<br className="hidden md:block" />
-            <span className="text-primary text-3xl">Terakreditasi A</span> <span className="text-gray-600 text-3xl">· Berbasis Nilai Perjuangan</span>
+            <span className="text-gray-600 font-body font-normal text-3xl"> Berbasis Nilai Perjuangan</span>
           </h1>
         </div>
       </section>
@@ -49,8 +49,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* Left Content */}
             <div className="space-y-6">
-              <span className="font-body text-sm font-bold text-accent tracking-wider uppercase flex items-center gap-2">
-                <HeartHandshake className="w-5 h-5" />
+              <span className="font-body text-sm font-bold text-primary tracking-wider uppercase flex items-center gap-2">
                 Tentang Sekolah
               </span>
               <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">
@@ -88,8 +87,7 @@ export default function AboutPage() {
       <section className="py-20 lg:py-28 bg-[#EFF3FB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center mb-16">
-            <span className="font-body text-sm font-bold text-accent tracking-wider uppercase flex items-center justify-center gap-2 mb-4">
-              <History className="w-5 h-5" />
+            <span className="font-body text-sm font-bold text-primary tracking-wider uppercase flex items-center justify-center gap-2 mb-4">
               Jejak Langkah
             </span>
             <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">

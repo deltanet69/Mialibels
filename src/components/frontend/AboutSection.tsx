@@ -17,7 +17,7 @@ export default function AboutSection() {
           <div className="lg:col-span-6 flex flex-col space-y-6 relative">
             
             {/* Top Classroom Image with overlay */}
-            <div className="relative w-full max-w-[480px] aspect-[16/10] rounded-3xl overflow-hidden shadow-xl border border-white/80 self-start">
+            <div className="relative w-full max-w-[full] aspect-[16/9] rounded-3xl overflow-hidden shadow-xl border border-white/80 self-start">
               <Image
                 src="/images/classroom_view.png"
                 alt="Ruang Kelas MI Attaqwa 15"
@@ -26,18 +26,18 @@ export default function AboutSection() {
               />
               
               {/* Badge: 700+ Students */}
-              <div className="absolute bottom-4 right-4 bg-[#002957]/95 backdrop-blur-sm text-white px-6 py-3.5 rounded-2xl shadow-xl border border-white/10 transition-transform duration-300 hover:scale-105">
+              {/* <div className="absolute bottom-4 right-4 bg-[#002957]/95 backdrop-blur-sm text-white px-6 py-3.5 rounded-2xl shadow-xl border border-white/10 transition-transform duration-300 hover:scale-105">
                 <span className="font-headline font-black text-2xl sm:text-3xl block text-primary">
                   700+
                 </span>
                 <span className="font-body text-xs font-semibold text-gray-300">
                   Peserta Didik Aktif
                 </span>
-              </div>
+              </div> */}
             </div>
 
             {/* Bottom School Building Image overlapping */}
-            <div className="relative w-full max-w-[480px] aspect-[16/10] rounded-3xl overflow-hidden shadow-xl border border-white/80 self-end lg:-mt-12 z-10 transition-transform duration-500 hover:scale-[1.01]">
+            <div className="relative w-full max-w-[480px] aspect-[16/10] rounded-3xl overflow-hidden shadow-xl border border-white/80 self-center lg:-mt-12 z-10 transition-transform duration-500 hover:scale-[1.01]">
               <Image
                 src="/images/school_building.png"
                 alt="Gedung MI Attaqwa 15"
@@ -56,12 +56,12 @@ export default function AboutSection() {
           <div className="lg:col-span-6 flex flex-col items-start space-y-6 lg:pl-12">
             
             {/* Tag */}
-            <span className="font-body text-sm font-bold text-accent tracking-wider uppercase">
+            <span className="font-body text-md font-bold text-primary tracking-wider uppercase">
               Tentang Kami
             </span>
 
             {/* Title */}
-            <h2 className="font-headline font-black text-3xl sm:text-4xl lg:text-5xl text-secondary leading-tight">
+            <h2 className="font-headline font-black text-3xl sm:text-4xl lg:text-5xl text-secondary ">
               MI ATTAQWA 15 BABELAN
             </h2>
 
@@ -71,7 +71,7 @@ export default function AboutSection() {
             </p>
 
             {/* Paragraph 2 */}
-            <p className="font-body text-gray-500 leading-relaxed text-sm">
+            <p className="font-body text-gray-500 leading-relaxed text-base">
               Dengan dukungan tenaga pendidik yang berdedikasi tinggi, kurikulum yang berimbang antara muatan nasional dan agama, serta fasilitas penunjang yang representatif, kami terus konsisten membina dan membimbing putra-putri Anda mencapai kompetensi optimal dan budi pekerti yang luhur.
             </p>
 

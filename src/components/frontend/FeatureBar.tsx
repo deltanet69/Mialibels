@@ -6,7 +6,7 @@ import { Award, Layers, ShieldCheck } from 'lucide-react';
 const features = [
   {
     icon: Award,
-    title: 'Akreditasi A',
+    title: 'Akreditasi Terbaik',
     description: 'Disiplin, agamais, berprestasi, dan teruji secara mutu pendidikan nasional.',
   },
   {
@@ -31,7 +31,7 @@ export default function FeatureBar() {
             return (
               <div
                 key={index}
-                className="flex items-start gap-4 pt-6 md:pt-0 first:pt-0 md:first:pl-0 pl-0 md:pl-8 group transition-all duration-300 hover:translate-x-1 md:hover:translate-x-0 md:hover:-translate-y-0.5"
+                className="flex items-start gap-4 pt-6 md:pt-0 first:pt-0 md:first:pl-0 pl-0 md:pl-8 md:pr-8 group transition-all duration-300 hover:translate-x-1 md:hover:translate-x-0 md:hover:-translate-y-0.5"
               >
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary transition-colors duration-300">
                   <Icon className="w-6 h-6 text-primary group-hover:text-white transition-colors duration-300" />

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // 1. Find staff by RFID
     const { data: staffs, error: staffError } = await supabase
       .from('staffs')
-      .select('id, name')
+      .select('*')
       .eq('rfid', rfid)
       .eq('is_active', true)
       .limit(1)
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
         success: true, 
         action: 'check-in', 
         message: `Berhasil Check-In: ${staff.name}`,
-        data: newRecord
+        data: newRecord,
+        staff: staff
       })
     } else {
       // 4. Check OUT or Already checked out
@@ -101,7 +102,8 @@ export async function POST(request: NextRequest) {
           success: true, 
           action: 'check-out', 
           message: `Berhasil Check-Out: ${staff.name}`,
-          data: updateRecord
+          data: updateRecord,
+          staff: staff
         })
       }
     }

@@ -10,6 +10,7 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 const BASE_DOMAIN    = 'miattaqwa15.sch.id';
 const ADMIN_SUB      = 'smart';   // smart.miattaqwa15.sch.id
 const PARENT_SUB     = 'parent';  // parent.miattaqwa15.sch.id
+const ABSEN_SUB      = 'absen';   // absen.miattaqwa15.sch.id
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route Groups
@@ -103,10 +104,11 @@ async function verifyJWT(token: string): Promise<{ payload: any } | null> {
 }
 
 /** Returns 'admin', 'parent', or null based on the Host header */
-function getSubdomain(req: NextRequest): 'admin' | 'parent' | null {
+function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | null {
   const hostname = (req.headers.get('host') ?? '').split(':')[0];
   if (hostname === `${ADMIN_SUB}.${BASE_DOMAIN}` || hostname === `${ADMIN_SUB}.localhost`) return 'admin';
   if (hostname === `${PARENT_SUB}.${BASE_DOMAIN}` || hostname === `${PARENT_SUB}.localhost`) return 'parent';
+  if (hostname === `${ABSEN_SUB}.${BASE_DOMAIN}` || hostname === `${ABSEN_SUB}.localhost`) return 'absen';
   return null;
 }
 
@@ -128,6 +130,17 @@ export async function proxy(request: NextRequest) {
   }
 
   const subdomain = getSubdomain(request);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ABSEN SUBDOMAIN — absen.miattaqwa15.sch.id
+  // ══════════════════════════════════════════════════════════════════════════
+  if (subdomain === 'absen') {
+    if (pathname === '/') {
+      return NextResponse.rewrite(new URL('/absen', request.url));
+    }
+    // Allow public API and other routes (like /api/attendance/scan) to pass through
+    return NextResponse.next();
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // ADMIN SUBDOMAIN — smart.miattaqwa15.sch.id

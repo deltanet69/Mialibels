@@ -107,7 +107,7 @@ export default function NewsSection() {
         {/* Title Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
           <div className="flex flex-col space-y-3">
-            <span className="font-body text-sm font-bold text-accent tracking-wider uppercase">
+            <span className="font-body text-sm font-bold text-primary tracking-wider uppercase">
               Berita & Artikel
             </span>
             <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">
