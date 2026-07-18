@@ -95,6 +95,9 @@ export function ParentSidebar() {
                 <Link href="/parent/dashboard/spp" className={linkClass('/parent/dashboard/spp')} onClick={() => setIsOpen(false)}>
                   <CreditCard size={20} /> <span className="font-medium">Tagihan SPP</span>
                 </Link>
+                <Link href="/parent/dashboard/general" className={linkClass('/parent/dashboard/general')} onClick={() => setIsOpen(false)}>
+                  <CreditCard size={20} /> <span className="font-medium">Tagihan Umum</span>
+                </Link>
                 <Link href="/parent/dashboard/savings" className={linkClass('/parent/dashboard/savings')} onClick={() => setIsOpen(false)}>
                   <PiggyBank size={20} /> <span className="font-medium">Tabungan Siswa</span>
                 </Link>

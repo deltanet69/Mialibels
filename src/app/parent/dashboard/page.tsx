@@ -102,6 +102,14 @@ async function getDashboardData(studentId: string) {
     .order('month', { ascending: false })
     .limit(3);
 
+  const { data: generalInvoices } = await supabase
+    .from('general_invoices')
+    .select('id, title, total_amount, paid_amount, status, due_date')
+    .eq('student_id', studentId)
+    .in('status', ['UNPAID', 'PARTIAL', 'PENDING_VERIFICATION'])
+    .order('created_at', { ascending: false })
+    .limit(3);
+
   const attendanceSummary = { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: attendance?.length || 0 };
   attendance?.forEach((r: any) => {
     const s = (r.status || '').toLowerCase();
@@ -126,6 +134,7 @@ async function getDashboardData(studentId: string) {
     balance: savings?.balance || 0,
     sppInvoices: sppInvoices || [],
     pendingSPP,
+    generalInvoices: generalInvoices || [],
   };
 }
 
@@ -148,6 +157,7 @@ export default async function ParentDashboardHome() {
     balance: 0,
     sppInvoices: [] as any[],
     pendingSPP: null as any,
+    generalInvoices: [] as any[],
   };
 
   if (sessionCookie) {
@@ -287,6 +297,29 @@ export default async function ParentDashboardHome() {
           </div>
           <div className="flex gap-4 border-t border-slate-50 pt-4">
             <span className="text-md font-semibold text-amber-600 flex items-center gap-1">Buka Pembayaran &rarr;</span>
+          </div>
+        </Link>
+
+        {/* Tagihan Umum Card */}
+        <Link href="/parent/dashboard/general" className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:border-purple-300 transition-colors group">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-slate-500 text-sm font-medium mb-1 font-sans">Tagihan Umum</h3>
+              {dashboardData.generalInvoices.length > 0 ? (
+                <div>
+                  <p className="text-xl font-bold text-red-600 font-sans">Ada Tagihan</p>
+                  <p className="text-xs text-slate-500 mt-1 truncate max-w-[120px]">{dashboardData.generalInvoices[0].title}</p>
+                </div>
+              ) : (
+                <p className="text-xl font-bold text-emerald-600 font-sans">Lunas Semua</p>
+              )}
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm border border-purple-100 group-hover:bg-purple-100 transition-colors">
+              <CreditCard size={24} />
+            </div>
+          </div>
+          <div className="flex gap-4 border-t border-slate-50 pt-4">
+            <span className="text-md font-semibold text-purple-600 flex items-center gap-1">Lihat Tagihan &rarr;</span>
           </div>
         </Link>
       </div>

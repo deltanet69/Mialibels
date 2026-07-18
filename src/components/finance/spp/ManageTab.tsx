@@ -41,7 +41,7 @@ export default function ManageTab() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingTx, setLoadingTx] = useState(false);
   const [manualAmount, setManualAmount] = useState("");
-  const [manualDesc, setManualDesc] = useState("Pembayaran Tunai ke TU");
+  const [manualDesc, setManualDesc] = useState("");
 
   // Generate Modal
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -147,10 +147,14 @@ export default function ManageTab() {
     if (!selectedInvoice || !manualAmount) return;
     setActionLoading(true);
     try {
+      const finalDesc = manualDesc 
+        ? `${manualDesc} (Rp ${parseInt(manualAmount, 10).toLocaleString('id-ID')})`
+        : `Pembayaran Tunai (Rp ${parseInt(manualAmount, 10).toLocaleString('id-ID')})`;
+
       const res = await fetch("/api/spp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoice_id: selectedInvoice.id, action: "CASH_PAYMENT", amount: parseInt(manualAmount, 10), description: manualDesc }),
+        body: JSON.stringify({ invoice_id: selectedInvoice.id, action: "CASH_PAYMENT", amount: parseInt(manualAmount, 10), description: finalDesc }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Gagal memproses pembayaran");
@@ -436,7 +440,14 @@ export default function ManageTab() {
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Catatan</label>
-                        <textarea rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm" value={manualDesc} onChange={(e) => setManualDesc(e.target.value)}></textarea>
+                        <textarea 
+                          rows={2} 
+                          placeholder="Misal: Pembayaran tunai ke TU"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm resize-none" 
+                          value={manualDesc} 
+                          onChange={(e) => setManualDesc(e.target.value)}
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Nominal pembayaran akan otomatis ditambahkan ke catatan.</p>
                       </div>
                       <button type="submit" disabled={actionLoading} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-lg transition-all text-sm disabled:opacity-50">
                         {actionLoading ? "Memproses..." : "Simpan Pembayaran"}
