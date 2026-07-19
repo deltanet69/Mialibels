@@ -28,7 +28,7 @@ export async function GET(
       .select(`
         *,
         students (
-          id, name, student_number, class, class_id,
+          id, name, nisn, student_number, class, class_id,
           parent_name, parent_phone
         )
       `)
@@ -42,6 +42,7 @@ export async function GET(
     const formatted = {
       ...data,
       student_name: data.students?.name || "-",
+      student_nisn: data.students?.nisn || null,
       student_number: data.students?.student_number || "-",
       student_class: data.students?.class || "-",
       student_class_id: data.students?.class_id || null,

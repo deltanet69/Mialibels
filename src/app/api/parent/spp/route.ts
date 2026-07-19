@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
     const studentId = payload.sub as string;
 
     const body = await request.json();
-    const { invoice_id, bukti_transfer } = body;
+    const { invoice_id, bukti_transfer, note } = body;
 
     if (!invoice_id || !bukti_transfer) {
       return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 });
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
     // Verify the invoice belongs to this student
     const { data: invoiceCheck, error: checkError } = await supabase
       .from('spp_invoices')
-      .select('id, status')
+      .select('id, status, note')
       .eq('id', invoice_id)
       .eq('student_id', studentId)
       .single();
@@ -68,12 +68,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Tagihan ini sudah lunas.' }, { status: 400 });
     }
 
+    let updatedNote = invoiceCheck.note;
+    if (note) {
+      updatedNote = invoiceCheck.note ? `${invoiceCheck.note} | ${note}` : note;
+    }
+
     const { error: updateError } = await supabase
       .from('spp_invoices')
       .update({
         status: 'PENDING_VERIFICATION',
         bukti_transfer,
         payment_method: 'TRANSFER',
+        note: updatedNote,
         updated_at: new Date().toISOString()
       })
       .eq('id', invoice_id);

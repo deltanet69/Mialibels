@@ -10,8 +10,8 @@ type CreateBillModalProps = {
 }
 
 const PREDEFINED_ITEMS = [
-  'Mutu', 'Infaq', 'Buku Paket/LKS', 'Seragam', 'Ulum', 'Raport',
-  'Kartu Siswa', 'Foto', 'Qurban', "Yanbu'a", 'Kegiatan Fullday'
+  'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
+  'Kartu Pelajar', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday'
 ]
 
 export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalProps) {
@@ -242,7 +242,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                           type="text"
                           value={item.name}
                           onChange={e => handleItemFieldChange(index, 'name', e.target.value)}
-                          placeholder="Tulis nama item custom..."
+                          placeholder="Tulis keterangan tagihan..."
                           className="flex-1 px-3 py-2 rounded-lg border border-blue-300 focus:border-blue-500 outline-none text-sm bg-blue-50/30"
                         />
                         <button
@@ -264,7 +264,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                         {PREDEFINED_ITEMS.map(i => (
                           <option key={i} value={i}>{i}</option>
                         ))}
-                        <option value="OTHER">+ Add Other (Custom)</option>
+                        <option value="OTHER">+ Lainnya</option>
                       </select>
                     )}
                   </div>

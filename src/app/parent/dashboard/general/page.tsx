@@ -51,6 +51,7 @@ export default function ParentGeneralFinancePage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [transferAmount, setTransferAmount] = useState("");
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,6 +113,7 @@ export default function ParentGeneralFinancePage() {
         body: JSON.stringify({
           invoice_id: selectedInvoice.id,
           bukti_transfer: uploadData.url,
+          note: transferAmount ? `Telah transfer sejumlah Rp ${Number(transferAmount).toLocaleString('id-ID')}` : undefined,
         }),
       });
       const submitData = await submitRes.json();
@@ -119,6 +121,7 @@ export default function ParentGeneralFinancePage() {
 
       setSuccessMsg("Bukti transfer berhasil dikirim. Menunggu verifikasi admin.");
       setSelectedInvoice(null);
+      setTransferAmount("");
       handleCancelUpload();
       fetchInvoices();
     } catch (err: any) {
@@ -340,22 +343,66 @@ export default function ParentGeneralFinancePage() {
                     <span className="font-medium">{formatRp(Number(item.amount))}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between mt-2 pt-2">
-                  <span className="text-sm font-bold text-slate-600">Sisa yang Harus Dibayar</span>
-                  <span className="font-black text-slate-800">
-                    {formatRp(
-                      (Number(selectedInvoice.total_amount) || 0) -
-                      (Number(selectedInvoice.paid_amount) || 0)
-                    )}
-                  </span>
+                <div className="mt-3 pt-3 border-t border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500 font-medium">Total Tagihan</span>
+                    <span className="text-sm font-bold text-slate-700">
+                      {formatRp(Number(selectedInvoice.total_amount) || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500 font-medium">Sudah Dibayar</span>
+                    <span className="text-sm font-bold text-emerald-600">
+                      {formatRp(Number(selectedInvoice.paid_amount) || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1.5">
+                    <span className="text-sm font-bold text-slate-800">Sisa yang Harus Dibayar</span>
+                    <span className="font-black text-slate-900 text-base">
+                      {formatRp(
+                        (Number(selectedInvoice.total_amount) || 0) -
+                        (Number(selectedInvoice.paid_amount) || 0)
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Transfer Info */}
               <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
                 <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Transfer ke Rekening</p>
-                <p className="font-mono font-black text-xl text-purple-900 mb-1">BSI 7123456789</p>
+                <div className="flex items-center gap-3 mb-1">
+                  <p className="font-mono font-black text-xl text-purple-900">BSI 7123456789</p>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText("7123456789");
+                      alert("Nomor rekening disalin!");
+                    }}
+                    className="text-xs font-bold bg-purple-200 text-purple-800 px-2 py-1 rounded hover:bg-purple-300 transition"
+                  >
+                    Salin
+                  </button>
+                </div>
                 <p className="text-sm text-slate-600">a.n MI Attaqwa 15</p>
+              </div>
+
+              {/* Input Nominal */}
+              <div>
+                <label className="text-sm font-bold text-slate-700 mb-2 block">Nominal yang Ditransfer <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-slate-500 font-medium text-sm">Rp</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    placeholder="Contoh: 150000"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition text-sm font-medium"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1.5">Masukkan nominal asli yang telah Anda transfer.</p>
               </div>
 
               {/* Upload Area */}
@@ -401,7 +448,7 @@ export default function ParentGeneralFinancePage() {
                 </button>
                 <button
                   onClick={handleSubmitProof}
-                  disabled={!uploadFile || uploading}
+                  disabled={!uploadFile || uploading || !transferAmount}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-purple-600 hover:bg-purple-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {uploading ? <><Loader2 size={15} className="animate-spin" /> Mengirim...</> : "Kirim Bukti"}

@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { invoice_id, bukti_transfer } = body;
+    const { invoice_id, bukti_transfer, note } = body;
 
     if (!invoice_id || !bukti_transfer) {
       return NextResponse.json(
@@ -112,7 +112,7 @@ export async function PUT(request: NextRequest) {
     // Pastikan tagihan milik siswa yang sedang login
     const { data: invoice, error: fetchErr } = await supabase
       .from("general_invoices")
-      .select("id, student_id")
+      .select("id, student_id, note")
       .eq("id", invoice_id)
       .eq("student_id", studentId)
       .single();
@@ -121,12 +121,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Tagihan tidak ditemukan." }, { status: 404 });
     }
 
+    let updatedNote = invoice.note;
+    if (note) {
+      updatedNote = invoice.note ? `${invoice.note} | ${note}` : note;
+    }
+
     const { error: updateErr } = await supabase
       .from("general_invoices")
       .update({
         bukti_transfer,
         status: "PENDING_VERIFICATION",
         payment_method: "TRANSFER",
+        note: updatedNote,
         updated_at: new Date().toISOString(),
       })
       .eq("id", invoice_id);

@@ -416,7 +416,14 @@ export default function ManageTab() {
                   {selectedInvoice.status === 'PENDING_VERIFICATION' && (
                     <div className="bg-blue-50 border border-blue-200 p-5 rounded-xl">
                       <h4 className="font-bold text-blue-800 mb-2">Menunggu Verifikasi</h4>
-                      <p className="text-xs text-blue-600 mb-4">Orang tua telah mengunggah bukti transfer sebesar <b>Rp {(selectedInvoice.amount).toLocaleString('id-ID')}</b>.</p>
+                      <p className="text-xs text-blue-600 mb-4">
+                        Orang tua telah mengunggah bukti transfer. 
+                        {selectedInvoice.note && (
+                          <span className="block mt-2 font-medium bg-blue-100/50 p-2 rounded-lg border border-blue-100">
+                            Catatan: {selectedInvoice.note}
+                          </span>
+                        )}
+                      </p>
                       <a href={selectedInvoice.bukti_transfer} target="_blank" rel="noreferrer" className="block w-full text-center bg-white border border-blue-200 text-blue-700 py-2 rounded-lg text-sm font-semibold mb-3 hover:bg-blue-100 transition-colors">Lihat Bukti Transfer</a>
                       <div className="flex gap-2">
                         <button onClick={() => handleVerifyAction(selectedInvoice.id, 'REJECT')} disabled={actionLoading} className="flex-1 bg-red-100 text-red-600 hover:bg-red-200 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50">Tolak</button>

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Step 1: Build invoice query (fast, no joins when possible)
     let query = supabase
       .from('spp_invoices')
-      .select('id, student_id, title, amount, paid_amount, status, payment_method, bukti_transfer, month, year, due_date, created_at, students(name, student_number, class, parent_name, parent_phone)')
+      .select('id, student_id, title, amount, paid_amount, status, payment_method, bukti_transfer, note, month, year, due_date, created_at, students(name, student_number, class, parent_name, parent_phone)')
       .order('created_at', { ascending: false })
       .limit(100);
 
