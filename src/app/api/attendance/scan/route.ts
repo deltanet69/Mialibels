@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         action: 'check-in', 
-        message: `Berhasil Check-In: ${staff.name}`,
+        message: `Berhasil Absen Masuk: ${staff.name}`,
         data: newRecord,
         staff: staff
       })
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: false, 
           action: 'already-checked-out',
-          error: `${staff.name} sudah melakukan Check-Out hari ini.` 
+          error: `${staff.name} sudah melakukan Absen Pulang hari ini.` 
         }, { status: 400 })
       } else {
         // Do Check OUT
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: true, 
           action: 'check-out', 
-          message: `Berhasil Check-Out: ${staff.name}`,
+          message: `Berhasil Absen Pulang: ${staff.name}`,
           data: updateRecord,
           staff: staff
         })

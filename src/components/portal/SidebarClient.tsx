@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Megaphone,
   MessageSquare,
+  Inbox,
   BarChart3,
   UserCog,
   School,
@@ -134,6 +135,9 @@ export function SidebarClient({ role, userName }: Props) {
                   <Link href="/absensi-guru" className={linkClass('/absensi-guru')} onClick={() => setIsOpen(false)}>
                     <ClipboardCheck size={20} /> <span className="font-medium">Absensi Guru</span>
                   </Link>
+                  <Link href="/rekap-mengajar" className={linkClass('/rekap-mengajar')} onClick={() => setIsOpen(false)}>
+                    <BookOpen size={20} /> <span className="font-medium">Rekap Mengajar</span>
+                  </Link>
                 </div>
               </div>
             )}
@@ -190,6 +194,9 @@ export function SidebarClient({ role, userName }: Props) {
                   </Link>
                   <Link href="/content/testimonials" className={linkClass('/content/testimonials')} onClick={() => setIsOpen(false)}>
                     <MessageSquare size={20} /> <span className="font-medium">Testimoni</span>
+                  </Link>
+                  <Link href="/contact-messages" className={linkClass('/contact-messages')} onClick={() => setIsOpen(false)}>
+                    <Inbox size={20} /> <span className="font-medium">Pesan Kontak</span>
                   </Link>
                 </div>
               </div>

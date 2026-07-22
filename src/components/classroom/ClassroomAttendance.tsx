@@ -205,7 +205,7 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
         <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="p-4 font-semibold text-slate-600 text-sm w-32">NIS</th>
+              <th className="p-4 font-semibold text-slate-600 text-sm w-40">ID Pelajar / NIS</th>
               <th className="p-4 font-semibold text-slate-600 text-sm">Nama Siswa</th>
               <th className="p-4 font-semibold text-slate-600 text-sm text-center">Status Kehadiran</th>
             </tr>
@@ -219,7 +219,11 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
               const record = attendance[student.id];
               return (
                 <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4 text-sm text-slate-500 align-top pt-5">{student.student_number || '-'}</td>
+                  <td className="p-4 align-top pt-5">
+                    <div className="font-mono text-sm font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md inline-block">
+                      {student.student_number || '-'}
+                    </div>
+                  </td>
                   <td className="p-4 align-top pt-5">
                     <div className="text-sm font-medium text-slate-800">{student.name}</div>
                     {record?.status === 'Izin' && (

@@ -60,13 +60,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Single insert
+    const { classroom_id, ...staffData } = body
+    
     const { data: guru, error } = await supabase
       .from('staffs')
-      .insert([body])
+      .insert([staffData])
       .select()
       .single()
 
     if (error) throw error
+
+    // Handle homeroom assignment
+    if (classroom_id) {
+      await supabase
+        .from('classrooms')
+        .update({ homeroom_teacher_id: guru.id })
+        .eq('id', classroom_id)
+    }
 
     return NextResponse.json({ success: true, data: guru })
   } catch (error: any) {

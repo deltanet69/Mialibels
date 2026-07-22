@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, UserPlus, Save } from 'lucide-react'
 
 type GuruFormProps = {
@@ -13,12 +13,13 @@ export function GuruForm({ initialData, onSuccess, onClose }: GuruFormProps) {
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [classrooms, setClassrooms] = useState<any[]>([])
   
   const isEditing = !!initialData
 
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    position: initialData?.position || '',
+    position: initialData?.position || 'Guru Pengajar',
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     address: initialData?.address || '',
@@ -28,7 +29,24 @@ export function GuruForm({ initialData, onSuccess, onClose }: GuruFormProps) {
     description: initialData?.description || '',
     image: initialData?.image || '',
     is_active: initialData?.is_active ?? true,
+    classroom_id: initialData?.homeroom_classrooms?.[0]?.id || '',
   })
+
+  useEffect(() => {
+    // Fetch classrooms for assignment dropdown
+    const fetchClassrooms = async () => {
+      try {
+        const res = await fetch('/api/classrooms')
+        const data = await res.json()
+        if (data.success) {
+          setClassrooms(data.data)
+        }
+      } catch (e) {
+        console.error('Failed to fetch classrooms', e)
+      }
+    }
+    fetchClassrooms()
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
@@ -36,7 +54,12 @@ export function GuruForm({ initialData, onSuccess, onClose }: GuruFormProps) {
       const checked = (e.target as HTMLInputElement).checked
       setFormData(prev => ({ ...prev, [name]: checked }))
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        // Reset classroom_id if position changes from Guru Kelas
+        ...(name === 'position' && value !== 'Guru Kelas' ? { classroom_id: '' } : {})
+      }))
     }
   }
 
@@ -167,16 +190,41 @@ export function GuruForm({ initialData, onSuccess, onClose }: GuruFormProps) {
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">Posisi / Jabatan *</label>
-                  <input 
+                  <select 
                     required
-                    type="text" 
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
-                    placeholder="Misal: Guru Wali Kelas 1A"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
-                  />
+                  >
+                    <option value="">-- Pilih Posisi --</option>
+                    <option value="Kepala Sekolah">Kepala Sekolah</option>
+                    <option value="Wakil Kepala Sekolah">Wakil Kepala Sekolah</option>
+                    <option value="Guru Kelas">Guru Kelas</option>
+                    <option value="Guru Pengajar">Guru Pengajar</option>
+                    <option value="Staff Administrasi">Staff Administrasi</option>
+                    <option value="Staff Sekolah">Staff Sekolah</option>
+                  </select>
                 </div>
+
+                {formData.position === 'Guru Kelas' && (
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-medium text-slate-700">Assignment Kelas (Wali Kelas) *</label>
+                    <select 
+                      required
+                      name="classroom_id"
+                      value={formData.classroom_id}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+                    >
+                      <option value="">-- Pilih Kelas --</option>
+                      {classrooms.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">Guru Kelas (Wali Kelas) hanya dapat di-assign ke 1 kelas.</p>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">Pendidikan Terakhir</label>

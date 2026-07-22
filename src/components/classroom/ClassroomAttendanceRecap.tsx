@@ -115,13 +115,60 @@ export function ClassroomAttendanceRecap({ classroomId }: { classroomId: string 
         </div>
       )}
 
-      {/* Recap Table */}
-      <div className="overflow-x-auto print:overflow-visible">
+      {/* Grid Cards for Screen View */}
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:hidden">
+        {records.length === 0 ? (
+          <div className="col-span-full p-8 text-center text-slate-500">Belum ada data siswa di kelas ini.</div>
+        ) : records.map((record) => {
+          let badgeColor = 'bg-emerald-100 text-emerald-800';
+          if (record.percentage < 75) badgeColor = 'bg-rose-100 text-rose-800';
+          else if (record.percentage < 90) badgeColor = 'bg-amber-100 text-amber-800';
+          if (record.total_days === 0) badgeColor = 'bg-slate-100 text-slate-600';
+
+          return (
+            <div key={record.student_id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-bl-full opacity-50 -z-10 group-hover:scale-110 transition-transform"></div>
+              
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-base mb-1">{record.name}</h4>
+                  <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">ID: {record.student_number || '-'}</span>
+                </div>
+                <div className={`px-2.5 py-1 rounded-lg font-bold text-xs ${badgeColor} shadow-sm`}>
+                  {record.total_days > 0 ? `${record.percentage}%` : '-'}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-50">
+                <div className="flex flex-col items-center p-2 rounded-xl bg-emerald-50 border border-emerald-100/50">
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Hadir</span>
+                  <span className="text-lg font-black text-emerald-700">{record.hadir}</span>
+                </div>
+                <div className="flex flex-col items-center p-2 rounded-xl bg-blue-50 border border-blue-100/50">
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Sakit</span>
+                  <span className="text-lg font-black text-blue-700">{record.sakit}</span>
+                </div>
+                <div className="flex flex-col items-center p-2 rounded-xl bg-amber-50 border border-amber-100/50">
+                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Izin</span>
+                  <span className="text-lg font-black text-amber-700">{record.izin}</span>
+                </div>
+                <div className="flex flex-col items-center p-2 rounded-xl bg-rose-50 border border-rose-100/50">
+                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-1">Alpha</span>
+                  <span className="text-lg font-black text-rose-700">{record.alpha}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Print-only Table */}
+      <div className="hidden print:block overflow-visible">
         <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
               <th className="p-4 font-semibold text-slate-600 text-sm w-16 text-center">No</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm w-32">NIS</th>
+              <th className="p-4 font-semibold text-slate-600 text-sm w-32">ID Pelajar / NIS</th>
               <th className="p-4 font-semibold text-slate-600 text-sm">Nama Siswa</th>
               <th className="p-4 font-semibold text-slate-600 text-sm text-center">Hadir</th>
               <th className="p-4 font-semibold text-slate-600 text-sm text-center">Sakit</th>
@@ -136,13 +183,6 @@ export function ClassroomAttendanceRecap({ classroomId }: { classroomId: string 
                 <td colSpan={8} className="p-8 text-center text-slate-500">Belum ada data siswa di kelas ini.</td>
               </tr>
             ) : records.map((record, index) => {
-              // Determine badge color based on percentage
-              let badgeColor = 'bg-emerald-100 text-emerald-800';
-              if (record.percentage < 75) badgeColor = 'bg-rose-100 text-rose-800';
-              else if (record.percentage < 90) badgeColor = 'bg-amber-100 text-amber-800';
-              
-              if (record.total_days === 0) badgeColor = 'bg-slate-100 text-slate-600';
-
               return (
                 <tr key={record.student_id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-4 text-sm text-slate-500 text-center">{index + 1}</td>
@@ -171,7 +211,7 @@ export function ClassroomAttendanceRecap({ classroomId }: { classroomId: string 
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <span className={`inline-block px-2.5 py-1 rounded-lg font-bold text-sm ${badgeColor}`}>
+                    <span className="inline-block px-2.5 py-1 rounded-lg font-bold text-sm bg-slate-100 text-slate-700">
                       {record.total_days > 0 ? `${record.percentage}%` : '-'}
                     </span>
                   </td>

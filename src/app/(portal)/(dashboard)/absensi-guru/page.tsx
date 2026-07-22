@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X } from 'lucide-react'
+import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '../../../../lib/supabase/client'
 
@@ -21,6 +21,7 @@ type Staff = {
   name: string
   position: string
   rfid: string
+  image?: string | null
   attendance?: AttendanceRecord | null
   attendances?: AttendanceRecord[]
 }
@@ -39,16 +40,15 @@ export default function AbsensiGuruPage() {
   const [filterType, setFilterType] = useState<FilterType>('hari')
   const [staffs, setStaffs] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [showLog, setShowLog] = useState(false)
-  
-  // RFID Scanner Buffer
-  const rfidBuffer = useRef<string>('')
-  const scanTimeout = useRef<NodeJS.Timeout | null>(null)
-  
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const formatTime = (isoString?: string | null) => {
     if (!isoString) return '-'
-    const d = new Date(isoString)
+    const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
+    const d = new Date(validIso)
     return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
   }
 
@@ -63,14 +63,24 @@ export default function AbsensiGuruPage() {
     })
   }
 
+  // ================================================================
+  // REFS: Always hold latest values to prevent stale closures
+  // ================================================================
+  const dateRef = useRef(date)
+  const filterTypeRef = useRef(filterType)
+  const fetchSilentRef = useRef<(d: string, f: FilterType) => void>(() => {})
+
+  // Keep refs in sync with state on every render
+  dateRef.current = date
+  filterTypeRef.current = filterType
+
+  // FULL fetch (with loading spinner) — for initial load & filter/date change
   const fetchAttendance = async (selectedDate: string, currentFilter: FilterType) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}`)
+      const res = await fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`)
       const data = await res.json()
-      if (data.success) {
-        setStaffs(data.data)
-      }
+      if (data.success) setStaffs(data.data)
     } catch (err) {
       console.error(err)
       addLog('Gagal memuat data absensi.', 'error')
@@ -79,86 +89,69 @@ export default function AbsensiGuruPage() {
     }
   }
 
+  // SILENT fetch (no spinner, just sync dot) — for realtime/polling background refresh
+  const fetchSilent = async (selectedDate: string, currentFilter: FilterType) => {
+    setIsSyncing(true)
+    try {
+      const res = await fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`)
+      const data = await res.json()
+      if (data.success) setStaffs(data.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  // Keep silent ref in sync
+  fetchSilentRef.current = fetchSilent
+
   useEffect(() => {
     fetchAttendance(date, filterType)
   }, [date, filterType])
 
-  // Setup Supabase Realtime
+  // ================================================================
+  // Supabase Realtime (DB changes) & Local Scan Listener
+  // ================================================================
   useEffect(() => {
-    const channel = supabase
-      .channel('schema-db-changes')
+    // 1. Listen to DB changes directly (uses a separate channel to avoid clash)
+    const channel = supabase.channel('dashboard-absensi-db')
+    
+    channel
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'staff_attendance',
-        },
-        () => {
-          fetchAttendance(date, filterType)
+        { event: '*', schema: 'public', table: 'staff_attendance' },
+        (payload) => {
+          fetchSilentRef.current(dateRef.current, filterTypeRef.current)
         }
       )
       .subscribe()
-
-    return () => {
+      
+    // 2. Listen to local scan events from GlobalAttendanceScanner
+    const handleLocalScan = (e: any) => {
+      const data = e.detail
+      const msg = data.success ? (data.message || 'Scan absensi berhasil!') : (data.error || 'Scan absensi gagal')
+      addLog(msg, data.success ? 'success' : 'error')
+      fetchSilentRef.current(dateRef.current, filterTypeRef.current)
+    }
+    
+    window.addEventListener('mia_local_scan', handleLocalScan)
+      
+    return () => { 
       supabase.removeChannel(channel)
-    }
-  }, [date, filterType])
-
-  // RFID Scanner Listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
-
-      if (e.key === 'Enter') {
-        const scannedRfid = rfidBuffer.current.trim()
-        if (scannedRfid.length > 3) {
-          handleScan(scannedRfid)
-        }
-        rfidBuffer.current = ''
-        return
-      }
-
-      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
-        rfidBuffer.current += e.key
-        
-        if (scanTimeout.current) clearTimeout(scanTimeout.current)
-        scanTimeout.current = setTimeout(() => {
-          rfidBuffer.current = ''
-        }, 150)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      if (scanTimeout.current) clearTimeout(scanTimeout.current)
+      window.removeEventListener('mia_local_scan', handleLocalScan)
     }
   }, [])
 
-  const handleScan = async (rfid: string) => {
-    addLog(`Memproses scan...`, 'info')
-    
-    try {
-      const res = await fetch('/api/attendance/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid })
-      })
-      const data = await res.json()
-      
-      if (!res.ok) throw new Error(data.error || 'Gagal memproses kartu')
-      
-      addLog(data.message || 'Scan berhasil', 'success')
-      // Only show log panel if we want to force open it, but user might find it annoying if it auto opens.
-      // setShowLog(true)
-    } catch (err: any) {
-      addLog(err.message, 'error')
-    }
-  }
+  // Polling every 15s (quiet fallback — no spinner)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchSilentRef.current(dateRef.current, filterTypeRef.current)
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [])
 
-  // Determine Default Status based on 09:00 rule
+  // Polling every 15s (quiet fallback — no spinner)
   const getAttendanceStatus = (att: AttendanceRecord | null | undefined) => {
     if (att && att.status) return att.status
 
@@ -213,7 +206,15 @@ export default function AbsensiGuruPage() {
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div>
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Absensi Guru & Staff</h1>
-            <p className="text-slate-500 text-sm mt-1">Sistem Absensi Real-Time via Scanner RFID.</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-slate-500 text-md">Sistem Absensi RF ID Card Dewan Guru MI ATTAQWA 15 BABELAN.</p>
+              {isSyncing && (
+                <span className="flex items-center gap-1 text-xs text-emerald-500 font-medium">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Sync...
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
@@ -246,6 +247,31 @@ export default function AbsensiGuruPage() {
                 }}
                 className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-btn-primary focus:ring-4 focus:ring-btn-primary/10 transition font-medium text-slate-700 shadow-sm outline-none"
               />
+            </div>
+
+            <button
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-medium rounded-xl shadow-sm transition"
+              title="Urutkan Nama"
+            >
+              {sortOrder === 'asc' ? <ArrowDownAZ size={18} /> : <ArrowUpAZ size={18} />}
+            </button>
+
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              <button
+                onClick={() => setViewMode('card')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-btn-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                title="Card View"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-btn-primary' : 'text-slate-400 hover:text-slate-600'}`}
+                title="List View"
+              >
+                <List size={18} />
+              </button>
             </div>
 
             <button 
@@ -312,7 +338,7 @@ export default function AbsensiGuruPage() {
         </div>
 
         {/* Staff Cards List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "flex flex-col gap-3"}>
           {loading ? (
             <div className="col-span-full p-10 text-center text-slate-500 bg-white rounded-2xl border border-slate-100">
               Memuat data absensi...
@@ -322,7 +348,9 @@ export default function AbsensiGuruPage() {
               Belum ada data guru/staff yang aktif.
             </div>
           ) : (
-            staffs.map((staff) => {
+            [...staffs]
+              .sort((a, b) => sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))
+              .map((staff) => {
               
               if (filterType === 'hari') {
                 const att = staff.attendance
@@ -335,13 +363,43 @@ export default function AbsensiGuruPage() {
                 if (status === 'SAKIT') statusColor = 'bg-orange-50 text-orange-700 border-orange-200'
                 if (status === 'TIDAK MASUK' || status === 'ALPA') statusColor = 'bg-red-50 text-red-700 border-red-200'
                 
+                if (viewMode === 'list') {
+                  return (
+                    <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex items-center justify-between cursor-pointer hover:border-slate-300">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner flex-shrink-0 overflow-hidden">
+                          {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-md line-clamp-1">{staff.name}</h3>
+                          <p className="text-[14px] text-slate-500 line-clamp-1">{staff.position}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-6 md:gap-24 ml-4">
+                        <div className="flex flex-col items-end hidden sm:flex">
+                          <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wider">Masuk</p>
+                          <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_in_time)}</p>
+                        </div>
+                        <div className="flex flex-col items-end hidden sm:flex">
+                          <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wider">Keluar</p>
+                          <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_out_time)}</p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor} w-20 md:w-24 text-center flex-shrink-0`}>
+                          {status}
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                }
+
                 return (
-                  <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5 cursor-pointer hover:border-slate-300">
+                  <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-3 cursor-pointer hover:border-slate-300">
                     {/* Top info: Avatar + Name + Overall Status */}
                     <div className="flex justify-between items-start mb-1">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner">
-                          {getInitials(staff.name)}
+                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner overflow-hidden">
+                          {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-800 text-md">{staff.name}</h3>
@@ -356,18 +414,18 @@ export default function AbsensiGuruPage() {
                     {/* Bottom info: Check-in & Check-out Times */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500 flex-shrink-0">
+                        {/* <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500 flex-shrink-0">
                           <LogIn size={14} />
-                        </div>
+                        </div> */}
                         <div className="overflow-hidden">
                           <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Masuk</p>
                           <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_in_time)}</p>
                         </div>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-orange-500 flex-shrink-0">
+                        {/* <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-orange-500 flex-shrink-0">
                           <LogOut size={14} />
-                        </div>
+                        </div> */}
                         <div className="overflow-hidden">
                           <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Keluar</p>
                           <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_out_time)}</p>
@@ -385,11 +443,42 @@ export default function AbsensiGuruPage() {
                   else if (att.status === 'SAKIT') sum.SAKIT++
                 })
 
+                if (viewMode === 'list') {
+                  return (
+                    <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:border-slate-300">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner flex-shrink-0 overflow-hidden">
+                          {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-sm line-clamp-1">{staff.name}</h3>
+                          <p className="text-[12px] text-slate-500 line-clamp-1">{staff.position}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="bg-emerald-50 rounded-lg px-3 py-1.5 flex items-center justify-between md:justify-center gap-2 border border-emerald-100 flex-1 md:flex-initial">
+                          <p className="text-[10px] font-bold text-emerald-600 uppercase">Hadir</p>
+                          <p className="text-sm font-black text-emerald-700">{sum.HADIR}</p>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg px-3 py-1.5 flex items-center justify-between md:justify-center gap-2 border border-blue-100 flex-1 md:flex-initial">
+                          <p className="text-[10px] font-bold text-blue-600 uppercase">Izin</p>
+                          <p className="text-sm font-black text-blue-700">{sum.IZIN}</p>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg px-3 py-1.5 flex items-center justify-between md:justify-center gap-2 border border-orange-100 flex-1 md:flex-initial">
+                          <p className="text-[10px] font-bold text-orange-600 uppercase">Sakit</p>
+                          <p className="text-sm font-black text-orange-700">{sum.SAKIT}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                }
+
                 return (
                   <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5 cursor-pointer hover:border-slate-300">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner">
-                        {getInitials(staff.name)}
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner overflow-hidden">
+                        {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-800 text-sm">{staff.name}</h3>
@@ -472,6 +561,7 @@ export default function AbsensiGuruPage() {
           </div>
         </>
       )}
+
 
     </div>
   )

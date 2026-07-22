@@ -44,86 +44,53 @@ export async function POST(request: NextRequest) {
 
     const systemMsg = 'You are a helpful assistant that strictly outputs valid JSON matching the requested schema. No other text. Make sure keys are exactly as requested.'
 
-    // Try DeepSeek first, fall back to OpenAI
+    // Try Google AI Studio (Gemini), DeepSeek, OpenAI
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY
     const deepseekKey = process.env.DEEPSEEK_API_KEY
     const openaiKey = process.env.OPENAI_API_KEY
 
-    let aiResponse: any = null
+    let resultText = ''
     let lastError = ''
 
-    // === Attempt 1: Deepseek ===
-    if (deepseekKey) {
+    // === Attempt 1: Google AI Studio (Gemini) ===
+    if (geminiKey) {
       try {
-        const res = await fetch('https://api.deepseek.com/chat/completions', {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${deepseekKey}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              { role: 'system', content: systemMsg },
-              { role: 'user', content: prompt }
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${systemMsg}\n\n${prompt}` }]
+              }
             ],
-            temperature: 0.7,
-            response_format: { type: "json_object" }
+            generationConfig: {
+              temperature: 0.7,
+              responseMimeType: 'application/json'
+            }
           })
         })
 
         if (res.ok) {
-          aiResponse = await res.json()
-          console.log('AI generated via DeepSeek')
+          const geminiData = await res.json()
+          resultText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+          console.log('AI generated via Google AI Studio (Gemini)')
         } else {
           const errText = await res.text()
-          console.warn('DeepSeek failed, trying OpenAI. Status:', res.status, errText)
-          lastError = `DeepSeek: ${errText}`
+          console.warn('Google AI Studio failed. Status:', res.status, errText)
+          lastError = `Google AI Studio: ${errText}`
         }
       } catch (e: any) {
-        console.warn('DeepSeek network error:', e.message)
+        console.warn('Google AI Studio network error:', e.message)
         lastError = e.message
       }
     }
 
-    // === Attempt 2: OpenAI fallback ===
-    if (!aiResponse && openaiKey) {
-      try {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: systemMsg },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.7,
-            response_format: { type: "json_object" }
-          })
-        })
-
-        if (res.ok) {
-          aiResponse = await res.json()
-          console.log('AI generated via OpenAI (fallback)')
-        } else {
-          const errText = await res.text()
-          console.error('OpenAI also failed. Status:', res.status, errText)
-          lastError = `OpenAI: ${errText}`
-        }
-      } catch (e: any) {
-        console.error('OpenAI network error:', e.message)
-        lastError = e.message
-      }
+    if (!resultText) {
+      return NextResponse.json({ error: `Semua layanan AI gagal merespons. Detail: ${lastError}` }, { status: 503 })
     }
 
-    if (!aiResponse) {
-      throw new Error(`Semua layanan AI gagal merespons. Detail: ${lastError}`)
-    }
-
-    const resultText = aiResponse.choices[0].message.content
     
     let parsedResult;
     try {

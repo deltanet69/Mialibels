@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -40,9 +40,10 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
+    const { classroom_id, ...staffData } = body
 
     const updateData = {
-      ...body,
+      ...staffData,
       updated_at: new Date().toISOString()
     }
 
@@ -54,6 +55,21 @@ export async function PUT(
       .single()
 
     if (error) throw error
+
+    // Handle homeroom assignment
+    // First, remove this teacher from any class they currently are a homeroom teacher of
+    await supabase
+      .from('classrooms')
+      .update({ homeroom_teacher_id: null })
+      .eq('homeroom_teacher_id', guru.id)
+
+    // Then assign to new class if applicable
+    if (classroom_id && updateData.position === 'Guru Kelas') {
+      await supabase
+        .from('classrooms')
+        .update({ homeroom_teacher_id: guru.id })
+        .eq('id', classroom_id)
+    }
 
     return NextResponse.json({ success: true, data: guru })
   } catch (error: any) {

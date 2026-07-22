@@ -4,6 +4,7 @@ import { Navbar } from '@/components/portal/Navbar';
 import '../../globals.css';
 
 import { SidebarProvider } from '@/components/portal/SidebarProvider';
+import { GlobalAttendanceScanner } from '@/components/portal/GlobalAttendanceScanner';
 
 // Root layout untuk route group (dashboard)
 // Sidebar sekarang Server Component — baca session dari JWT cookie langsung
@@ -24,6 +25,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {children}
             </main>
           </div>
+          
+          {/* Global RFID Scanner & Notifications */}
+          <GlobalAttendanceScanner />
         </SidebarProvider>
       </body>
     </html>

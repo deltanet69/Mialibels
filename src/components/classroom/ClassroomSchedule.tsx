@@ -19,8 +19,20 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', time: '', type: 'Pelajaran', teacher_id: '' });
+  const [formData, setFormData] = useState({ name: '', time_start: '', time_end: '', type: 'Pelajaran', teacher_id: '' });
   const [saving, setSaving] = useState(false);
+  const [teachingLogs, setTeachingLogs] = useState<Record<string, any>>({});
+  const [loadingTeaching, setLoadingTeaching] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const SUBJECTS = [
+    "Al-Qur'an Hadis", "Akidah Akhlak", "Fikih", "Sejarah Kebudayaan Islam",
+    "Bahasa Arab", "Tematik", "Matematika", "Ilmu Pengetahuan Alam (IPA)",
+    "Ilmu Pengetahuan Sosial (IPS)", "Pendidikan Kewarganegaraan (PKn)",
+    "Bahasa Indonesia", "Pendidikan Jasmani Olahraga dan Kesehatan (PJOK)",
+    "Seni Budaya dan Prakarya (SBdP)", "Bahasa Inggris", "Muatan Lokal",
+    "Tahfidz", "Baca Tulis Al-Qur'an (BTQ)"
+  ];
 
   // Update current time every minute
   useEffect(() => {
@@ -41,11 +53,30 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
         setSchedules(dataSchedules.data);
       }
       
+      // Fetch current user
+      const resMe = await fetch('/api/auth/me');
+      const dataMe = await resMe.json();
+      if (dataMe.success) {
+        setCurrentUser(dataMe.user);
+      }
+      
       // Fetch teachers for dropdown
       const resTeachers = await fetch('/api/guru');
       const dataTeachers = await resTeachers.json();
       if (dataTeachers.success) {
         setTeachers(dataTeachers.data);
+      }
+      
+      // Fetch teaching logs for today
+      const todayStr = new Date().toISOString().split('T')[0];
+      const resLogs = await fetch(`/api/teaching-attendance?date=${todayStr}&classroomId=${classroomId}`);
+      const dataLogs = await resLogs.json();
+      if (dataLogs.success) {
+        const logMap: Record<string, any> = {};
+        dataLogs.data.forEach((log: any) => {
+          logMap[log.schedule_id] = log;
+        });
+        setTeachingLogs(logMap);
       }
     } catch (e) {
       console.error(e);
@@ -95,19 +126,60 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
 
   const handleOpenAdd = () => {
     setEditingId(null);
-    setFormData({ name: '', time: '', type: 'Pelajaran', teacher_id: '' });
+    setFormData({ name: SUBJECTS[0], time_start: '', time_end: '', type: 'Pelajaran', teacher_id: '' });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (schedule: any) => {
     setEditingId(schedule.id);
+    let tStart = '', tEnd = '';
+    if (schedule.time) {
+      const parts = schedule.time.split('-');
+      if (parts.length === 2) {
+        tStart = parts[0].trim();
+        tEnd = parts[1].trim();
+      }
+    }
     setFormData({ 
       name: schedule.name, 
-      time: schedule.time, 
+      time_start: tStart,
+      time_end: tEnd,
       type: schedule.type,
       teacher_id: schedule.teacher_id || '' 
     });
     setIsModalOpen(true);
+  };
+
+  const handleStartTeaching = async (scheduleId: string, teacherId: string) => {
+    if (!teacherId) return alert('Pilih guru terlebih dahulu untuk mata pelajaran ini.');
+    setLoadingTeaching(true);
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const res = await fetch('/api/teaching-attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schedule_id: scheduleId,
+          teacher_id: teacherId,
+          date: todayStr,
+          status: 'Hadir'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTeachingLogs(prev => ({
+          ...prev,
+          [scheduleId]: data.data
+        }));
+      } else {
+        alert(data.error || 'Gagal merekam data absensi mengajar');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Terjadi kesalahan');
+    } finally {
+      setLoadingTeaching(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -130,7 +202,10 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
       }
 
       const payload = {
-        ...formData,
+        name: formData.type === 'Pelajaran' ? formData.name : formData.name, // Will refine in UI
+        time: `${formData.time_start} - ${formData.time_end}`,
+        type: formData.type,
+        teacher_id: formData.teacher_id || null,
         classroom_id: classroomId,
         day: selectedDay
       };
@@ -246,7 +321,26 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
                     )}
                   </div>
 
-                  <div className="sm:ml-auto">
+                  <div className="sm:ml-auto flex items-center gap-3">
+                    {schedule.type === 'Pelajaran' && (
+                      teachingLogs[schedule.id] ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-100 text-green-700">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Guru Hadir
+                        </span>
+                      ) : (
+                        (currentUser?.role === 'superadmin' || currentUser?.role === 'admin' || currentUser?.role === 'kepsek' || currentUser?.id === schedule.teacher_id) ? (
+                          <button 
+                            onClick={() => handleStartTeaching(schedule.id, schedule.teacher_id)}
+                            disabled={loadingTeaching}
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" />
+                            Mulai Mengajar
+                          </button>
+                        ) : null
+                      )
+                    )}
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getTypeColor(schedule.type)}`}>
                       {schedule.type}
                     </span>
@@ -278,24 +372,46 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kegiatan</label>
-                <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Contoh: Matematika" />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Waktu</label>
-                <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} placeholder="Contoh: 07:00 - 08:30" />
-                <p className="text-xs text-slate-500 mt-1">Format: HH:MM - HH:MM (contoh: 07:00 - 08:30)</p>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kegiatan</label>
-                <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+                <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.type} onChange={e => {
+                  const newType = e.target.value;
+                  setFormData({
+                    ...formData, 
+                    type: newType,
+                    name: newType === 'Pelajaran' ? SUBJECTS[0] : (newType === 'Istirahat' ? 'Istirahat' : '')
+                  });
+                }}>
                   <option value="Pelajaran">Mata Pelajaran</option>
                   <option value="Ekstrakurikuler">Ekstrakurikuler</option>
                   <option value="Istirahat">Istirahat / Kosong</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kegiatan</label>
+                {formData.type === 'Pelajaran' ? (
+                  <select required className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}>
+                    {SUBJECTS.map(subj => (
+                      <option key={subj} value={subj}>{subj}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder={formData.type === 'Istirahat' ? "Contoh: Istirahat Pertama" : "Contoh: Pramuka"} />
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Jam Mulai</label>
+                  <input required type="time" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.time_start} onChange={e => setFormData({...formData, time_start: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Jam Selesai</label>
+                  <input required type="time" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.time_end} onChange={e => setFormData({...formData, time_end: e.target.value})} />
+                </div>
+              </div>
+
+
 
               {formData.type !== 'Istirahat' && (
                 <div>

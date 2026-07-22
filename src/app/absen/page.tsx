@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { CheckCircle, XCircle } from 'lucide-react'
+import { supabase } from '../../lib/supabase/client'
 
 // Helper for Indonesian date
 const getIndonesianDate = () => {
@@ -24,6 +25,7 @@ type PopupData = {
 }
 
 export default function AbsenPage() {
+  const [mounted, setMounted] = useState(false)
   const [time, setTime] = useState(new Date())
   const [popup, setPopup] = useState<PopupData>({ type: 'idle', message: '' })
   const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -31,57 +33,85 @@ export default function AbsenPage() {
   const [nfcSupported, setNfcSupported] = useState(false)
   const [nfcActive, setNfcActive] = useState(false)
 
-  // Realtime clock & NFC check
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000)
-    
-    // Check NFC Support
-    if ('NDEFReader' in window) {
-      setNfcSupported(true)
-    }
+  // --- showPopup defined early so refs & effects can use it ---
+  // Using useRef pattern to avoid stale closure in effects with [] dependency
+  const showPopupRef = useRef<(data: PopupData) => void>(() => {})
+  
+  const showPopup = (data: PopupData) => {
+    setPopup(data)
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
+    popupTimeoutRef.current = setTimeout(() => {
+      setPopup({ type: 'idle', message: '' })
+    }, 5000)
+  }
+  const closePopup = () => setPopup({ type: 'idle', message: '' })
 
+  // Always keep ref pointing to latest showPopup
+  showPopupRef.current = showPopup
+
+  const clientIdRef = useRef(Math.random().toString(36).substring(7))
+  const broadcastChannelRef = useRef<any>(null)
+
+  // Realtime clock
+  useEffect(() => {
+    setMounted(true)
+    const timer = setInterval(() => setTime(new Date()), 1000)
+    if ('NDEFReader' in window) setNfcSupported(true)
     return () => clearInterval(timer)
+  }, [])
+
+  // ================================================================
+  // Supabase Realtime Broadcast (Replaces BroadcastChannel & DB listener)
+  // Works seamlessly across subdomains, tabs, and devices.
+  // ================================================================
+  useEffect(() => {
+    const channel = supabase.channel('mia-attendance-sync')
+    
+    channel
+      .on(
+        'broadcast',
+        { event: 'scan_result' },
+        (payload) => {
+          const data = payload.payload
+          if (data.sender === clientIdRef.current) return // Ignore own broadcast
+          
+          showPopupRef.current({
+            type: data.success ? 'success' : 'error',
+            message: data.message,
+            action: data.action,
+            staff: data.staff
+          })
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          broadcastChannelRef.current = channel
+        }
+      })
+      
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   const startNfcScan = async () => {
     try {
-      // @ts-ignore - NDEFReader is not in standard TS DOM lib yet
+      // @ts-ignore
       const ndef = new window.NDEFReader()
       await ndef.scan()
       setNfcActive(true)
-
       // @ts-ignore
-      ndef.addEventListener('reading', ({ serialNumber }) => {
+      ndef.addEventListener('reading', ({ serialNumber }: any) => {
         if (serialNumber) {
-          // Typically serial number is e.g. "04:a1:b2:c3:d4:e5:f6"
-          // We can strip colons or convert to decimal. 
-          // For now, let's just send the raw serial number or stripped hex
           const cleanRfid = serialNumber.replace(/:/g, '').toUpperCase()
-          
-          // Some USB scanners output decimal. If they stored decimal, we can try to convert the first 4 bytes to dec:
-          // e.g. parseInt(cleanRfid.substring(0,8), 16).toString().padStart(10, '0')
-          // But to be safe, let's send both or just cleanRfid and let the backend/user handle matching.
-          // Let's assume the user will input exactly what the scanner gives.
-          // For simplicity, we just send cleanRfid. If it fails, they can register the cleanRfid in DB.
-          
           processRFID(cleanRfid)
         }
       })
-      
       // @ts-ignore
       ndef.addEventListener('readingerror', () => {
-        showPopup({
-          type: 'error',
-          message: 'Gagal membaca kartu NFC. Coba dekatkan lagi.'
-        })
+        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Coba dekatkan lagi.' })
       })
-
     } catch (error) {
       console.error(error)
-      showPopup({
-        type: 'error',
-        message: 'NFC tidak diizinkan atau tidak didukung di perangkat ini.'
-      })
+      showPopup({ type: 'error', message: 'NFC tidak diizinkan atau tidak didukung.' })
     }
   }
 
@@ -94,35 +124,30 @@ export default function AbsenPage() {
       })
       const data = await res.json()
       
-      if (data.success) {
-        showPopup({
-          type: 'success',
-          message: data.message,
-          action: data.action,
-          staff: data.staff
-        })
-      } else {
-        showPopup({
-          type: 'error',
-          message: data.error || 'Absensi gagal, silakan coba lagi.',
-          action: data.action
+      const popupPayload: PopupData = data.success
+        ? { type: 'success', message: data.message, action: data.action, staff: data.staff }
+        : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
+      
+      showPopup(popupPayload)
+      
+      // Broadcast via Supabase (Cross-subdomain, instant)
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.send({
+          type: 'broadcast',
+          event: 'scan_result',
+          payload: {
+            sender: clientIdRef.current,
+            success: data.success,
+            message: data.success ? data.message : (data.error || 'Absensi gagal'),
+            action: data.action,
+            staff: data.staff
+          }
         })
       }
-    } catch (error) {
-      showPopup({
-        type: 'error',
-        message: 'Koneksi ke server bermasalah.'
-      })
-    }
-  }
 
-  const showPopup = (data: PopupData) => {
-    setPopup(data)
-    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
-    
-    popupTimeoutRef.current = setTimeout(() => {
-      setPopup({ type: 'idle', message: '' })
-    }, 3000) // 3 seconds timeout
+    } catch (error) {
+      showPopup({ type: 'error', message: 'Koneksi ke server bermasalah.' })
+    }
   }
 
   // Auto RFID Scanner listener
@@ -173,6 +198,10 @@ export default function AbsenPage() {
       clearTimeout(scanTimeoutId)
     }
   }, [])
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-slate-900 relative overflow-hidden flex items-center justify-center" />
+  }
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden bg-slate-900 text-white font-sans flex flex-col items-center justify-center">
@@ -285,7 +314,7 @@ export default function AbsenPage() {
                   </div>
                 )}
                 <div className="bg-green-50 text-green-700 px-6 py-3 rounded-xl font-semibold text-xl text-center w-full">
-                  {popup.action === 'check-in' ? 'BERHASIL CHECK-IN' : 'BERHASIL CHECK-OUT'}
+                  {popup.action === 'check-in' ? 'BERHASIL ABSEN MASUK' : 'BERHASIL ABSEN PULANG'}
                 </div>
                 <div className="mt-4 text-slate-500 font-medium">
                   {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB

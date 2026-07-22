@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Get all active staffs
     const { data: staffs, error: staffsError } = await supabase
       .from('staffs')
-      .select('id, name, position, rfid')
+      .select('id, name, position, rfid, image')
       .eq('is_active', true)
       .order('name', { ascending: true })
 
