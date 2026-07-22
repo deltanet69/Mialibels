@@ -132,13 +132,20 @@ export async function PUT(
         return NextResponse.json({ error: "Data rincian tagihan tidak valid." }, { status: 400 });
       }
       
-      const newTotal = items.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
-      const newPaid = items.reduce((acc, i) => acc + (Number(i.paid_amount) || 0), 0);
+      const newItems = items.map((i: any) => {
+        const amt = Number(i.amount) || 0;
+        let paid = Number(i.paid_amount) || 0;
+        if (paid > amt) paid = amt; // Mencegah nominal dibayar melebihi tagihan
+        return { ...i, amount: amt, paid_amount: paid };
+      });
+      
+      const newTotal = newItems.reduce((acc: number, i: any) => acc + i.amount, 0);
+      const newPaid = newItems.reduce((acc: number, i: any) => acc + i.paid_amount, 0);
       const isFullyPaid = newPaid >= newTotal && newTotal > 0;
 
       updates = {
         ...updates,
-        items: items,
+        items: newItems,
         total_amount: newTotal,
         paid_amount: newPaid,
         status: isFullyPaid ? "PAID" : (newPaid > 0 ? "PARTIAL" : "UNPAID")

@@ -25,6 +25,11 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING_VERIFICATION: 'Menunggu Verifikasi',
 }
 
+const PREDEFINED_ITEMS = [
+  'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
+  'Kartu Pelajar', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Tagihan Akhir tahun'
+]
+
 export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) {
   const [invoice, setInvoice] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -34,7 +39,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
   // Edit Mode States
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editItems, setEditItems] = useState<{name: string, amount: number, paid_amount: number}[]>([])
+  const [editItems, setEditItems] = useState<{name: string, amount: number, paid_amount: number, _isCustom?: boolean}[]>([])
 
   // Cash payment form (Itemized)
   const [cashNote, setCashNote] = useState('')
@@ -179,7 +184,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
     }
   }
 
-  const handleEditItemChange = (index: number, field: string, value: string | number) => {
+  const handleEditItemChange = (index: number, field: string, value: string | number | boolean) => {
     const newItems = [...editItems]
     newItems[index] = { ...newItems[index], [field]: value }
     setEditItems(newItems)
@@ -196,7 +201,12 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
   const toggleEditMode = () => {
     if (!isEditMode) {
-      setEditItems(JSON.parse(JSON.stringify(invoice.items || [])))
+      setEditItems(
+        JSON.parse(JSON.stringify(invoice.items || [])).map((item: any) => ({
+          ...item,
+          _isCustom: item.name && !PREDEFINED_ITEMS.includes(item.name)
+        }))
+      )
     }
     setIsEditMode(!isEditMode)
   }
@@ -355,12 +365,43 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                 <span className="font-bold text-slate-500 text-xs w-4">{idx + 1}.</span>
                                 <div className="flex-1 w-full">
                                   <label className="text-[10px] font-semibold text-slate-500 uppercase">Nama Item</label>
-                                  <input
-                                    type="text"
-                                    value={item.name}
-                                    onChange={e => handleEditItemChange(idx, 'name', e.target.value)}
-                                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
-                                  />
+                                  {item._isCustom ? (
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="text"
+                                        value={item.name}
+                                        onChange={e => handleEditItemChange(idx, 'name', e.target.value)}
+                                        className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
+                                        placeholder="Ketik nama item..."
+                                        autoFocus
+                                      />
+                                      <button 
+                                        onClick={() => { handleEditItemChange(idx, '_isCustom', false); handleEditItemChange(idx, 'name', ''); }}
+                                        className="px-2 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-md"
+                                        title="Kembali ke pilihan"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <select
+                                      value={PREDEFINED_ITEMS.includes(item.name) ? item.name : (item.name ? 'OTHER' : '')}
+                                      onChange={(e) => {
+                                        if (e.target.value === 'OTHER') {
+                                          handleEditItemChange(idx, 'name', '')
+                                          handleEditItemChange(idx, '_isCustom', true)
+                                        } else {
+                                          handleEditItemChange(idx, 'name', e.target.value)
+                                          handleEditItemChange(idx, '_isCustom', false)
+                                        }
+                                      }}
+                                      className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500 bg-white"
+                                    >
+                                      <option value="" disabled>Pilih Item...</option>
+                                      {PREDEFINED_ITEMS.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                                      <option value="OTHER">Tulis Manual (Lainnya)...</option>
+                                    </select>
+                                  )}
                                 </div>
                               </div>
                               <div className="w-full sm:w-1/3">
@@ -368,7 +409,13 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                 <input
                                   type="number"
                                   value={item.amount}
-                                  onChange={e => handleEditItemChange(idx, 'amount', Number(e.target.value))}
+                                  onChange={e => {
+                                    const newAmt = Number(e.target.value);
+                                    handleEditItemChange(idx, 'amount', newAmt);
+                                    if (Number(item.paid_amount) > newAmt) {
+                                      handleEditItemChange(idx, 'paid_amount', newAmt);
+                                    }
+                                  }}
                                   className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
                                 />
                               </div>
