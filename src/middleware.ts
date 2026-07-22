@@ -116,7 +116,7 @@ function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | null {
 // Middleware
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── 1. Static assets & Next.js internals ─────────────────────────────────
@@ -146,6 +146,10 @@ export async function proxy(request: NextRequest) {
   // ADMIN SUBDOMAIN — smart.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'admin') {
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    
     // Public: login page & all public API (auth login, logout, etc.)
     if (pathname === '/login') return NextResponse.next();
     if (matchesAny(pathname, PUBLIC_API_PREFIXES)) return NextResponse.next();
@@ -190,6 +194,10 @@ export async function proxy(request: NextRequest) {
   // PARENT SUBDOMAIN — parent.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'parent') {
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/parent/dashboard', request.url));
+    }
+
     // Public: login page, change-password & all public API
     if (
       pathname === '/parent/login' ||
