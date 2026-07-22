@@ -22,7 +22,7 @@ type GeneralInvoice = {
   title: string;
   type: string;
   due_date?: string;
-  items: { name: string; amount: number }[];
+  items: { name: string; amount: number; paid_amount?: number }[];
   total_amount: number;
   paid_amount: number;
   status: string;
@@ -30,6 +30,7 @@ type GeneralInvoice = {
   bukti_transfer?: string;
   note?: string;
   created_at: string;
+  updated_at?: string;
 };
 
 const STATUS_CONFIG: Record<
@@ -51,8 +52,10 @@ export default function ParentGeneralFinancePage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [transferAmount, setTransferAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<'TRANSFER' | 'QRIS'>('TRANSFER');
+  const [selectedPaymentItems, setSelectedPaymentItems] = useState<number[]>([]);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,12 +80,13 @@ export default function ParentGeneralFinancePage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setErrorMsg(""); // Clear past error
     if (!file.type.startsWith("image/")) {
-      alert("Hanya format gambar yang diizinkan");
+      setErrorMsg("Hanya format gambar yang diizinkan");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert("Ukuran file maksimal 5MB");
+      setErrorMsg("Ukuran file maksimal 5MB");
       return;
     }
     setUploadFile(file);
@@ -113,7 +117,10 @@ export default function ParentGeneralFinancePage() {
         body: JSON.stringify({
           invoice_id: selectedInvoice.id,
           bukti_transfer: uploadData.url,
-          note: transferAmount ? `Telah transfer sejumlah Rp ${Number(transferAmount).toLocaleString('id-ID')}` : undefined,
+          payment_method: paymentMethod,
+          note: selectedPaymentItems.length > 0 
+            ? `Pembayaran untuk: ${selectedPaymentItems.map(idx => selectedInvoice.items[idx].name).join(', ')}. Total transfer: Rp ${Number(selectedPaymentItems.reduce((acc, idx) => acc + ((Number(selectedInvoice.items[idx].amount) || 0) - (Number((selectedInvoice.items[idx] as any).paid_amount) || 0)), 0)).toLocaleString('id-ID')}`
+            : undefined,
         }),
       });
       const submitData = await submitRes.json();
@@ -121,7 +128,7 @@ export default function ParentGeneralFinancePage() {
 
       setSuccessMsg("Bukti transfer berhasil dikirim. Menunggu verifikasi admin.");
       setSelectedInvoice(null);
-      setTransferAmount("");
+      setSelectedPaymentItems([]);
       handleCancelUpload();
       fetchInvoices();
     } catch (err: any) {
@@ -145,6 +152,11 @@ export default function ParentGeneralFinancePage() {
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(n);
+
+  const calculatedTransferAmount = selectedInvoice ? selectedPaymentItems.reduce((acc, idx) => {
+    const item = selectedInvoice.items[idx];
+    return acc + ((Number(item.amount) || 0) - (Number((item as any).paid_amount) || 0));
+  }, 0) : 0;
 
   return (
     <div className="space-y-6 w-full pb-16">
@@ -229,86 +241,122 @@ export default function ParentGeneralFinancePage() {
 
                   return (
                     <div key={inv.id} className="p-5 hover:bg-slate-50/60 transition-colors">
-                      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
-                            <h4 className="font-bold text-slate-800">{inv.title}</h4>
-                            <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                      {/* Top Row: Title + Metrics (Left) and Action Buttons (Right) */}
+                      <div className="flex flex-col md:flex-row gap-5 md:items-center justify-between">
+                        <div className="flex-1 w-full">
+                          <div className="flex items-center gap-2.5 mb-2.5 flex-wrap">
+                            <h4 className="font-extrabold text-slate-800 text-base">{inv.title}</h4>
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
                               {inv.type}
                             </span>
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cfg.bg} ${cfg.color}`}>
-                              <StatusIcon size={11} /> {cfg.label}
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${cfg.bg} ${cfg.color}`}>
+                              <StatusIcon size={12} /> {cfg.label}
                             </span>
                           </div>
-                          <div className="flex flex-wrap gap-4 text-sm mb-3">
-                            <span className="text-slate-500">
-                              Total: <strong className="text-slate-700">{formatRp(inv.total_amount)}</strong>
-                            </span>
-                            {Number(inv.paid_amount) > 0 && (
-                              <span className="text-emerald-600">
-                                Dibayar: <strong>{formatRp(inv.paid_amount)}</strong>
-                              </span>
-                            )}
-                            {sisa > 0 && (
-                              <span className="text-red-500">
-                                Sisa: <strong>{formatRp(sisa)}</strong>
-                              </span>
-                            )}
-                            {inv.due_date && (
-                              <span className="text-slate-400">
-                                Jatuh Tempo: {new Date(inv.due_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Expandable items detail */}
-                          {itemsArray.length > 0 && (
-                            <div>
-                              <button
-                                onClick={() => toggleItems(inv.id)}
-                                className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:underline"
-                              >
-                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                {isExpanded ? "Sembunyikan" : "Lihat"} rincian ({itemsArray.length} item)
-                              </button>
-                              {isExpanded && (
-                                <div className="mt-2 pl-2 border-l-2 border-slate-100 space-y-1">
-                                  {itemsArray.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between text-sm text-slate-600">
-                                      <span>{item.name}</span>
-                                      <span className="font-medium">{formatRp(Number(item.amount))}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                          
+                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                            <div className="flex flex-col mr-10">
+                              <span className="text-xs text-slate-400 font-medium mb-0.5">Total Tagihan</span>
+                              <span className="font-bold text-slate-800">{formatRp(inv.total_amount)}</span>
                             </div>
-                          )}
+                            <div className="flex flex-col mr-10">
+                              <span className="text-xs text-slate-400 font-medium mb-0.5">Telah Dibayar</span>
+                              <span className="font-bold text-emerald-600">{formatRp(inv.paid_amount)}</span>
+                            </div>
+                            <div className="flex flex-col mr-10">
+                              <span className="text-xs text-slate-400 font-medium mb-0.5">Sisa Tagihan</span>
+                              <span className={`font-bold ${sisa > 0 ? 'text-red-500' : 'text-slate-400'}`}>{formatRp(sisa)}</span>
+                            </div>
+                            {inv.due_date && (
+                              <div className="flex flex-col mr-10">
+                                <span className="text-xs text-slate-400 font-medium mb-0.5">Jatuh Tempo</span>
+                                <span className="font-semibold text-slate-600">{new Date(inv.due_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="shrink-0">
+                        {/* Action Buttons / Status Badges */}
+                        <div className="shrink-0 w-full md:w-auto flex justify-end md:justify-center border-t border-slate-100 md:border-0 pt-4 md:pt-0">
                           {inv.status === "PAID" && (
-                            <span className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">
-                              <CheckCircle2 size={15} /> Lunas
+                            <span className="inline-flex items-center justify-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 px-6 py-3 rounded-xl border border-emerald-100 w-full md:w-auto">
+                              <CheckCircle2 size={18} /> Lunas
                             </span>
                           )}
                           {inv.status === "PENDING_VERIFICATION" && (
-                            <span className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
-                              <Clock size={15} /> Dalam Verifikasi
+                            <span className="inline-flex items-center justify-center gap-2 text-sm font-bold text-blue-600 bg-blue-50 px-6 py-3 rounded-xl border border-blue-100 w-full md:w-auto">
+                              <Clock size={24} /> Menunggu Verifikasi
                             </span>
                           )}
                           {["UNPAID", "PARTIAL"].includes(inv.status) && (
                             <button
                               onClick={() => {
                                 setSelectedInvoice(inv);
+                                setSelectedPaymentItems([]);
+                                setPaymentMethod('TRANSFER');
                                 setErrorMsg("");
                               }}
-                              className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+                              className="inline-flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-sm shadow-purple-600/20 hover:shadow-purple-600/40 hover:-translate-y-0.5 active:translate-y-0 w-full md:w-auto"
                             >
-                              <UploadCloud size={15} /> Bayar Sekarang
+                              <UploadCloud size={18} /> Bayar Sekarang
                             </button>
                           )}
                         </div>
                       </div>
+
+                      {/* Info Box: Pembayaran Menunggu Verifikasi */}
+                      {inv.status === "PENDING_VERIFICATION" && (
+                        <div className="mt-3.5 bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 text-sm text-blue-800 flex items-start gap-3">
+                          <Clock className="text-blue-500 shrink-0 mt-0.5" size={16} />
+                          <div className="space-y-1">
+                            <p className="font-bold text-blue-600">Pembayaran Menunggu Verifikasi</p>
+                            {inv.note && (
+                              <p className="text-gray-800 font-semibold bg-white/70 px-2.5 py-1.5 rounded-lg border border-blue-100 inline-block mt-1 text-xs">
+                                {inv.note.split(' | ').pop()}
+                              </p>
+                            )}
+                            {inv.updated_at && (
+                              <p className="text-[11px] text-gray-400 mt-1">
+                                Diajukan pada: {new Date(inv.updated_at).toLocaleDateString("id-ID", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} pukul {new Date(inv.updated_at).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} WIB
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bottom Row: Expandable items detail (Now independent of the top row alignment) */}
+                      {itemsArray.length > 0 && (
+                        <div className="w-full mt-3">
+                          <button
+                            onClick={() => toggleItems(inv.id)}
+                            className="text-xs text-blue-600 font-bold flex items-center gap-1 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors -ml-2"
+                          >
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            {isExpanded ? "Sembunyikan" : "Lihat"} rincian ({itemsArray.length} item)
+                          </button>
+                          
+                          {isExpanded && (
+                            <div className="mt-3 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden">
+                              <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-100 text-slate-500 text-xs uppercase font-semibold">
+                                  <tr>
+                                    <th className="px-4 py-2.5 rounded-tl-xl">Deskripsi Item</th>
+                                    <th className="px-4 py-2.5 text-right rounded-tr-xl">Nominal</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                  {itemsArray.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-white transition-colors">
+                                      <td className="px-4 py-3 text-slate-700 font-medium">{item.name}</td>
+                                      <td className="px-4 py-3 text-slate-800 font-semibold text-right">{formatRp(Number(item.amount))}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -333,81 +381,96 @@ export default function ParentGeneralFinancePage() {
               <p className="text-purple-200 text-sm mt-1">{selectedInvoice.title}</p>
             </div>
 
-            <div className="p-6 space-y-5">
-              {/* Items Summary */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rincian Tagihan</p>
-                {Array.isArray(selectedInvoice.items) && selectedInvoice.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm text-slate-600 py-1 border-b border-slate-100 last:border-0">
-                    <span>{item.name}</span>
-                    <span className="font-medium">{formatRp(Number(item.amount))}</span>
-                  </div>
-                ))}
-                <div className="mt-3 pt-3 border-t border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500 font-medium">Total Tagihan</span>
-                    <span className="text-sm font-bold text-slate-700">
-                      {formatRp(Number(selectedInvoice.total_amount) || 0)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500 font-medium">Sudah Dibayar</span>
-                    <span className="text-sm font-bold text-emerald-600">
-                      {formatRp(Number(selectedInvoice.paid_amount) || 0)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-1.5">
-                    <span className="text-sm font-bold text-slate-800">Sisa yang Harus Dibayar</span>
-                    <span className="font-black text-slate-900 text-base">
-                      {formatRp(
-                        (Number(selectedInvoice.total_amount) || 0) -
-                        (Number(selectedInvoice.paid_amount) || 0)
-                      )}
-                    </span>
-                  </div>
+            <div className="p-6 space-y-5 max-h-[85vh] overflow-y-auto">
+              {/* Marketplace-style Items Selection */}
+              <div>
+                <p className="text-sm font-bold text-slate-700 mb-2">Pilih Item yang Akan Dibayar <span className="text-red-500">*</span></p>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {Array.isArray(selectedInvoice.items) && selectedInvoice.items.map((item, idx) => {
+                    const sisaItem = (Number(item.amount) || 0) - (Number(item.paid_amount) || 0);
+                    if (sisaItem <= 0) return null; // Already paid
+                    return (
+                      <label key={idx} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${selectedPaymentItems.includes(idx) ? 'bg-purple-50 border-purple-300' : 'bg-white border-slate-200 hover:border-purple-200'}`}>
+                        <div className="pt-0.5">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedPaymentItems.includes(idx)}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedPaymentItems(prev => [...prev, idx]);
+                              else setSelectedPaymentItems(prev => prev.filter(i => i !== idx));
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-slate-800">{item.name}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Nominal: <span className="font-bold text-slate-700">{formatRp(sisaItem)}</span></p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                  {selectedInvoice.items.filter(i => (Number(i.amount) - Number(i.paid_amount)) > 0).length === 0 && (
+                    <p className="text-sm text-slate-500 text-center py-4 bg-slate-50 rounded-xl">Semua rincian item sudah lunas.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Transfer Info */}
-              <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
-                <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Transfer ke Rekening</p>
-                <div className="flex items-center gap-3 mb-1">
-                  <p className="font-mono font-black text-xl text-purple-900">BSI 7123456789</p>
+              {/* Payment Method Toggle */}
+              <div>
+                <p className="text-sm font-bold text-slate-700 mb-2">Metode Pembayaran <span className="text-red-500">*</span></p>
+                <div className="flex gap-3">
                   <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText("7123456789");
-                      alert("Nomor rekening disalin!");
-                    }}
-                    className="text-xs font-bold bg-purple-200 text-purple-800 px-2 py-1 rounded hover:bg-purple-300 transition"
+                    onClick={() => setPaymentMethod('TRANSFER')}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition ${paymentMethod === 'TRANSFER' ? 'bg-purple-600 border-purple-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                   >
-                    Salin
+                    Transfer Bank
+                  </button>
+                  <button 
+                    onClick={() => setPaymentMethod('QRIS')}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition ${paymentMethod === 'QRIS' ? 'bg-purple-600 border-purple-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    QRIS
                   </button>
                 </div>
-                <p className="text-sm text-slate-600">a.n MI Attaqwa 15</p>
               </div>
 
-              {/* Input Nominal */}
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-2 block">Nominal yang Ditransfer <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-slate-500 font-medium text-sm">Rp</span>
+              {/* Payment Info Details */}
+              {paymentMethod === 'TRANSFER' ? (
+                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
+                  <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Transfer ke Rekening</p>
+                  <div className="flex items-center gap-3 mb-1">
+                    <p className="font-mono font-black text-xl text-purple-900">BSI 7123456789</p>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText("7123456789");
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="text-xs font-bold bg-purple-200 text-purple-800 px-2.5 py-1 rounded-xl hover:bg-purple-300 transition"
+                    >
+                      {copied ? "Tersalin! ✓" : "Salin"}
+                    </button>
                   </div>
-                  <input
-                    type="number"
-                    min="1"
-                    value={transferAmount}
-                    onChange={(e) => setTransferAmount(e.target.value)}
-                    placeholder="Contoh: 150000"
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 outline-none transition text-sm font-medium"
-                  />
+                  <p className="text-sm text-slate-600">a.n MI Attaqwa 15</p>
                 </div>
-                <p className="text-xs text-slate-500 mt-1.5">Masukkan nominal asli yang telah Anda transfer.</p>
+              ) : (
+                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 text-center">
+                  <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Scan QRIS</p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/qris.jpg" alt="QRIS" className="w-48 h-48 mx-auto rounded-xl shadow-sm border border-slate-200 mb-2 object-cover bg-white" />
+                  <p className="text-sm text-slate-600">a.n MI Attaqwa 15</p>
+                </div>
+              )}
+
+              {/* Calculated Amount */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between shadow-sm">
+                <span className="text-sm font-bold text-slate-700">Total Harus Dibayar</span>
+                <span className="text-lg font-black text-purple-700">{formatRp(calculatedTransferAmount)}</span>
               </div>
 
               {/* Upload Area */}
               <div>
-                <label className="text-sm font-bold text-slate-700 mb-2 block">Bukti Transfer</label>
+                <label className="text-sm font-bold text-slate-700 mb-2 block">Bukti Pembayaran <span className="text-red-500">*</span></label>
                 {!previewUrl ? (
                   <div
                     onClick={() => fileInputRef.current?.click()}
@@ -439,7 +502,7 @@ export default function ParentGeneralFinancePage() {
                 <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{errorMsg}</p>
               )}
 
-              <div className="flex gap-3 pt-1">
+              <div className="flex gap-3 pt-1 sticky bottom-0 bg-white pb-2">
                 <button
                   onClick={() => { setSelectedInvoice(null); handleCancelUpload(); }}
                   className="flex-1 py-3 rounded-xl font-semibold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
@@ -448,7 +511,7 @@ export default function ParentGeneralFinancePage() {
                 </button>
                 <button
                   onClick={handleSubmitProof}
-                  disabled={!uploadFile || uploading || !transferAmount}
+                  disabled={!uploadFile || uploading || selectedPaymentItems.length === 0}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-purple-600 hover:bg-purple-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {uploading ? <><Loader2 size={15} className="animate-spin" /> Mengirim...</> : "Kirim Bukti"}

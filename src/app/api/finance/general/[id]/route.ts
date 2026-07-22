@@ -67,7 +67,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { action, amount, payment_method, note } = body;
+    const { action, amount, payment_method, note, rejectReason } = body;
 
     const supabase = getAdminSupabase();
 
@@ -84,7 +84,7 @@ export async function PUT(
 
     let updates: any = { updated_at: new Date().toISOString() };
 
-    if (action === "CASH_PAYMENT") {
+    if (action === "CASH_PAYMENT" || action === "VERIFY_TRANSFER") {
       const { items_paid } = body;
       if (!items_paid || !Array.isArray(items_paid)) {
         return NextResponse.json({ error: "Data rincian pembayaran tidak valid." }, { status: 400 });
@@ -120,11 +120,31 @@ export async function PUT(
         ...updates,
         items: newItems,
         paid_amount: newPaid,
-        payment_method: "CASH",
+        payment_method: action === "VERIFY_TRANSFER" ? "TRANSFER" : "CASH",
         status: isFullyPaid ? "PAID" : "PARTIAL",
       };
-      if (note) {
-        updates.note = current.note ? `${current.note} | ${note}` : note;
+      const adminName = session.name || "Admin";
+      const now = new Date();
+      const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}WIB`;
+
+      if (action === "VERIFY_TRANSFER") {
+        if (current.note) {
+          const notes = current.note.split(" | ");
+          const lastNote = notes[notes.length - 1];
+          if (!lastNote.includes("Approved oleh")) {
+             notes[notes.length - 1] = `${lastNote} (Approved oleh : ${adminName})`;
+             updates.note = notes.join(" | ");
+          } else {
+             updates.note = current.note;
+          }
+        }
+      } else if (action === "CASH_PAYMENT") {
+        const itemsStr = items_paid
+          .filter((p: any) => Number(p.paid_amount) > 0)
+          .map((p: any) => `${p.name} (Rp ${Number(p.paid_amount).toLocaleString('id-ID')})`)
+          .join(", ");
+        const generatedNote = `[${timeStr}] Pembayaran tunai oleh : ${adminName} - Item: ${itemsStr}`;
+        updates.note = current.note ? `${current.note} | ${generatedNote}` : generatedNote;
       }
     } else if (action === "EDIT_ITEMS") {
       const { items } = body;
@@ -151,25 +171,47 @@ export async function PUT(
         status: isFullyPaid ? "PAID" : (newPaid > 0 ? "PARTIAL" : "UNPAID")
       };
     } else if (action === "APPROVE_TRANSFER") {
-      // Admin approve bukti transfer dari parent
+      // Admin approve bukti transfer dari parent (Legacy/Full Approve)
       const newItems = (current.items || []).map((i: any) => ({
         ...i,
         paid_amount: i.amount
       }));
       const newPaid = Number(current.total_amount); // Transfer = full payment
+      
+      const adminName = session.name || "Admin";
+      let newNote = current.note || "";
+      if (newNote) {
+        const notes = newNote.split(" | ");
+        const lastNote = notes[notes.length - 1];
+        if (!lastNote.includes("Approved oleh")) {
+          notes[notes.length - 1] = `${lastNote} (Approved oleh : ${adminName})`;
+          newNote = notes.join(" | ");
+        }
+      }
+
       updates = {
         ...updates,
         items: newItems,
         paid_amount: newPaid,
         status: "PAID",
         payment_method: "TRANSFER",
+        note: newNote,
       };
     } else if (action === "REJECT_TRANSFER") {
       // Admin tolak bukti transfer, kembalikan ke UNPAID / PARTIAL
+      const adminName = session.name || "Admin";
+      let newNote = current.note || "";
+      if (rejectReason) {
+        const timeStr = new Date().toLocaleString("id-ID", { dateStyle: 'medium', timeStyle: 'short' }) + " WIB";
+        const rejectMsg = `[${timeStr}] Ditolak oleh ${adminName}: ${rejectReason}`;
+        newNote = newNote ? `${newNote} | ${rejectMsg}` : rejectMsg;
+      }
+
       updates = {
         ...updates,
         status: Number(current.paid_amount) > 0 ? "PARTIAL" : "UNPAID",
         bukti_transfer: null,
+        note: newNote,
       };
     } else {
       return NextResponse.json({ error: "Action tidak dikenali." }, { status: 400 });
@@ -179,15 +221,64 @@ export async function PUT(
       .from("general_invoices")
       .update(updates)
       .eq("id", id)
-      .select()
+      .select(`
+        *,
+        students (
+          id, name, nisn, student_number, class, class_id,
+          parent_name, parent_phone
+        )
+      `)
       .single();
 
     if (updateError) throw updateError;
 
+    let notifTitle = "";
+    let notifMessage = "";
+
+    if (action === "VERIFY_TRANSFER" || action === "APPROVE_TRANSFER") {
+      notifTitle = "Transfer Tagihan Diverifikasi";
+      notifMessage = `Pembayaran transfer untuk tagihan umum Anda berhasil diverifikasi oleh Admin.`;
+    } else if (action === "REJECT_TRANSFER") {
+      notifTitle = "Bukti Transfer Ditolak";
+      notifMessage = `Maaf, bukti transfer untuk tagihan umum Anda ditolak. Alasan: ${rejectReason || 'Tidak valid'}. Silakan perbaiki dan upload ulang.`;
+    } else if (action === "CASH_PAYMENT") {
+      notifTitle = "Pembayaran Tunai Diterima";
+      notifMessage = `Pembayaran tunai Anda untuk tagihan umum berhasil dicatat oleh Admin.`;
+    }
+
+    if (notifTitle && notifMessage) {
+      await supabase.from("notifications").insert([
+        {
+          role: "parent",
+          user_id: current.student_id,
+          type: "PAYMENT",
+          title: notifTitle,
+          message: notifMessage
+        },
+        {
+          role: "admin",
+          type: "PAYMENT",
+          title: notifTitle,
+          message: `Admin ${session.name || 'Admin'} memproses pembayaran: ${updated.title}`
+        }
+      ]);
+    }
+
+    const formatted = {
+      ...updated,
+      student_name: updated.students?.name || "-",
+      student_nisn: updated.students?.nisn || null,
+      student_number: updated.students?.student_number || "-",
+      student_class: updated.students?.class || "-",
+      student_class_id: updated.students?.class_id || null,
+      parent_name: updated.students?.parent_name || "-",
+      parent_phone: updated.students?.parent_phone || "-",
+    };
+
     return NextResponse.json({
       success: true,
       message: "Berhasil memperbarui tagihan.",
-      data: updated,
+      data: formatted,
     });
   } catch (error: any) {
     console.error("Error updating general invoice:", error);

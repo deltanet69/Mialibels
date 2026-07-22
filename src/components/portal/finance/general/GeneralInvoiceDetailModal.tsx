@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   X, Info, CheckCircle2, AlertTriangle, Clock, Banknote,
-  CreditCard, Download, ExternalLink, Loader2, Edit3, Save, Printer
+  CreditCard, Download, ExternalLink, Loader2, Edit3, Save, Printer, FileText
 } from 'lucide-react'
 
 type Props = {
@@ -124,19 +124,71 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   }
 
   const handleVerify = async (action: 'APPROVE_TRANSFER' | 'REJECT_TRANSFER') => {
-    if (!confirm(action === 'APPROVE_TRANSFER' ? 'Setujui pembayaran transfer ini?' : 'Tolak bukti transfer ini?')) return
+    let rejectReason = '';
+    if (action === 'REJECT_TRANSFER') {
+      const reason = prompt('Masukkan alasan penolakan (misal: Bukti transfer buram, Nominal kurang, dll):');
+      if (reason === null) return; // Cancelled by user
+      if (!reason.trim()) {
+        alert('Alasan penolakan wajib diisi agar orang tua tahu kesalahannya.');
+        return;
+      }
+      rejectReason = reason.trim();
+    } else {
+      if (!confirm('Setujui pembayaran transfer ini secara penuh?')) return;
+    }
+    
     setActionLoading(true)
     setError(null)
     try {
       const res = await fetch(`/api/finance/general/${invoice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, rejectReason }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setSuccessMsg(action === 'APPROVE_TRANSFER' ? 'Transfer berhasil disetujui. Tagihan lunas!' : 'Bukti transfer ditolak.')
       setInvoice(data.data)
+      onUpdated()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleVerifyTransfer = async () => {
+    const validPayments = paymentItems.filter(p => p.paid_amount > 0)
+    
+    if (validPayments.length === 0) {
+      setError('Masukkan setidaknya satu nominal verifikasi yang lebih dari 0.')
+      return
+    }
+
+    if (!confirm('Apakah nominal verifikasi yang Anda masukkan sudah sesuai dengan dana transfer yang masuk?')) return
+
+    const totalVerifiedAmount = validPayments.reduce((acc, curr) => acc + curr.paid_amount, 0)
+    
+    setActionLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/finance/general/${invoice.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'VERIFY_TRANSFER',
+          items_paid: validPayments,
+          note: `Transfer Diverifikasi (Rp ${Number(totalVerifiedAmount).toLocaleString('id-ID')})`,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      
+      setSuccessMsg('Transfer berhasil diverifikasi dan dicatat.')
+      setInvoice(data.data)
+      if (data.data.items) {
+        setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
+      }
       onUpdated()
     } catch (err: any) {
       setError(err.message)
@@ -280,7 +332,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Biodata Siswa */}
                 <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Info size={14} /> Biodata Siswa
                   </h4>
                   <div className="space-y-2.5 text-sm">
@@ -302,7 +354,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
                 {/* Detail Tagihan */}
                 <div className="bg-blue-50/60 rounded-xl p-5 border border-blue-100">
-                  <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Info size={14} /> Ringkasan Tagihan
                   </h4>
                   <div className="space-y-2.5 text-sm">
@@ -536,15 +588,24 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                           onClick={openPrintReceipt}
                           className="w-full bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
                         >
-                          <Printer size={15} /> Cetak Bukti
+                          <Printer size={15} /> Cetak Bukti Pembayaran
                         </button>
                       )}
                     </div>
                   </div>
                   {invoice.note && (
-                    <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 border border-slate-100 mt-2">
-                      <span className="font-medium text-slate-700 block mb-1">Catatan Pembayaran:</span>
-                      {invoice.note}
+                    <div className="bg-slate-50 p-4 rounded-xl text-xs text-slate-700 border border-slate-200 mt-3 shadow-sm">
+                      <span className="font-bold text-slate-800 flex items-center gap-1.5 mb-2.5">
+                        <FileText size={14} className="text-slate-500" /> Riwayat Catatan Pembayaran:
+                      </span>
+                      <ul className="space-y-2">
+                        {invoice.note.split(' | ').map((n: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 border-b border-slate-200/60 pb-2 last:border-0 last:pb-0">
+                            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full mt-1.5 shrink-0" />
+                            <span className="leading-relaxed ">{n}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
@@ -552,41 +613,106 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                 {/* Form Aksi Pembayaran */}
                 <div className="space-y-4 pt-2 border-t border-slate-100">
 
-                  {/* PENDING VERIFICATION — Approve or Reject */}
+                  {/* PENDING VERIFICATION — Approve with Items or Reject */}
                   {invoice.status === 'PENDING_VERIFICATION' && (
-                    <div className="bg-blue-50 border border-blue-200 p-5 rounded-xl space-y-3">
+                    <div className="bg-blue-50 border border-blue-200 p-4 sm:p-5 rounded-xl space-y-4">
                       <div className="flex items-center gap-2">
                         <Clock size={16} className="text-blue-500" />
                         <h4 className="font-bold text-blue-800 text-sm">Menunggu Verifikasi Transfer</h4>
                       </div>
-                      <p className="text-xs text-blue-600">
-                        Orang tua telah mengunggah bukti transfer.<br />
-                        Total: <strong>{formatRp(invoice.total_amount)}</strong>
-                      </p>
+                      
+                      <div className="text-xs text-blue-800 bg-white/70 p-3.5 rounded-lg border border-blue-100">
+                        <p className="font-bold mb-1.5 text-blue-900">Catatan dari Orang Tua:</p>
+                        <p className="font-medium bg-blue-50/50 p-2 rounded border border-blue-100/50">{invoice.note ? invoice.note.split(' | ').pop() : 'Tidak ada catatan'}</p>
+                        {invoice.updated_at && (
+                          <p className="mt-2 text-[11px] text-blue-500 font-medium">Dikirim pada: {new Date(invoice.updated_at).toLocaleString("id-ID", { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB</p>
+                        )}
+                      </div>
+
                       {invoice.bukti_transfer && (
                         <a
                           href={invoice.bukti_transfer}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center justify-center gap-2 w-full bg-white border border-blue-200 text-blue-700 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition"
+                          className="flex items-center justify-center gap-2 w-full bg-white border border-blue-200 text-blue-700 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-100 transition shadow-sm shadow-blue-100"
                         >
-                          <Download size={14} /> Lihat Bukti Transfer
+                          <Download size={15} /> Lihat Bukti Transfer
                         </a>
                       )}
-                      <div className="flex gap-2 pt-1">
+                      
+                      <div className="w-full h-px bg-blue-200/60 my-2"></div>
+                      
+                      <h4 className="font-bold text-blue-900 text-sm flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-blue-600" /> Verifikasi Nominal Pembayaran
+                      </h4>
+                      <p className="text-xs text-blue-700 -mt-2 mb-2">Sesuaikan nominal tagihan dengan dana transfer yang masuk ke rekening sekolah.</p>
+                      
+                      <div className="space-y-3">
+                        <div className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide px-1 flex hidden sm:flex">
+                          <div className="flex-1">Item Tunggakan</div>
+                          <div className="w-32 text-right">Verifikasi (Rp)</div>
+                        </div>
+                        {items.filter(item => (Number(item.amount) - (Number(item.paid_amount) || 0)) > 0).map((item, idx) => {
+                          const itemSisa = Number(item.amount) - (Number(item.paid_amount) || 0);
+                          const paymentInput = paymentItems.find(p => p.name === item.name)?.paid_amount || '';
+                          
+                          return (
+                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 bg-white p-3 rounded-xl border border-blue-100 shadow-sm">
+                              <div className="w-8 flex items-center justify-center h-8 bg-blue-50 rounded-full text-blue-600 font-bold text-xs shrink-0">
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-bold text-slate-800 truncate">{item.name}</p>
+                                <p className="text-[11px] text-slate-500 font-semibold mt-1">Sisa: {formatRp(itemSisa)}</p>
+                              </div>
+                              <div className="w-full sm:w-48 relative flex items-center mt-2 sm:mt-0">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none sm:hidden">
+                                  <span className="text-slate-400 text-sm font-medium">Rp</span>
+                                </div>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={itemSisa}
+                                  value={paymentInput}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setPaymentItems(prev => prev.map(p => p.name === item.name ? { ...p, paid_amount: val } : p));
+                                  }}
+                                  className="w-full pl-9 sm:pl-3 pr-3 py-2 text-sm border border-slate-300 rounded-lg sm:text-right focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                                  placeholder="Nominal"
+                                />
+                                <button
+                                  title="Validasi Penuh"
+                                  onClick={() => setPaymentItems(prev => prev.map(p => p.name === item.name ? { ...p, paid_amount: itemSisa } : p))}
+                                  className="absolute -top-2 -right-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-sm hover:bg-blue-200 border border-blue-200 transition"
+                                >
+                                  LUNASI
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      <div className="flex items-center justify-between border-t border-blue-200 pt-3">
+                        <span className="text-xs font-semibold text-blue-800 uppercase">Total Diverifikasi</span>
+                        <span className="text-lg font-bold text-emerald-600">{formatRp(totalPaymentPreview)}</span>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
                         <button
                           onClick={() => handleVerify('REJECT_TRANSFER')}
                           disabled={actionLoading}
-                          className="flex-1 bg-red-100 text-red-600 hover:bg-red-200 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50"
+                          className="flex-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                         >
-                          Tolak
+                          Tolak Bukti Transfer
                         </button>
                         <button
-                          onClick={() => handleVerify('APPROVE_TRANSFER')}
-                          disabled={actionLoading}
-                          className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 py-2 rounded-lg text-sm font-semibold transition shadow-sm disabled:opacity-50"
+                          onClick={handleVerifyTransfer}
+                          disabled={actionLoading || totalPaymentPreview <= 0}
+                          className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 py-2.5 rounded-lg text-sm font-bold transition shadow-sm disabled:opacity-50 flex items-center justify-center"
                         >
-                          {actionLoading ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Setujui ✓'}
+                          {actionLoading ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Setujui & Simpan ✓'}
                         </button>
                       </div>
                     </div>

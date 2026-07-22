@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Wallet, Receipt, CreditCard, Banknote, CheckCircle, Clock, FileText, Eye } from 'lucide-react'
+import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
 import { CreateBillModal } from '@/components/portal/finance/general/CreateBillModal'
 import { GeneralInvoiceDetailModal } from '@/components/portal/finance/general/GeneralInvoiceDetailModal'
 
@@ -48,6 +49,24 @@ export default function GeneralFinancePage() {
 
   useEffect(() => {
     fetchData()
+
+    // Realtime Listener for auto-refresh
+    const channel = supabase
+      .channel('general_invoices_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'general_invoices' },
+        (payload) => {
+          // You could optionally check if the updated row matches current filters,
+          // but calling fetchData() ensures data integrity.
+          fetchData()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [filterStatus, filterClass])
 
   const fetchData = async () => {

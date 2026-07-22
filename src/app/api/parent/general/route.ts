@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { invoice_id, bukti_transfer, note } = body;
+    const { invoice_id, bukti_transfer, note, payment_method } = body;
 
     if (!invoice_id || !bukti_transfer) {
       return NextResponse.json(
@@ -123,7 +123,10 @@ export async function PUT(request: NextRequest) {
 
     let updatedNote = invoice.note;
     if (note) {
-      updatedNote = invoice.note ? `${invoice.note} | ${note}` : note;
+      const now = new Date();
+      const timeStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}WIB`;
+      const formattedNote = `[${timeStr}] Metode: ${payment_method || "TRANSFER"} - ${note}`;
+      updatedNote = invoice.note ? `${invoice.note} | ${formattedNote}` : formattedNote;
     }
 
     const { error: updateErr } = await supabase
@@ -131,13 +134,30 @@ export async function PUT(request: NextRequest) {
       .update({
         bukti_transfer,
         status: "PENDING_VERIFICATION",
-        payment_method: "TRANSFER",
+        payment_method: payment_method || "TRANSFER",
         note: updatedNote,
         updated_at: new Date().toISOString(),
       })
       .eq("id", invoice_id);
 
     if (updateErr) throw updateErr;
+
+    // Insert Notification for Admin
+    await supabase.from("notifications").insert([
+      {
+        role: "admin",
+        type: "PAYMENT",
+        title: "Pembayaran Tagihan Baru",
+        message: `Ada pembayaran masuk untuk tagihan dengan ID: ${invoice_id.split('-')[0].toUpperCase()}. Menunggu verifikasi.`
+      },
+      {
+        role: "parent",
+        user_id: studentId,
+        type: "PAYMENT",
+        title: "Bukti Transfer Berhasil Dikirim",
+        message: "Bukti transfer pembayaran tagihan umum Anda berhasil dikirim dan sedang menunggu verifikasi admin."
+      }
+    ]);
 
     return NextResponse.json({
       success: true,
