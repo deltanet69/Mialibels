@@ -85,18 +85,40 @@ export async function PUT(
     let updates: any = { updated_at: new Date().toISOString() };
 
     if (action === "CASH_PAYMENT") {
-      // Pembayaran tunai ke TU (bisa partial)
-      const addAmount = Number(amount) || 0;
-      if (addAmount <= 0) {
+      const { items_paid } = body;
+      if (!items_paid || !Array.isArray(items_paid)) {
+        return NextResponse.json({ error: "Data rincian pembayaran tidak valid." }, { status: 400 });
+      }
+
+      let newItems = [...(current.items || [])];
+      let totalAdded = 0;
+
+      for (const p of items_paid) {
+        const idx = newItems.findIndex((i: any) => i.name === p.name);
+        if (idx !== -1) {
+          const currentPaid = Number(newItems[idx].paid_amount) || 0;
+          const toAdd = Number(p.paid_amount) || 0;
+          
+          const maxAdd = Number(newItems[idx].amount) - currentPaid;
+          const actualAdd = Math.max(0, Math.min(toAdd, maxAdd));
+          
+          if (actualAdd > 0) {
+            newItems[idx].paid_amount = currentPaid + actualAdd;
+            totalAdded += actualAdd;
+          }
+        }
+      }
+
+      if (totalAdded <= 0) {
         return NextResponse.json({ error: "Nominal pembayaran harus lebih dari 0." }, { status: 400 });
       }
-      const maxPayable = Number(current.total_amount) - Number(current.paid_amount);
-      const actualAmount = Math.min(addAmount, maxPayable);
-      const newPaid = Number(current.paid_amount) + actualAmount;
+
+      const newPaid = Number(current.paid_amount) + totalAdded;
       const isFullyPaid = newPaid >= Number(current.total_amount);
 
       updates = {
         ...updates,
+        items: newItems,
         paid_amount: newPaid,
         payment_method: "CASH",
         status: isFullyPaid ? "PAID" : "PARTIAL",
@@ -104,17 +126,39 @@ export async function PUT(
       if (note) {
         updates.note = current.note ? `${current.note} | ${note}` : note;
       }
+    } else if (action === "EDIT_ITEMS") {
+      const { items } = body;
+      if (!items || !Array.isArray(items)) {
+        return NextResponse.json({ error: "Data rincian tagihan tidak valid." }, { status: 400 });
+      }
+      
+      const newTotal = items.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
+      const newPaid = items.reduce((acc, i) => acc + (Number(i.paid_amount) || 0), 0);
+      const isFullyPaid = newPaid >= newTotal && newTotal > 0;
+
+      updates = {
+        ...updates,
+        items: items,
+        total_amount: newTotal,
+        paid_amount: newPaid,
+        status: isFullyPaid ? "PAID" : (newPaid > 0 ? "PARTIAL" : "UNPAID")
+      };
     } else if (action === "APPROVE_TRANSFER") {
       // Admin approve bukti transfer dari parent
+      const newItems = (current.items || []).map((i: any) => ({
+        ...i,
+        paid_amount: i.amount
+      }));
       const newPaid = Number(current.total_amount); // Transfer = full payment
       updates = {
         ...updates,
+        items: newItems,
         paid_amount: newPaid,
         status: "PAID",
         payment_method: "TRANSFER",
       };
     } else if (action === "REJECT_TRANSFER") {
-      // Admin tolak bukti transfer, kembalikan ke UNPAID
+      // Admin tolak bukti transfer, kembalikan ke UNPAID / PARTIAL
       updates = {
         ...updates,
         status: Number(current.paid_amount) > 0 ? "PARTIAL" : "UNPAID",

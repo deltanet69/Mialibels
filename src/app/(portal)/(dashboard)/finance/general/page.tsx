@@ -41,6 +41,7 @@ export default function GeneralFinancePage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
   const [showIncomeSplit, setShowIncomeSplit] = useState(false)
+  const [breakdownFilter, setBreakdownFilter] = useState<'ALL' | 'FULLDAY' | 'REGULER'>('ALL')
 
   // Detail Modal
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
@@ -151,7 +152,7 @@ export default function GeneralFinancePage() {
           <h3 className="text-3xl font-bold">Rp {totalUnpaid.toLocaleString('id-ID')}</h3>
         </div>
 
-        {/* Breakdown per Kelas */}
+        {/* Breakdown Tagihan */}
         <div
           onClick={() => setIsBreakdownOpen(true)}
           className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center items-center cursor-pointer hover:border-blue-300 hover:shadow-md transition group"
@@ -159,8 +160,8 @@ export default function GeneralFinancePage() {
           <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform mb-3">
             <FileText size={24} />
           </div>
-          <p className="font-semibold text-slate-800">Breakdown Tagihan per Kelas</p>
-          <p className="text-xs text-slate-500 mt-1">Lihat detail piutang per kelas</p>
+          <p className="font-semibold text-slate-800">Breakdown Uang Masuk</p>
+          <p className="text-xs text-slate-500 mt-1">Lihat detail pemasukan per item</p>
         </div>
       </div>
 
@@ -203,7 +204,8 @@ export default function GeneralFinancePage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-medium">
               <tr>
@@ -245,7 +247,12 @@ export default function GeneralFinancePage() {
                         {(currentPage - 1) * pageSize + index + 1}
                       </td>
                       <td className="px-5 py-4">
-                        <div className="font-semibold text-slate-800">{inv.student_name}</div>
+                        <div 
+                          className="font-semibold text-blue-600 hover:underline cursor-pointer"
+                          onClick={() => setSelectedInvoiceId(inv.id)}
+                        >
+                          {inv.student_name}
+                        </div>
                         <div className="text-xs text-slate-400">NISN: {inv.student_number}</div>
                       </td>
                       <td className="px-5 py-4 text-slate-600">{inv.student_class}</td>
@@ -274,6 +281,55 @@ export default function GeneralFinancePage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-4 space-y-3 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2" />
+                <div className="h-4 bg-slate-100 rounded w-3/4" />
+                <div className="h-4 bg-slate-100 rounded w-1/4" />
+              </div>
+            ))
+          ) : paginatedInvoices.length === 0 ? (
+            <div className="px-6 py-10 text-center text-slate-500 text-sm">Belum ada data tagihan.</div>
+          ) : (
+            paginatedInvoices.map((inv) => {
+              const sisa = Number(inv.total_amount) - Number(inv.paid_amount)
+              
+              let statusBadge = <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[10px]">Belum Bayar</span>
+              if (inv.status === 'PAID') statusBadge = <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-semibold text-[10px] flex items-center gap-1 w-max"><CheckCircle size={10} /> Lunas</span>
+              if (inv.status === 'PARTIAL') statusBadge = <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-semibold text-[10px] flex items-center gap-1 w-max"><Clock size={10} /> Cicilan</span>
+              if (inv.status === 'PENDING_VERIFICATION') statusBadge = <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-semibold text-[10px]">Menunggu Verifikasi</span>
+
+              return (
+                <div key={inv.id} className="p-4 hover:bg-slate-50 transition cursor-pointer" onClick={() => setSelectedInvoiceId(inv.id)}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-semibold text-blue-600 text-sm">{inv.student_name}</div>
+                      <div className="text-[11px] text-slate-400">Kls: {inv.student_class} • NISN: {inv.student_number}</div>
+                    </div>
+                    {statusBadge}
+                  </div>
+                  <div className="text-sm font-medium text-slate-700 mb-2 truncate" title={inv.title}>{inv.title}</div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase">Total Tagihan</div>
+                      <div className="font-semibold text-slate-800 text-sm">Rp {Number(inv.total_amount).toLocaleString('id-ID')}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400 uppercase">Sisa Tagihan</div>
+                      <div className="font-semibold text-red-500 text-sm">
+                        {sisa > 0 ? `Rp ${sisa.toLocaleString('id-ID')}` : <span className="text-emerald-500">Lunas</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
 
         {/* Pagination UI */}
@@ -332,32 +388,109 @@ export default function GeneralFinancePage() {
       {/* Breakdown Modal */}
       {isBreakdownOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800">Breakdown Piutang per Kelas</h2>
+              <h2 className="text-xl font-bold text-slate-800">Breakdown Uang Masuk & Tunggakan</h2>
               <button onClick={() => setIsBreakdownOpen(false)} className="text-slate-400 hover:text-slate-600 transition">✕</button>
             </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
-              {classes.map(cls => {
-                const classInvoices = invoices.filter(i => i.student_class_id === cls.id)
-                const unpaid = classInvoices.reduce((a, c) => {
-                  const s = (Number(c.total_amount) || 0) - (Number(c.paid_amount) || 0)
-                  return a + (s > 0 ? s : 0)
-                }, 0)
-                if (unpaid === 0) return null
+            
+            <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="breakdownFilter" 
+                  checked={breakdownFilter === 'ALL'} 
+                  onChange={() => setBreakdownFilter('ALL')} 
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                />
+                <span className="text-sm font-medium text-slate-700">Semua Kelas</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="breakdownFilter" 
+                  checked={breakdownFilter === 'FULLDAY'} 
+                  onChange={() => setBreakdownFilter('FULLDAY')} 
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                />
+                <span className="text-sm font-medium text-slate-700">Fullday (A)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="radio" 
+                  name="breakdownFilter" 
+                  checked={breakdownFilter === 'REGULER'} 
+                  onChange={() => setBreakdownFilter('REGULER')} 
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500" 
+                />
+                <span className="text-sm font-medium text-slate-700">Reguler (B-D)</span>
+              </label>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1">
+              {(() => {
+                const filteredInvoices = invoices.filter(inv => {
+                  if (breakdownFilter === 'ALL') return true;
+                  const isFullday = inv.student_class?.endsWith('A');
+                  if (breakdownFilter === 'FULLDAY') return isFullday;
+                  if (breakdownFilter === 'REGULER') return !isFullday;
+                  return true;
+                });
+
+                const data: Record<string, { masuk: number; tunggakan: number }> = {};
+                filteredInvoices.forEach(inv => {
+                  (inv.items || []).forEach(item => {
+                    if (!data[item.name]) {
+                      data[item.name] = { masuk: 0, tunggakan: 0 };
+                    }
+                    const itemPaid = Number(item.paid_amount) || 0;
+                    const itemAmount = Number(item.amount) || 0;
+                    data[item.name].masuk += itemPaid;
+                    data[item.name].tunggakan += Math.max(0, itemAmount - itemPaid);
+                  });
+                });
+                
+                const bData = Object.entries(data).sort((a, b) => b[1].masuk - a[1].masuk);
+
+                if (bData.length === 0) {
+                  return <p className="text-center text-slate-500 py-8">Tidak ada data tercatat.</p>;
+                }
+                const totalMasuk = bData.reduce((acc, curr) => acc + curr[1].masuk, 0);
+                const totalTunggakan = bData.reduce((acc, curr) => acc + curr[1].tunggakan, 0);
+                
                 return (
-                  <div key={cls.id} className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0">
-                    <span className="font-medium text-slate-700">{cls.name}</span>
-                    <span className="font-bold text-red-500">Rp {unpaid.toLocaleString('id-ID')}</span>
+                  <div className="space-y-4 max-w-3xl">
+                    <div className="flex items-center justify-between text-[14px] font-bold space-x-8 text-slate-500 uppercase tracking-wider px-2">
+                      <span className="flex-1">Item</span>
+                      <span className="w-32 text-right text-emerald-600">Uang Masuk</span>
+                      <span className="w-32 text-right text-red-500">Tunggakan</span>
+                    </div>
+                    <div className="space-y-2">
+                      {bData.map(([itemName, amounts]) => (
+                        <div key={itemName} className="flex items-center justify-between p-3 space-x-8 bg-white border border-slate-100 rounded-xl shadow-sm">
+                          <span className="flex-1 font-semibold text-slate-700 text-sm truncate">{itemName}</span>
+                          <span className="w-32 text-right font-bold text-emerald-600 text-sm">{amounts.masuk > 0 ? amounts.masuk.toLocaleString('id-ID') : '-'}</span>
+                          <span className="w-32 text-right font-bold text-red-500 text-sm">{amounts.tunggakan > 0 ? amounts.tunggakan.toLocaleString('id-ID') : '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center py-4 border-t border-slate-200 mt-4 bg-white sticky bottom-0">
+                      <span className="font-bold text-slate-800">Total</span>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-[14px] uppercase text-emerald-600 font-bold">Total Masuk</div>
+                          <span className="font-bold text-emerald-600 text-base">Rp {totalMasuk.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="w-px h-8 bg-slate-200"></div>
+                        <div className="text-right">
+                          <div className="text-[14px] uppercase text-red-500 font-bold">Total Tunggakan</div>
+                          <span className="font-bold text-red-500 text-base">Rp {totalTunggakan.toLocaleString('id-ID')}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )
-              })}
-              {classes.every(cls => {
-                const classInvoices = invoices.filter(i => i.student_class_id === cls.id)
-                return classInvoices.reduce((a, c) => a + Math.max(0, Number(c.total_amount) - Number(c.paid_amount)), 0) === 0
-              }) && (
-                <p className="text-center text-slate-500 py-4">Tidak ada piutang.</p>
-              )}
+              })()}
             </div>
           </div>
         </div>

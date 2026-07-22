@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { X, Plus, Trash2, Save, AlertCircle } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { X, Plus, Trash2, Save, AlertCircle, Search, User } from 'lucide-react'
 
 type CreateBillModalProps = {
   isOpen: boolean
@@ -11,7 +11,7 @@ type CreateBillModalProps = {
 
 const PREDEFINED_ITEMS = [
   'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
-  'Kartu Pelajar', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday'
+  'Kartu Pelajar', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Tagihan Akhir tahun'
 ]
 
 export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalProps) {
@@ -24,8 +24,17 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
     type: 'Administrasi Sekolah',
     due_date: '',
     class_id: '',
+    student_id: '',
+    target_type: 'class' as 'class' | 'student',
     note: ''
   })
+
+  // Student search states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [selectedStudentName, setSelectedStudentName] = useState('')
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const [items, setItems] = useState<{ name: string; amount: number; isCustom: boolean }[]>([
     { name: '', amount: 0, isCustom: false }
@@ -35,8 +44,11 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
     if (isOpen) {
       fetchClasses()
       setError(null)
-      setFormData({ title: '', type: 'Administrasi Sekolah', due_date: '', class_id: '', note: '' })
+      setFormData({ title: '', type: 'Administrasi Sekolah', due_date: '', class_id: '', student_id: '', target_type: 'class', note: '' })
       setItems([{ name: '', amount: 0, isCustom: false }])
+      setSearchQuery('')
+      setSearchResults([])
+      setSelectedStudentName('')
     }
   }, [isOpen])
 
@@ -48,6 +60,38 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
     } catch (err) {
       console.error('Failed to fetch classes', err)
     }
+  }
+
+  const handleSearchStudent = (query: string) => {
+    setSearchQuery(query)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+
+    if (query.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    setIsSearching(true)
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/students?search=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        if (data.success) {
+          setSearchResults(data.data)
+        }
+      } catch (err) {
+        console.error('Failed to search students', err)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 500)
+  }
+
+  const handleSelectStudent = (student: any) => {
+    setFormData({ ...formData, student_id: student.id })
+    setSelectedStudentName(`${student.name} (${student.student_number}) - ${student.class}`)
+    setSearchQuery('')
+    setSearchResults([])
   }
 
   const handleAddItem = () => {
@@ -93,8 +137,14 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
       setError('Nama Tagihan wajib diisi.')
       return
     }
-    if (!formData.class_id) {
+
+    if (formData.target_type === 'class' && !formData.class_id) {
       setError('Kelas wajib dipilih.')
+      return
+    }
+
+    if (formData.target_type === 'student' && !formData.student_id) {
+      setError('Siswa wajib dipilih.')
       return
     }
 
@@ -110,7 +160,9 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
         title: formData.title.trim(),
         type: formData.type.trim() || 'Administrasi Sekolah',
         due_date: formData.due_date || null,
-        class_id: formData.class_id,
+        target_type: formData.target_type,
+        class_id: formData.target_type === 'class' ? formData.class_id : null,
+        student_id: formData.target_type === 'student' ? formData.student_id : null,
         note: formData.note.trim(),
         items: validItems.map(i => ({ name: i.name, amount: Number(i.amount) }))
       }
@@ -148,7 +200,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50">
           <div>
             <h2 className="text-xl font-bold text-slate-800">Buat Tagihan Baru</h2>
-            <p className="text-sm text-slate-500 mt-1">Tagihan akan digenerate untuk seluruh siswa di kelas yang dipilih.</p>
+            <p className="text-sm text-slate-500 mt-1">Buat tagihan untuk satu kelas atau per siswa secara individu.</p>
           </div>
           <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition">
             <X size={20} />
@@ -167,7 +219,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Contoh: Tagihan Semester Ganjil 2026"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm"
               />
             </div>
 
@@ -177,23 +229,109 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                 type="text"
                 value={formData.type}
                 onChange={e => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm"
               />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Pilih Kelas <span className="text-red-500">*</span></label>
-              <select
-                value={formData.class_id}
-                onChange={e => setFormData({ ...formData, class_id: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition bg-white"
-              >
-                <option value="">-- Pilih Kelas --</option>
-                {classes.map(cls => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </select>
+            
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-semibold text-slate-700">Target Tagihan <span className="text-red-500">*</span></label>
+              <div className="flex items-center gap-4 mt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="target_type" 
+                    checked={formData.target_type === 'class'}
+                    onChange={() => setFormData({ ...formData, target_type: 'class' })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">Seluruh Kelas</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="target_type" 
+                    checked={formData.target_type === 'student'}
+                    onChange={() => setFormData({ ...formData, target_type: 'student' })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">Per Siswa (Individu)</span>
+                </label>
+              </div>
             </div>
+
+            {formData.target_type === 'class' ? (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Pilih Kelas <span className="text-red-500">*</span></label>
+                <select
+                  value={formData.class_id}
+                  onChange={e => setFormData({ ...formData, class_id: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition bg-white text-sm"
+                >
+                  <option value="">-- Pilih Kelas --</option>
+                  {classes.map(cls => (
+                    <option key={cls.id} value={cls.id}>{cls.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Cari Siswa <span className="text-red-500">*</span></label>
+                {formData.student_id ? (
+                  <div className="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <User size={16} className="text-blue-500" />
+                      <span className="text-sm font-semibold text-blue-800">{selectedStudentName}</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setFormData({ ...formData, student_id: '' })
+                        setSelectedStudentName('')
+                      }}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Ganti
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search size={16} className="text-slate-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => handleSearchStudent(e.target.value)}
+                      placeholder="Ketik Nama atau NISN..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm"
+                    />
+                    
+                    {/* Search Results Dropdown */}
+                    {searchQuery.length >= 2 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {isSearching ? (
+                          <div className="p-3 text-center text-sm text-slate-500">Mencari...</div>
+                        ) : searchResults.length > 0 ? (
+                          <ul className="py-1">
+                            {searchResults.map(student => (
+                              <li 
+                                key={student.id}
+                                onClick={() => handleSelectStudent(student)}
+                                className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
+                              >
+                                <div className="font-semibold text-slate-800 text-sm">{student.name}</div>
+                                <div className="text-xs text-slate-500">{student.student_number} • {student.class}</div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="p-3 text-center text-sm text-slate-500">Siswa tidak ditemukan</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">Tenggat Waktu (Due Date)</label>
@@ -201,7 +339,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                 type="date"
                 value={formData.due_date}
                 onChange={e => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm"
               />
             </div>
           </div>
@@ -213,7 +351,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
               value={formData.note}
               onChange={e => setFormData({ ...formData, note: e.target.value })}
               placeholder="Opsional..."
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition resize-none"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition resize-none text-sm"
             />
           </div>
 
@@ -234,7 +372,8 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
               {items.map((item, index) => (
                 <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
                   {/* Name */}
-                  <div className="flex-1 w-full">
+                  <div className="flex-1 w-full flex items-center gap-2">
+                    <span className="font-bold text-slate-500 text-sm w-4">{index + 1}.</span>
                     {item.isCustom ? (
                       <div className="flex gap-2">
                         <input
@@ -289,7 +428,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                     type="button"
                     onClick={() => handleRemoveItem(index)}
                     disabled={items.length === 1}
-                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
                   >
                     <Trash2 size={18} />
                   </button>

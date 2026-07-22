@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   X, Info, CheckCircle2, AlertTriangle, Clock, Banknote,
-  CreditCard, Download, ExternalLink, Loader2
+  CreditCard, Download, ExternalLink, Loader2, Edit3, Save, Printer
 } from 'lucide-react'
 
 type Props = {
@@ -32,16 +32,25 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
-  // Cash payment form
-  const [cashAmount, setCashAmount] = useState('')
+  // Edit Mode States
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [editItems, setEditItems] = useState<{name: string, amount: number, paid_amount: number}[]>([])
+
+  // Cash payment form (Itemized)
   const [cashNote, setCashNote] = useState('')
+  const [paymentItems, setPaymentItems] = useState<{name: string, paid_amount: number}[]>([])
+  
+  // Show Print Option
+  const [showPrintOption, setShowPrintOption] = useState(false)
 
   useEffect(() => {
     if (invoiceId) {
       fetchDetail(invoiceId)
       setError(null)
       setSuccessMsg(null)
-      setCashAmount('')
+      setCashNote('')
+      setIsEditMode(false)
+      setShowPrintOption(false)
     }
   }, [invoiceId])
 
@@ -52,6 +61,11 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setInvoice(data.data)
+      
+      // Initialize payment inputs to empty (0)
+      if (data.data.items) {
+        setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -60,31 +74,42 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   }
 
   const handleCashPayment = async () => {
-    if (!invoice || !cashAmount || Number(cashAmount) <= 0) {
-      setError('Masukkan nominal yang valid.')
+    // Filter items that have > 0 payment input
+    const validPayments = paymentItems.filter(p => p.paid_amount > 0)
+    
+    if (validPayments.length === 0) {
+      setError('Masukkan setidaknya satu nominal pembayaran yang lebih dari 0.')
       return
     }
+
+    const totalCashAmount = validPayments.reduce((acc, curr) => acc + curr.paid_amount, 0)
+    
     setActionLoading(true)
     setError(null)
     try {
       const finalNote = cashNote 
-        ? `${cashNote} (Rp ${Number(cashAmount).toLocaleString('id-ID')})` 
-        : `Pembayaran Tunai (Rp ${Number(cashAmount).toLocaleString('id-ID')})`
+        ? `${cashNote} (Rp ${Number(totalCashAmount).toLocaleString('id-ID')})` 
+        : `Pembayaran Tunai (Rp ${Number(totalCashAmount).toLocaleString('id-ID')})`
 
       const res = await fetch(`/api/finance/general/${invoice.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'CASH_PAYMENT',
-          amount: Number(cashAmount),
+          items_paid: validPayments,
           note: finalNote,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
+      
       setSuccessMsg('Pembayaran tunai berhasil dicatat.')
-      setCashAmount('')
+      setCashNote('')
       setInvoice(data.data)
+      if (data.data.items) {
+        setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
+      }
+      setShowPrintOption(true) // Show print button after successful payment
       onUpdated()
     } catch (err: any) {
       setError(err.message)
@@ -115,17 +140,85 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
     }
   }
 
+  const handleEditItemsSave = async () => {
+    if (editItems.length === 0) {
+      setError("Rincian tagihan tidak boleh kosong")
+      return
+    }
+
+    if (editItems.some(i => i.name.trim() === '')) {
+      setError("Nama item tagihan tidak boleh kosong")
+      return
+    }
+
+    setActionLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/finance/general/${invoice.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'EDIT_ITEMS',
+          items: editItems
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      
+      setSuccessMsg('Rincian tagihan berhasil diperbarui.')
+      setInvoice(data.data)
+      setIsEditMode(false)
+      if (data.data.items) {
+        setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
+      }
+      onUpdated()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleEditItemChange = (index: number, field: string, value: string | number) => {
+    const newItems = [...editItems]
+    newItems[index] = { ...newItems[index], [field]: value }
+    setEditItems(newItems)
+  }
+
+  const handleAddEditItem = () => {
+    setEditItems([...editItems, { name: '', amount: 0, paid_amount: 0 }])
+  }
+
+  const handleRemoveEditItem = (index: number) => {
+    const newItems = editItems.filter((_, i) => i !== index)
+    setEditItems(newItems)
+  }
+
+  const toggleEditMode = () => {
+    if (!isEditMode) {
+      setEditItems(JSON.parse(JSON.stringify(invoice.items || [])))
+    }
+    setIsEditMode(!isEditMode)
+  }
+
+  const openPrintReceipt = () => {
+    if (invoiceId) {
+      window.open(`/print/invoice/${invoiceId}`, '_blank')
+    }
+  }
+
   if (!invoiceId) return null
 
   const formatRp = (n: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
   const sisa = invoice ? Number(invoice.total_amount) - Number(invoice.paid_amount) : 0
-  const items: { name: string; amount: number }[] = invoice?.items || []
+  const items: { name: string; amount: number; paid_amount?: number }[] = invoice?.items || []
+  const totalPaymentPreview = paymentItems.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
+      <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
 
         {/* Header */}
         <div className="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
@@ -144,22 +237,30 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
         {/* Body */}
         <div className="overflow-y-auto p-5 sm:p-6 space-y-6 flex-1">
 
-          {/* Loading state */}
           {loading && (
             <div className="flex justify-center py-12">
               <Loader2 size={32} className="animate-spin text-slate-300" />
             </div>
           )}
 
-          {/* Alert messages */}
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm font-medium">
               <AlertTriangle size={16} className="shrink-0" /> {error}
             </div>
           )}
           {successMsg && (
-            <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 text-sm font-medium">
-              <CheckCircle2 size={16} className="shrink-0" /> {successMsg}
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 text-sm font-medium justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="shrink-0" /> {successMsg}
+              </div>
+              {showPrintOption && (
+                <button
+                  onClick={openPrintReceipt}
+                  className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 hover:bg-emerald-700 transition"
+                >
+                  <Printer size={14} /> Cetak Struk
+                </button>
+              )}
             </div>
           )}
 
@@ -192,7 +293,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                 {/* Detail Tagihan */}
                 <div className="bg-blue-50/60 rounded-xl p-5 border border-blue-100">
                   <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Info size={14} /> Detail Tagihan
+                    <Info size={14} /> Ringkasan Tagihan
                   </h4>
                   <div className="space-y-2.5 text-sm">
                     <div className="flex justify-between border-b border-blue-100 pb-2">
@@ -232,77 +333,177 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
               {/* Rincian Items */}
               {items.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-slate-800 text-sm mb-3">Rincian Item Tagihan</h4>
-                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-medium">Item</th>
-                          <th className="px-4 py-3 text-right font-medium">Nominal</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {items.map((item, i) => (
-                          <tr key={i} className="hover:bg-slate-50">
-                            <td className="px-4 py-3 text-slate-700">{item.name}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-slate-800">{formatRp(Number(item.amount))}</td>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-bold text-slate-800 text-sm">Rincian Item Tagihan</h4>
+                    {invoice.status !== 'PAID' && (
+                      <button
+                        onClick={toggleEditMode}
+                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+                      >
+                        {isEditMode ? <><X size={14} /> Batal Edit</> : <><Edit3 size={14} /> Edit Rincian Manual</>}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden overflow-x-auto">
+                    {isEditMode ? (
+                      <div className="p-4 space-y-4 bg-slate-50 min-w-[600px]">
+                        <div className="space-y-3">
+                          {editItems.map((item, idx) => (
+                            <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-white p-3 rounded-lg border border-slate-200">
+                              <div className="flex-1 w-full flex items-center gap-2">
+                                <span className="font-bold text-slate-500 text-xs w-4">{idx + 1}.</span>
+                                <div className="flex-1 w-full">
+                                  <label className="text-[10px] font-semibold text-slate-500 uppercase">Nama Item</label>
+                                  <input
+                                    type="text"
+                                    value={item.name}
+                                    onChange={e => handleEditItemChange(idx, 'name', e.target.value)}
+                                    className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="w-full sm:w-1/3">
+                                <label className="text-[10px] font-semibold text-slate-500 uppercase">Nominal</label>
+                                <input
+                                  type="number"
+                                  value={item.amount}
+                                  onChange={e => handleEditItemChange(idx, 'amount', Number(e.target.value))}
+                                  className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
+                                />
+                              </div>
+                              <div className="w-full sm:w-1/3">
+                                <label className="text-[10px] font-semibold text-emerald-600 uppercase">Sdh Dibayar</label>
+                                <input
+                                  type="number"
+                                  value={item.paid_amount || 0}
+                                  onChange={e => handleEditItemChange(idx, 'paid_amount', Number(e.target.value))}
+                                  className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-emerald-500 text-emerald-700 font-semibold bg-emerald-50"
+                                />
+                              </div>
+                              <div className="pt-4">
+                                <button
+                                  onClick={() => handleRemoveEditItem(idx)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                          <button
+                            onClick={handleAddEditItem}
+                            className="text-sm text-blue-600 font-medium hover:text-blue-800"
+                          >
+                            + Tambah Item
+                          </button>
+                          <button
+                            onClick={handleEditItemsSave}
+                            disabled={actionLoading}
+                            className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                            Simpan Perubahan
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm min-w-[500px]">
+                        <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-medium w-12 text-center">No</th>
+                            <th className="px-4 py-3 text-left font-medium">Item</th>
+                            <th className="px-4 py-3 text-right font-medium">Nominal</th>
+                            <th className="px-4 py-3 text-right font-medium">Telah Dibayar</th>
+                            <th className="px-4 py-3 text-right font-medium">Tunggakan</th>
                           </tr>
-                        ))}
-                        <tr className="bg-blue-50">
-                          <td className="px-4 py-3 font-bold text-slate-700">Total</td>
-                          <td className="px-4 py-3 text-right font-bold text-blue-700">{formatRp(invoice.total_amount)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {items.map((item, i) => {
+                            const itemPaid = Number(item.paid_amount) || 0;
+                            const itemSisa = Number(item.amount) - itemPaid;
+                            return (
+                              <tr key={i} className="hover:bg-slate-50">
+                                <td className="px-4 py-3 text-center text-slate-400 font-medium">{i + 1}</td>
+                                <td className="px-4 py-3 text-slate-700 font-medium">{item.name}</td>
+                                <td className="px-4 py-3 text-right text-slate-800">{formatRp(Number(item.amount))}</td>
+                                <td className="px-4 py-3 text-right text-emerald-600">{formatRp(itemPaid)}</td>
+                                <td className="px-4 py-3 text-right text-red-600 font-medium">
+                                  {itemSisa > 0 ? formatRp(itemSisa) : <span className="text-emerald-500 font-bold">Lunas</span>}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                          <tr className="bg-blue-50/50">
+                            <td colSpan={2} className="px-4 py-3 font-bold text-slate-700 text-right">Total</td>
+                            <td className="px-4 py-3 text-right font-bold text-slate-800">{formatRp(invoice.total_amount)}</td>
+                            <td className="px-4 py-3 text-right font-bold text-emerald-700">{formatRp(invoice.paid_amount)}</td>
+                            <td className="px-4 py-3 text-right font-bold text-red-700">{formatRp(sisa)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Action Area — dua kolom: kiri kosong, kanan form aksi */}
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+              {/* Action Area — Informasi dan Form digabung menjadi 1 section vertikal */}
+              <div className="space-y-5">
 
-                {/* Kiri: Info metode bayar terakhir jika ada */}
-                <div className="lg:col-span-3 space-y-3">
-                  <h4 className="font-bold text-slate-800 text-sm">Info Pembayaran</h4>
-                  <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4">
+                {/* Info Pembayaran */}
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-800 text-sm">Info Pembayaran Saat Ini</h4>
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-4">
                     
-                    <div className="flex items-center justify-between text-sm pb-3 border-b border-slate-100">
-                      <span className="text-slate-500">Jenis Pembayaran</span>
-                      <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                    <div className="flex-1 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 pb-3 md:pb-0 md:pr-4">
+                      <span className="text-slate-500 text-xs mb-1">Jenis Pembayaran Terakhir</span>
+                      <span className="flex items-center gap-1.5 font-bold text-slate-700">
                         {invoice.payment_method === 'TRANSFER' ? <CreditCard size={15} className="text-blue-500" /> : <Banknote size={15} className="text-green-500" />}
                         {invoice.payment_method === 'TRANSFER' ? 'Transfer Bank' : invoice.payment_method === 'CASH' ? 'Tunai (TU)' : '-'}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm pb-3 border-b border-slate-100">
-                      <span className="text-slate-500">Nominal Pembayaran</span>
-                      <span className="font-bold text-emerald-600">
+                    <div className="flex-1 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-100 pb-3 md:pb-0 md:pr-4">
+                      <span className="text-slate-500 text-xs mb-1">Total Nominal Terbayar</span>
+                      <span className="font-bold text-emerald-600 text-lg">
                         {formatRp(Number(invoice.paid_amount) || 0)}
                       </span>
                     </div>
 
-                    {invoice.note && (
-                      <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 border border-slate-100">
-                        <span className="font-medium text-slate-700 block mb-1">Catatan:</span>
-                        {invoice.note}
-                      </div>
-                    )}
-
-                    {invoice.bukti_transfer && (
-                      <a
-                        href={invoice.bukti_transfer}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-center gap-2 w-full bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-100 py-2 rounded-lg text-sm font-semibold transition"
-                      >
-                        <ExternalLink size={14} /> Lihat Bukti Transfer
-                      </a>
-                    )}
+                    <div className="flex-1 flex flex-col justify-center space-y-2">
+                      {invoice.bukti_transfer && (
+                        <a
+                          href={invoice.bukti_transfer}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center gap-2 w-full bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-100 py-2 rounded-lg text-sm font-semibold transition"
+                        >
+                          <ExternalLink size={14} /> Lihat Bukti Transfer
+                        </a>
+                      )}
+                      
+                      {invoice.status !== 'UNPAID' && (
+                        <button
+                          onClick={openPrintReceipt}
+                          className="w-full bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                        >
+                          <Printer size={15} /> Cetak Bukti
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {invoice.note && (
+                    <div className="bg-slate-50 p-3 rounded-lg text-xs text-slate-600 border border-slate-100 mt-2">
+                      <span className="font-medium text-slate-700 block mb-1">Catatan Pembayaran:</span>
+                      {invoice.note}
+                    </div>
+                  )}
                 </div>
 
-                {/* Kanan: Action forms */}
-                <div className="lg:col-span-2 space-y-4">
+                {/* Form Aksi Pembayaran */}
+                <div className="space-y-4 pt-2 border-t border-slate-100">
 
                   {/* PENDING VERIFICATION — Approve or Reject */}
                   {invoice.status === 'PENDING_VERIFICATION' && (
@@ -346,39 +547,77 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
                   {/* CASH PAYMENT — untuk status UNPAID / PARTIAL */}
                   {['UNPAID', 'PARTIAL'].includes(invoice.status) && (
-                    <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl space-y-3">
+                    <div className="bg-slate-50 border border-slate-200 p-4 sm:p-5 rounded-xl space-y-4">
                       <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                        <Banknote size={16} className="text-green-600" /> Input Bayar Tunai (TU)
+                        <Banknote size={16} className="text-green-600" /> Input Bayar Tunai (TU) per Item
                       </h4>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">
-                          Nominal (Rp) <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max={sisa}
-                          value={cashAmount}
-                          onChange={e => setCashAmount(e.target.value)}
-                          placeholder={`Maks: ${formatRp(sisa)}`}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm"
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1">Dapat mengisi sebagian (cicilan) dari sisa tagihan.</p>
+                      
+                      <div className="space-y-3">
+                        <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide px-1 flex hidden sm:flex">
+                          <div className="flex-1">Item Tunggakan</div>
+                          <div className="w-32 text-right">Bayar (Rp)</div>
+                        </div>
+                        {items.filter(item => (Number(item.amount) - (Number(item.paid_amount) || 0)) > 0).map((item, idx) => {
+                          const itemSisa = Number(item.amount) - (Number(item.paid_amount) || 0);
+                          const paymentInput = paymentItems.find(p => p.name === item.name)?.paid_amount || '';
+                          
+                          return (
+                            <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                              <div className="w-8 flex items-center justify-center h-8 bg-slate-100 rounded-full text-slate-500 font-bold text-xs shrink-0">
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-bold text-slate-700 truncate">{item.name}</p>
+                                <p className="text-[11px] text-red-500 font-semibold bg-red-50 px-2 py-0.5 rounded-full inline-block mt-1">Kekurangan: {formatRp(itemSisa)}</p>
+                              </div>
+                              <div className="w-full sm:w-48 relative flex items-center mt-2 sm:mt-0">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none sm:hidden">
+                                  <span className="text-slate-400 text-sm font-medium">Rp</span>
+                                </div>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={itemSisa}
+                                  value={paymentInput}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setPaymentItems(prev => prev.map(p => p.name === item.name ? { ...p, paid_amount: val } : p));
+                                  }}
+                                  className="w-full pl-9 sm:pl-3 pr-3 py-2 text-sm border border-slate-300 rounded-lg sm:text-right focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                                  placeholder="Nominal Pembayaran"
+                                />
+                                <button
+                                  title="Bayar Penuh"
+                                  onClick={() => setPaymentItems(prev => prev.map(p => p.name === item.name ? { ...p, paid_amount: itemSisa } : p))}
+                                  className="absolute -top-2 -right-2 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-sm hover:bg-blue-200 border border-blue-200 transition"
+                                >
+                                  LUNASI
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
+
+                      <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                        <span className="text-xs font-semibold text-slate-500 uppercase">Total Dibayar</span>
+                        <span className="text-lg font-bold text-emerald-600">{formatRp(totalPaymentPreview)}</span>
+                      </div>
+
                       <div>
                         <label className="block text-xs font-medium text-slate-500 mb-1">Catatan</label>
                         <textarea
                           rows={2}
                           value={cashNote}
                           onChange={e => setCashNote(e.target.value)}
-                          placeholder="Misal: Pembayaran tunai ke TU"
+                          placeholder="Misal: Pembayaran tunai sebagian ke TU"
                           className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm resize-none"
                         />
-                        <p className="text-[10px] text-slate-400 mt-1">Nominal pembayaran akan otomatis ditambahkan ke catatan.</p>
                       </div>
+
                       <button
                         onClick={handleCashPayment}
-                        disabled={actionLoading || !cashAmount}
+                        disabled={actionLoading || totalPaymentPreview <= 0}
                         className="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-lg transition text-sm disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {actionLoading
@@ -394,7 +633,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                     <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl text-center">
                       <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-2 opacity-70" />
                       <h4 className="font-bold text-emerald-800">Tagihan Lunas</h4>
-                      <p className="text-xs text-emerald-600 mt-1">Semua tagihan sudah diselesaikan.</p>
+                      <p className="text-xs text-emerald-600 mt-1">Semua rincian tagihan sudah diselesaikan.</p>
                     </div>
                   )}
 

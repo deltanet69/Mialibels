@@ -99,63 +99,65 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, type, due_date, class_id, items, note } = body;
+    const { title, type, due_date, class_id, student_id, target_type, items, note } = body;
 
-    if (!title || !class_id) {
-      return NextResponse.json(
-        { error: "Nama Tagihan dan Kelas wajib diisi." },
-        { status: 400 }
-      );
+    if (!title) {
+      return NextResponse.json({ error: "Nama Tagihan wajib diisi." }, { status: 400 });
+    }
+
+    if (target_type === 'class' && !class_id) {
+      return NextResponse.json({ error: "Kelas wajib dipilih." }, { status: 400 });
+    }
+    
+    if (target_type === 'student' && !student_id) {
+      return NextResponse.json({ error: "Siswa wajib dipilih." }, { status: 400 });
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { error: "Minimal 1 item tagihan wajib diisi." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Minimal 1 item tagihan wajib diisi." }, { status: 400 });
     }
 
-    const validItems = items.filter(
-      (i: any) => i.name && String(i.name).trim() !== "" && Number(i.amount) > 0
-    );
+    const validItems = items
+      .filter((i: any) => i.name && String(i.name).trim() !== "" && Number(i.amount) > 0)
+      .map((i: any) => ({
+        name: String(i.name).trim(),
+        amount: Number(i.amount),
+        paid_amount: 0
+      }));
 
     if (validItems.length === 0) {
-      return NextResponse.json(
-        { error: "Minimal 1 item tagihan dengan nama dan nominal lebih dari 0." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Minimal 1 item tagihan dengan nama dan nominal lebih dari 0." }, { status: 400 });
     }
 
-    const total_amount = validItems.reduce(
-      (acc: number, item: any) => acc + Number(item.amount),
-      0
-    );
+    const total_amount = validItems.reduce((acc: number, item: any) => acc + item.amount, 0);
 
     const supabase = getAdminSupabase();
 
-    // Ambil siswa di kelas
-    const { data: studentsInClass, error: studentError } = await supabase
-      .from("students")
-      .select("id")
-      .eq("class_id", class_id);
+    let targetStudents = [];
 
-    if (studentError) {
-      console.error("Error fetching students:", studentError);
-      return NextResponse.json(
-        { error: "Gagal mengambil data siswa: " + studentError.message },
-        { status: 500 }
-      );
+    if (target_type === 'student') {
+      const { data, error } = await supabase.from("students").select("id").eq("id", student_id);
+      if (error) {
+        return NextResponse.json({ error: "Gagal mengambil data siswa: " + error.message }, { status: 500 });
+      }
+      targetStudents = data || [];
+    } else {
+      const { data, error } = await supabase.from("students").select("id").eq("class_id", class_id);
+      if (error) {
+        return NextResponse.json({ error: "Gagal mengambil data siswa: " + error.message }, { status: 500 });
+      }
+      targetStudents = data || [];
     }
 
-    if (!studentsInClass || studentsInClass.length === 0) {
+    if (!targetStudents || targetStudents.length === 0) {
       return NextResponse.json(
-        { error: "Tidak ada siswa di kelas yang dipilih. Pastikan siswa sudah didaftarkan ke kelas ini." },
+        { error: "Tidak ada siswa yang sesuai kriteria. Pastikan siswa tersedia." },
         { status: 404 }
       );
     }
 
     // Buat tagihan untuk setiap siswa
-    const invoicesToInsert = studentsInClass.map((student: any) => ({
+    const invoicesToInsert = targetStudents.map((student: any) => ({
       student_id: student.id,
       title: title.trim(),
       type: (type || "Administrasi Sekolah").trim(),
@@ -174,22 +176,16 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error("Error inserting invoices:", insertError);
-      return NextResponse.json(
-        { error: "Gagal menyimpan tagihan: " + insertError.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Gagal menyimpan tagihan: " + insertError.message }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      message: `Berhasil membuat ${newInvoices?.length || 0} tagihan untuk siswa di kelas ini.`,
+      message: `Berhasil membuat ${newInvoices?.length || 0} tagihan.`,
       count: newInvoices?.length || 0,
     });
   } catch (error: any) {
     console.error("Error creating general invoices:", error);
-    return NextResponse.json(
-      { error: error.message || "Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
   }
 }
