@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (schedError) throw schedError
 
-    const scheduleIds = schedules.map(s => s.id)
+    const scheduleIds = (schedules || []).map((s: any) => s.id)
 
     if (scheduleIds.length === 0) {
       return NextResponse.json({ success: true, data: [] })
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         date,
         status: status || 'Hadir',
         started_at: new Date().toISOString()
-      })
+      } as any)
       .select()
       .single()
 

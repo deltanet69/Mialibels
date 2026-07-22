@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Plus, Trash2, Edit2, X, PlayCircle, Loader2, UserCircle2 } from 'lucide-react';
+import { Clock, Plus, Trash2, Edit2, X, PlayCircle, Loader2, UserCircle2, CheckCircle2 } from 'lucide-react';
 
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
