@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("general_invoices")
       .select(`
-        id, title, type, due_date, items, total_amount, paid_amount, status, payment_method, bukti_transfer, note, student_id, created_at,
+        *,
         students!inner (
           id,
           name,
