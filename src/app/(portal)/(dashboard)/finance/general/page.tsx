@@ -182,13 +182,13 @@ export default function GeneralFinancePage() {
           <p className="text-sm text-slate-500 mt-1">Kelola tagihan administrasi sekolah, buku, seragam, dll.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          {/* <button
             onClick={handleBulkSendWA}
             disabled={isSendingWA}
             className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-emerald-500/20 transition flex items-center gap-2 text-sm sm:text-base"
           >
             <Send size={20} /> {isSendingWA ? `Mengirim... (${sendingProgress.current}/${sendingProgress.total})` : 'Kirim Notifikasi'}
-          </button>
+          </button> */}
           <button
             onClick={() => setIsCreateOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/20 transition flex items-center gap-2 text-sm sm:text-base"

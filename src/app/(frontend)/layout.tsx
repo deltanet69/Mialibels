@@ -28,17 +28,17 @@ export default function FrontendLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
+    <div
       lang="id"
-      className={`${openSans.variable} ${oswald.variable} h-full antialiased`}
+      className={`${openSans.variable} ${oswald.variable} antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#EFF3FB]">
+      <div className="min-h-full flex flex-col bg-[#EFF3FB]">
         <SmoothScrolling>
           <Header />
-          <main className="flex-grow">{children}</main>
+          <main className="flex-grow pt-24 pb-12">{children}</main>
           <Footer />
         </SmoothScrolling>
-      </body>
-    </html>
+      </div>
+    </div>
   );
 }
