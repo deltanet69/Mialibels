@@ -8,7 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BASE_DOMAIN    = 'miattaqwa15.sch.id';
-const ADMIN_SUB      = 'portal';   // portal.miattaqwa15.sch.id
+const ADMIN_SUB      = 'smart';   // smart.miattaqwa15.sch.id
 const PARENT_SUB     = 'parent';  // parent.miattaqwa15.sch.id
 const ABSEN_SUB      = 'absen';   // absen.miattaqwa15.sch.id
 
