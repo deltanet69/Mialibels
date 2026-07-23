@@ -12,6 +12,8 @@ function getAdminSupabase() {
 }
 
 export async function POST(request: NextRequest) {
+  const supabase = getAdminSupabase();
+
   try {
     const session = await getSession();
     if (!session) {
@@ -23,8 +25,6 @@ export async function POST(request: NextRequest) {
     if (!invoice_id) {
       return NextResponse.json({ error: 'invoice_id wajib diisi' }, { status: 400 });
     }
-
-    const supabase = getAdminSupabase();
 
     // Ambil data tagihan beserta data siswa
     const { data: invoice, error: invoiceError } = await supabase
@@ -127,12 +127,15 @@ Terima kasih`;
         // Try fetching phone number if possible
         const { data: inv } = await supabase.from('general_invoices').select('students(id, parent_phone)').eq('id', invoice_id).single();
         if (inv && inv.students) {
-          await supabase.from('wa_history').insert({
-            student_id: inv.students.id,
-            phone_number: inv.students.parent_phone,
-            message: error.message || 'Failed',
-            status: 'FAILED'
-          });
+          const studentData: any = Array.isArray(inv.students) ? inv.students[0] : inv.students;
+          if (studentData) {
+            await supabase.from('wa_history').insert({
+              student_id: studentData.id,
+              phone_number: studentData.parent_phone,
+              message: error.message || 'Failed',
+              status: 'FAILED'
+            });
+          }
         }
       }
     } catch (e) { }

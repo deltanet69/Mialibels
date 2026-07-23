@@ -11,11 +11,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Ambil data siswa
-    const { data: student, error: studentError } = await supabase
+    const { data, error: studentError } = await supabase
       .from('students')
       .select('*')
       .eq('id', student_id)
       .single();
+
+    const student: any = data;
 
     if (studentError || !student) {
       return NextResponse.json({ error: 'Siswa tidak ditemukan' }, { status: 404 });
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Ambil semua tagihan yang belum lunas
-    const { data: invoices, error: invoicesError } = await supabase
+    const { data: rawInvoices, error: invoicesError } = await supabase
       .from('spp_invoices')
       .select('*')
       .eq('student_id', student_id)
@@ -37,7 +39,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gagal mengambil data tagihan' }, { status: 500 });
     }
 
-    if (!invoices || invoices.length === 0) {
+    const invoices: any[] = rawInvoices || [];
+
+    if (invoices.length === 0) {
       return NextResponse.json({ message: 'Tidak ada tagihan tertunggak untuk siswa ini' }, { status: 200 });
     }
 
@@ -90,7 +94,7 @@ Terima kasih`;
         phone_number: student.parent_phone,
         message: messageTemplate,
         status: 'SUCCESS'
-      });
+      } as any);
     } catch (historyErr) {
       console.warn('Gagal menyimpan history (tabel mungkin belum ada):', historyErr);
     }
@@ -109,7 +113,7 @@ Terima kasih`;
           phone_number: phone,
           message: error.message || 'Failed',
           status: 'FAILED'
-        });
+        } as any);
       }
     } catch (e) {}
 
