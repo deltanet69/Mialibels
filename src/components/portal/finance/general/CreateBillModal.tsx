@@ -10,7 +10,7 @@ type CreateBillModalProps = {
 }
 
 const PREDEFINED_ITEMS = [
-  'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
+  'Mutu', 'Infaq Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
   'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
 ]
 
@@ -36,8 +36,8 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
   const [selectedStudentName, setSelectedStudentName] = useState('')
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [items, setItems] = useState<{ name: string; amount: number; isCustom: boolean }[]>([
-    { name: '', amount: 0, isCustom: false }
+  const [items, setItems] = useState<{ name: string; amount: number; isCustom: boolean; infaqMonth?: string; infaqYear?: string }>([
+    { name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }
   ])
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
       fetchClasses()
       setError(null)
       setFormData({ title: '', type: 'Administrasi Sekolah', due_date: '', class_id: '', student_id: '', target_type: 'class', note: '' })
-      setItems([{ name: '', amount: 0, isCustom: false }])
+      setItems([{ name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }])
       setSearchQuery('')
       setSearchResults([])
       setSelectedStudentName('')
@@ -87,15 +87,35 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
     }, 500)
   }
 
-  const handleSelectStudent = (student: any) => {
+  const [activeInvoice, setActiveInvoice] = useState<any>(null)
+
+  const handleSelectStudent = async (student: any) => {
     setFormData({ ...formData, student_id: student.id })
     setSelectedStudentName(`${student.name} (${student.student_number}) - ${student.class}`)
     setSearchQuery('')
     setSearchResults([])
+    setActiveInvoice(null)
+    setError(null)
+
+    // Cek apakah siswa sudah punya tagihan aktif
+    try {
+      const res = await fetch(`/api/finance/general?studentId=${student.id}`)
+      const data = await res.json()
+      if (data.success && data.data && data.data.length > 0) {
+        // Cari tagihan yang belum lunas
+        const active = data.data.find((inv: any) => inv.status !== 'PAID')
+        if (active) {
+          setActiveInvoice(active)
+          setError(`Siswa ini sudah memiliki Tagihan Aktif. Anda tidak bisa membuat tagihan baru. Silakan tambahkan item ke tagihan yang sudah ada.`)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check active invoice', err)
+    }
   }
 
   const handleAddItem = () => {
-    setItems(prev => [...prev, { name: '', amount: 0, isCustom: false }])
+    setItems([...items, { name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }])
   }
 
   const handleRemoveItem = (index: number) => {
@@ -114,7 +134,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
     })
   }
 
-  const handleItemFieldChange = (index: number, field: 'name' | 'amount', value: string | number) => {
+  const handleItemFieldChange = (index: number, field: 'name' | 'amount' | 'infaqMonth' | 'infaqYear', value: string | number) => {
     setItems(prev => {
       const next = [...prev]
       next[index] = { ...next[index], [field]: value }
@@ -133,8 +153,8 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
   const handleSubmit = async () => {
     setError(null)
 
-    if (!formData.title.trim()) {
-      setError('Nama Tagihan wajib diisi.')
+    if (activeInvoice) {
+      setError('Siswa ini sudah memiliki Tagihan Aktif. Anda tidak bisa membuat tagihan baru. Silakan tambahkan item ke tagihan yang sudah ada.')
       return
     }
 
@@ -154,17 +174,41 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
       return
     }
 
+    // Build items with Infaq format
+    const getMonthName = (m: string) => {
+      const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      return months[parseInt(m) - 1];
+    };
+
+    const finalItems = validItems.map(item => {
+      if (item.name === 'Infaq Sekolah') {
+        return {
+          name: `Infaq Sekolah - ${getMonthName(item.infaqMonth || '1')} ${item.infaqYear}`,
+          amount: Number(item.amount),
+          paid_amount: 0
+        };
+      }
+      return {
+        name: item.name,
+        amount: Number(item.amount),
+        paid_amount: 0
+      };
+    });
+
+    const total = finalItems.reduce((acc, curr) => acc + curr.amount, 0)
+
     setLoading(true)
     try {
       const payload = {
-        title: formData.title.trim(),
+        title: formData.type.trim() || 'Administrasi Sekolah',
         type: formData.type.trim() || 'Administrasi Sekolah',
         due_date: formData.due_date || null,
         target_type: formData.target_type,
         class_id: formData.target_type === 'class' ? formData.class_id : null,
         student_id: formData.target_type === 'student' ? formData.student_id : null,
+        total_amount: total,
         note: formData.note.trim(),
-        items: validItems.map(i => ({ name: i.name, amount: Number(i.amount) }))
+        items: finalItems
       }
 
       const res = await fetch('/api/finance/general', {
@@ -212,18 +256,9 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Nama Tagihan <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Contoh: Tagihan Semester Ganjil 2026"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm"
-              />
-            </div>
 
-            <div className="space-y-2">
+
+            <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-semibold text-slate-700">Jenis Tagihan</label>
               <input
                 type="text"
@@ -406,6 +441,28 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
                         <option value="OTHER">+ Lainnya</option>
                       </select>
                     )}
+                    {item.name === 'Infaq Sekolah' && (
+                      <div className="flex gap-2 w-full mt-2 sm:mt-0 sm:w-auto">
+                        <select
+                          value={item.infaqMonth}
+                          onChange={e => handleItemFieldChange(index, 'infaqMonth', e.target.value)}
+                          className="px-2 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-xs bg-white flex-1"
+                        >
+                          {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                            <option key={m} value={m}>Bulan {m}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={item.infaqYear}
+                          onChange={e => handleItemFieldChange(index, 'infaqYear', e.target.value)}
+                          className="px-2 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-xs bg-white w-20 shrink-0"
+                        >
+                          {[2024, 2025, 2026, 2027].map(y => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   {/* Amount */}
@@ -468,7 +525,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || !!activeInvoice}
               className="px-6 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/20 flex items-center gap-2"
             >
               {loading

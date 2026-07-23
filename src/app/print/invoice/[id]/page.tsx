@@ -39,54 +39,51 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
   const sisa = Number(invoice.total_amount) - Number(invoice.paid_amount);
 
   return (
-    <html lang="id">
-      <head>
-        <title>Bukti Pembayaran - {invoice.students?.name || 'Siswa'}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style dangerouslySetInnerHTML={{__html: `
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-          
-          body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
-            color: #333;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          
-          .a4-container {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 2rem auto;
-            background-color: white;
-            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
-            position: relative;
-            padding: 0;
-          }
+    <div className="bg-[#f1f5f9] min-h-screen text-[#333]">
+      <title>{`Bukti Pembayaran - ${invoice.students?.name || 'Siswa'}`}</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+          font-family: 'Inter', sans-serif;
+          background-color: #f1f5f9;
+          color: #333;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .a4-container {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 2rem auto;
+          background-color: white;
+          box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+          position: relative;
+          padding: 0;
+        }
 
-          @media print {
-            @page {
-              size: A4;
-              margin: 0;
-            }
-            body {
-              background-color: white;
-              margin: 0;
-            }
-            .a4-container {
-              margin: 0;
-              box-shadow: none;
-              width: 100%;
-              min-height: 100vh;
-            }
-            .print-hide {
-              display: none !important;
-            }
+        @media print {
+          @page {
+            size: A4;
+            margin: 0;
           }
-        `}} />
-      </head>
-      <body>
-        <div className="a4-container flex flex-col">
+          body {
+            background-color: white;
+            margin: 0;
+          }
+          .a4-container {
+            margin: 0;
+            box-shadow: none;
+            width: 100%;
+            min-height: 100vh;
+          }
+          .print-hide {
+            display: none !important;
+          }
+        }
+      `}} />
+      <div className="a4-container flex flex-col">
           {/* Header Section */}
           <div className="px-12 pt-0 pb-0 flex justify-between items-center border-b border-gray-200">
             <div className="flex items-center gap-0">
@@ -100,7 +97,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             </div>
           </div>
           <div className="px-12 pb-6 flex justify-between items-center">
-                <p className="text-sm text-gray-500 font-medium mt-1">Jl. Pendidikan No. 1, Kota • Telp: 0812-3456-7890</p>
+                <p className="text-sm text-gray-500 font-medium mt-1">Jl. Raya Ps. Babelan No.1, Babelan Kota, Kec. Babelan, Kabupaten Bekasi, Jawa Barat 17610</p>
               </div>
 
           {/* Info Section */}
@@ -198,7 +195,6 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             <PrintButton />
           </div>
         </div>
-      </body>
-    </html>
+    </div>
   );
 }

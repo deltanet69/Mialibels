@@ -1,10 +1,15 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send } from 'lucide-react'
+import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send, ChevronUp, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { CreateBillModal } from '@/components/portal/finance/general/CreateBillModal'
 import { GeneralInvoiceDetailModal } from '@/components/portal/finance/general/GeneralInvoiceDetailModal'
+
+const PREDEFINED_ITEMS = [
+  'Mutu', 'Infaq Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
+  'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
+]
 
 type Invoice = {
   id: string
@@ -30,6 +35,22 @@ export default function GeneralFinancePage() {
   const [filterStatus, setFilterStatus] = useState('ALL')
   const [filterClass, setFilterClass] = useState('ALL')
   const [searchTerm, setSearchTerm] = useState('')
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <ChevronUp size={12} className="opacity-20 inline-block ml-1" />;
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp size={12} className="inline-block ml-1" />
+      : <ChevronDown size={12} className="inline-block ml-1" />;
+  };
 
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -191,8 +212,36 @@ export default function GeneralFinancePage() {
       );
     }
     
-    return filtered.sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
-  }, [invoices, searchTerm]);
+    if (sortConfig) {
+      filtered = filtered.sort((a, b) => {
+        if (sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc' 
+            ? (a.student_name || '').localeCompare(b.student_name || '')
+            : (b.student_name || '').localeCompare(a.student_name || '');
+        }
+        if (sortConfig.key === 'status') {
+          return sortConfig.direction === 'asc' 
+            ? (a.status || '').localeCompare(b.status || '')
+            : (b.status || '').localeCompare(a.status || '');
+        }
+        if (sortConfig.key === 'amount') {
+          return sortConfig.direction === 'asc' 
+            ? (Number(a.total_amount) || 0) - (Number(b.total_amount) || 0)
+            : (Number(b.total_amount) || 0) - (Number(a.total_amount) || 0);
+        }
+        if (sortConfig.key === 'sisa') {
+          const sisaA = (Number(a.total_amount) || 0) - (Number(a.paid_amount) || 0);
+          const sisaB = (Number(b.total_amount) || 0) - (Number(b.paid_amount) || 0);
+          return sortConfig.direction === 'asc' ? sisaA - sisaB : sisaB - sisaA;
+        }
+        return 0;
+      });
+    } else {
+      filtered = filtered.sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
+    }
+    
+    return filtered;
+  }, [invoices, searchTerm, sortConfig]);
 
   const totalPages = Math.ceil(filteredInvoices.length / pageSize)
   const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * pageSize, currentPage * pageSize)
@@ -320,12 +369,32 @@ export default function GeneralFinancePage() {
             <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-medium">
               <tr>
                 <th className="px-5 py-4 w-12 text-center">No</th>
-                <th className="px-5 py-4">Siswa</th>
+                <th 
+                  className="px-5 py-4 cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('name')}
+                >
+                  Siswa <SortIcon columnKey="name" />
+                </th>
                 <th className="px-5 py-4">Kelas</th>
                 <th className="px-5 py-4">Tagihan</th>
-                <th className="px-5 py-4">Total</th>
-                <th className="px-5 py-4">Sisa</th>
-                <th className="px-5 py-4">Status</th>
+                <th 
+                  className="px-5 py-4 cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('amount')}
+                >
+                  Total <SortIcon columnKey="amount" />
+                </th>
+                <th 
+                  className="px-5 py-4 cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('sisa')}
+                >
+                  Sisa <SortIcon columnKey="sisa" />
+                </th>
+                <th 
+                  className="px-5 py-4 cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('status')}
+                >
+                  Status <SortIcon columnKey="status" />
+                </th>
                 <th className="px-5 py-4 text-right">Aksi</th>
               </tr>
             </thead>
@@ -571,8 +640,17 @@ export default function GeneralFinancePage() {
                 });
 
                 const data: Record<string, { masuk: number; tunggakan: number }> = {};
+                
+                // Initialize with PREDEFINED_ITEMS
+                PREDEFINED_ITEMS.forEach(item => {
+                  data[item] = { masuk: 0, tunggakan: 0 };
+                });
+
                 filteredInvoices.forEach(inv => {
                   (inv.items || []).forEach(item => {
+                    // Extract base name for "Infaq Sekolah - [Month] [Year]" to group them?
+                    // The user said: "seluruh data/list items tetap di tampilkan meskipun belum ada pembayaran dengan jumlah masuk 0. Dan list datanya ambil default dari Create Bill item"
+                    // If they want exactly the items logged, including dynamically named Infaq bills, we just add them to the list.
                     if (!data[item.name]) {
                       data[item.name] = { masuk: 0, tunggakan: 0 };
                     }

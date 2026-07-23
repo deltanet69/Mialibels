@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2, MessageCircle } from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2, MessageCircle, User, ChevronUp, ChevronDown } from "lucide-react";
+import { GeneralInvoiceDetailModal } from "@/components/portal/finance/general/GeneralInvoiceDetailModal";
 
 // Constants outside component = never re-created
 const STATUS_COLORS: Record<string, string> = {
@@ -35,25 +36,41 @@ export default function ManageTab() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPayment, setFilterPayment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <ChevronUp className="w-3 h-3 opacity-20 inline-block ml-1" />;
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp className="w-3 h-3 inline-block ml-1" />
+      : <ChevronDown className="w-3 h-3 inline-block ml-1" />;
+  };
 
   // Detail Modal
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loadingTx, setLoadingTx] = useState(false);
-  const [manualAmount, setManualAmount] = useState("");
-  const [manualDesc, setManualDesc] = useState("");
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
 
   // Generate Modal
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [genTitle, setGenTitle] = useState("SPP Bulanan");
-  const [genAmount, setGenAmount] = useState(150000);
   const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
   const [genYear, setGenYear] = useState(new Date().getFullYear());
-  const [genDueDate, setGenDueDate] = useState(() => {
-    const d = new Date();
-    d.setDate(10);
-    return d.toISOString().split("T")[0];
-  });
+  const [genTargetType, setGenTargetType] = useState<'all' | 'class' | 'student'>('all');
+  const [genClassId, setGenClassId] = useState("");
+  const [genStudentId, setGenStudentId] = useState("");
+  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+  
+  // Student search states for Generate Modal
+  const [searchGenQuery, setSearchGenQuery] = useState('');
+  const [searchGenResults, setSearchGenResults] = useState<any[]>([]);
+  const [isGenSearching, setIsGenSearching] = useState(false);
+  const [selectedGenStudentName, setSelectedGenStudentName] = useState('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // WA Bulk Send
   const [isSendingWA, setIsSendingWA] = useState(false);
@@ -82,6 +99,70 @@ export default function ManageTab() {
     fetchInvoices(filterMonth, filterYear);
   }, [filterMonth, filterYear, fetchInvoices]);
 
+  useEffect(() => {
+    if (showGenerateModal && classes.length === 0) {
+      fetch('/api/classrooms').then(r => r.json()).then(data => {
+        if (data.success) setClasses(data.data);
+      }).catch(console.error);
+    }
+  }, [showGenerateModal]);
+
+  const handleSearchStudent = (query: string) => {
+    setSearchGenQuery(query);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (query.trim().length < 2) {
+      setSearchGenResults([]);
+      return;
+    }
+
+    setIsGenSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/students?search=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data.success) setSearchGenResults(data.data);
+      } catch (err) {
+        console.error('Failed to search students', err);
+      } finally {
+        setIsGenSearching(false);
+      }
+    }, 500);
+  };
+
+  const handleSelectStudent = (student: any) => {
+    setGenStudentId(student.id);
+    setSelectedGenStudentName(`${student.name} (${student.student_number}) - ${student.class}`);
+    setSearchGenQuery('');
+    setSearchGenResults([]);
+  };
+
+  const handleDeleteInfaq = async (invoiceId: string, itemName: string, status: string) => {
+    if (status === 'PAID') {
+      setMessage({ text: 'Tidak dapat menghapus item infaq dari tagihan yang sudah lunas penuh.', type: 'error' });
+      return;
+    }
+    if (!confirm(`Hapus ${itemName} dari tagihan ini?\n(Hanya item ini yang akan dihapus dari rincian tagihan umum).`)) return;
+    
+    setActionLoading(true);
+    setMessage({ text: "", type: "" });
+    try {
+      const res = await fetch(`/api/spp/manage`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId, itemName })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menghapus');
+      setMessage({ text: 'Item infaq berhasil dihapus', type: 'success' });
+      fetchInvoices(filterMonth, filterYear);
+    } catch (err: any) {
+      setMessage({ text: err.message, type: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Client-side filtering (instant, zero latency)
   const invoices = useMemo(() => {
     let result = allInvoices;
@@ -95,36 +176,70 @@ export default function ManageTab() {
         inv.student_number?.toLowerCase().includes(q)
       );
     }
-    return result;
-  }, [allInvoices, filterClass, filterStatus, filterPayment, searchQuery]);
-
-  const fetchTransactions = async (invoiceId: string) => {
-    setLoadingTx(true);
-    try {
-      const res = await fetch(`/api/spp/transactions?invoice_id=${invoiceId}`);
-      const data = await res.json();
-      if (data.success) setTransactions(data.data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingTx(false);
+    
+    if (sortConfig) {
+      result = [...result].sort((a, b) => {
+        if (sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc' 
+            ? (a.student_name || '').localeCompare(b.student_name || '')
+            : (b.student_name || '').localeCompare(a.student_name || '');
+        }
+        if (sortConfig.key === 'status') {
+          return sortConfig.direction === 'asc' 
+            ? (a.status || '').localeCompare(b.status || '')
+            : (b.status || '').localeCompare(a.status || '');
+        }
+        if (sortConfig.key === 'amount') {
+          return sortConfig.direction === 'asc' 
+            ? (a.amount || 0) - (b.amount || 0)
+            : (b.amount || 0) - (a.amount || 0);
+        }
+        if (sortConfig.key === 'sisa') {
+          const sisaA = (a.amount || 0) - (a.paid_amount || 0);
+          const sisaB = (b.amount || 0) - (b.paid_amount || 0);
+          return sortConfig.direction === 'asc' ? sisaA - sisaB : sisaB - sisaA;
+        }
+        return 0;
+      });
     }
+
+    return result;
+  }, [allInvoices, filterClass, filterStatus, filterPayment, searchQuery, sortConfig]);
+
+  const handleInvoiceUpdated = () => {
+    fetchInvoices(filterMonth, filterYear);
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (genTargetType === 'class' && !genClassId) {
+      setMessage({ text: 'Kelas wajib dipilih', type: 'error' }); return;
+    }
+    if (genTargetType === 'student' && !genStudentId) {
+      setMessage({ text: 'Siswa wajib dipilih', type: 'error' }); return;
+    }
+
     setActionLoading(true);
     setMessage({ text: "", type: "" });
     try {
-      const res = await fetch("/api/spp/manage", {
+      const res = await fetch("/api/finance/infaq/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: genTitle, amount: genAmount, month: genMonth, year: genYear, due_date: genDueDate })
+        body: JSON.stringify({ 
+          month: genMonth, 
+          year: genYear,
+          targetType: genTargetType,
+          classId: genClassId,
+          studentId: genStudentId
+        })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Gagal membuat tagihan");
-      setMessage({ text: data.message || "Berhasil membuat tagihan", type: "success" });
+      if (!res.ok) throw new Error(data.error || "Gagal membuat tagihan Infaq");
+      setMessage({ text: data.message || "Berhasil membuat tagihan Infaq", type: "success" });
       setShowGenerateModal(false);
+      // Data Infaq masuk ke general_invoices, bukan spp_invoices lagi
+      // Namun untuk sementara kita refresh jika ternyata API lama / manajemen lokal memerlukannya
       setFilterMonth(genMonth);
       setFilterYear(genYear);
       fetchInvoices(genMonth, genYear);
@@ -135,51 +250,33 @@ export default function ManageTab() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Yakin ingin menghapus tagihan ini?")) return;
-    try {
-      const res = await fetch(`/api/spp/manage?id=${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setAllInvoices(prev => prev.filter(inv => inv.id !== id));
-      setMessage({ text: "Tagihan dihapus", type: "success" });
-    } catch (error: any) {
-      setMessage({ text: error.message, type: "error" });
-    }
-  };
-
   const handleBulkSendWA = async () => {
-    const targetStudents = Array.from(new Set(
-      allInvoices
-        .filter(inv => inv.status !== 'PAID')
-        .map(inv => inv.student_id)
-    ));
+    const targetInvoices = allInvoices.filter(inv => inv.status !== 'PAID');
 
-    if (targetStudents.length === 0) {
+    if (targetInvoices.length === 0) {
       setMessage({ text: "Tidak ada tagihan tertunggak untuk dikirim.", type: "error" });
       return;
     }
 
-    if (!confirm(`Kirim notifikasi WA ke ${targetStudents.length} siswa menunggak? Proses ini membutuhkan waktu (4 detik per pesan).`)) return;
+    if (!confirm(`Kirim notifikasi WA ke ${targetInvoices.length} tagihan siswa menunggak? Proses ini membutuhkan waktu (4 detik per pesan).`)) return;
 
     setIsSendingWA(true);
-    setWaTotal(targetStudents.length);
+    setWaTotal(targetInvoices.length);
     setWaProgress(0);
     setMessage({ text: "", type: "" });
 
     let successCount = 0;
     let failCount = 0;
 
-    for (let i = 0; i < targetStudents.length; i++) {
-      const studentId = targetStudents[i];
-      const studentName = allInvoices.find(inv => inv.student_id === studentId)?.student_name || "Siswa";
-      setWaCurrentName(studentName);
+    for (let i = 0; i < targetInvoices.length; i++) {
+      const inv = targetInvoices[i];
+      setWaCurrentName(inv.student_name || "Siswa");
       
       try {
         const res = await fetch("/api/spp/wa-notify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ student_id: studentId })
+          body: JSON.stringify({ invoice_id: inv.id, item_name: inv._item_name })
         });
         
         if (res.ok) successCount++;
@@ -190,7 +287,7 @@ export default function ManageTab() {
 
       setWaProgress(i + 1);
       
-      if (i < targetStudents.length - 1) {
+      if (i < targetInvoices.length - 1) {
         await new Promise(r => setTimeout(r, 4000));
       }
     }
@@ -199,72 +296,18 @@ export default function ManageTab() {
     setMessage({ text: `Selesai! Berhasil kirim: ${successCount}, Gagal: ${failCount}`, type: "success" });
   };
 
-  const handleSingleSendWA = async (studentId: string, studentName: string) => {
+  const handleSingleSendWA = async (invoiceId: string, itemName: string, studentName: string) => {
     if (!confirm(`Kirim notifikasi tagihan ke WA orang tua ${studentName}?`)) return;
     setActionLoading(true);
     try {
       const res = await fetch("/api/spp/wa-notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student_id: studentId })
+        body: JSON.stringify({ invoice_id: invoiceId, item_name: itemName })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal mengirim notifikasi");
       setMessage({ text: data.message || "Notifikasi WA berhasil dikirim", type: "success" });
-    } catch (err: any) {
-      setMessage({ text: err.message, type: "error" });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleManualPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedInvoice || !manualAmount) return;
-    setActionLoading(true);
-    try {
-      const finalDesc = manualDesc 
-        ? `${manualDesc} (Rp ${parseInt(manualAmount, 10).toLocaleString('id-ID')})`
-        : `Pembayaran Tunai (Rp ${parseInt(manualAmount, 10).toLocaleString('id-ID')})`;
-
-      const res = await fetch("/api/spp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoice_id: selectedInvoice.id, action: "CASH_PAYMENT", amount: parseInt(manualAmount, 10), description: finalDesc }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Gagal memproses pembayaran");
-      const newPaid = (selectedInvoice.paid_amount || 0) + parseInt(manualAmount, 10);
-      const newStatus = newPaid >= selectedInvoice.amount ? 'PAID' : 'PARTIAL';
-      setManualAmount("");
-      fetchTransactions(selectedInvoice.id);
-      // Update local state instantly (no re-fetch needed)
-      setAllInvoices(prev => prev.map(inv => inv.id === selectedInvoice.id ? { ...inv, paid_amount: newPaid, status: newStatus } : inv));
-      setSelectedInvoice((prev: any) => ({ ...prev, paid_amount: newPaid, status: newStatus }));
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleVerifyAction = async (invoiceId: string, action: "APPROVE" | "REJECT") => {
-    if (!confirm(`Yakin ingin melakukan ${action} pada tagihan ini?`)) return;
-    setActionLoading(true);
-    try {
-      const res = await fetch("/api/spp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoice_id: invoiceId, action }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Gagal memproses verifikasi");
-      setMessage({ text: `Berhasil melakukan ${action}`, type: "success" });
-      fetchTransactions(invoiceId);
-      const newStatus = action === 'APPROVE' ? 'PAID' : 'UNPAID';
-      const newPaid = action === 'APPROVE' ? selectedInvoice?.amount : 0;
-      setAllInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status: newStatus, paid_amount: newPaid } : inv));
-      setSelectedInvoice((prev: any) => ({ ...prev, status: newStatus, paid_amount: newPaid }));
     } catch (err: any) {
       setMessage({ text: err.message, type: "error" });
     } finally {
@@ -293,7 +336,7 @@ export default function ManageTab() {
               onClick={() => setShowGenerateModal(true)}
               className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
-              <Plus className="w-4 h-4" /> Generate Massal
+              <Plus className="w-4 h-4" /> Buat Tagihan Infaq
             </button>
             <button 
               onClick={handleBulkSendWA}
@@ -368,13 +411,33 @@ export default function ManageTab() {
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
               <tr>
                 <th className="px-5 py-4 font-medium text-center w-12">No</th>
+                <th className="px-5 py-4 font-medium">Bulan/Tahun</th>
                 <th className="px-5 py-4 font-medium">NISN</th>
-                <th className="px-5 py-4 font-medium">Nama Siswa</th>
+                <th 
+                  className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('name')}
+                >
+                  Nama Siswa <SortIcon columnKey="name" />
+                </th>
                 <th className="px-5 py-4 font-medium">Kelas</th>
-                <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">Tagihan</th>
-                <th className="px-5 py-4 font-medium">Sisa Tagihan</th>
-                <th className="px-5 py-4 font-medium">Metode</th>
+                <th 
+                  className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('status')}
+                >
+                  Status <SortIcon columnKey="status" />
+                </th>
+                <th 
+                  className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('amount')}
+                >
+                  Tagihan <SortIcon columnKey="amount" />
+                </th>
+                <th 
+                  className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('sisa')}
+                >
+                  Sisa Tagihan <SortIcon columnKey="sisa" />
+                </th>
                 <th className="px-5 py-4 font-medium text-right">Aksi</th>
               </tr>
             </thead>
@@ -400,6 +463,7 @@ export default function ManageTab() {
                 invoices.map((inv, idx) => (
                   <tr key={inv.id} className="hover:bg-slate-50">
                     <td className="px-5 py-4 text-center text-slate-400">{idx + 1}</td>
+                    <td className="px-5 py-4 font-semibold text-blue-600">Bulan {inv.month} / {inv.year}</td>
                     <td className="px-5 py-4 font-medium text-slate-600">{inv.student_number}</td>
                     <td className="px-5 py-4 font-semibold text-slate-800">{inv.student_name}</td>
                     <td className="px-5 py-4 text-slate-600">{inv.student_class}</td>
@@ -412,29 +476,24 @@ export default function ManageTab() {
                     <td className="px-5 py-4 font-semibold text-red-500">
                       {inv.amount - (inv.paid_amount || 0) > 0 ? `Rp ${(inv.amount - (inv.paid_amount || 0)).toLocaleString("id-ID")}` : '-'}
                     </td>
-                    <td className="px-5 py-4">
-                      {inv.payment_method ? (
-                        <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{inv.payment_method}</span>
-                      ) : <span className="text-slate-300">-</span>}
-                    </td>
                     <td className="px-5 py-4 text-right space-x-2">
                       <button 
-                        onClick={() => { setSelectedInvoice(inv); fetchTransactions(inv.id); }}
+                        onClick={() => setSelectedInvoiceId(inv.id)}
                         className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium text-xs inline-flex items-center gap-1"
                       >
-                        <Eye className="w-3 h-3" /> Detail
+                        <Eye className="w-3 h-3" /> Detail  Infaq
                       </button>
                       <button 
-                        onClick={() => handleSingleSendWA(inv.student_id, inv.student_name)}
+                        onClick={() => handleSingleSendWA(inv.id, inv._item_name, inv.student_name)}
                         className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-flex"
                         title="Kirim WA Tagihan"
                       >
                         <MessageCircle className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(inv.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-flex"
-                        title="Hapus Tagihan"
+                      <button
+                        onClick={() => handleDeleteInfaq(inv.id, inv._item_name, inv.status)}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
+                        title="Hapus Infaq"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -448,148 +507,12 @@ export default function ManageTab() {
       </div>
 
       {/* Detail Data Siswa Modal */}
-      {selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h3 className="text-lg font-bold text-slate-800">Detail Pembayaran Siswa</h3>
-              <button onClick={() => setSelectedInvoice(null)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">✕</button>
-            </div>
-            <div className="overflow-y-auto p-5 sm:p-6 space-y-8 flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Info className="w-4 h-4" /> Biodata Siswa</h4>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-500">Nama</span><span className="font-semibold text-slate-800">{selectedInvoice.student_name}</span></div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-500">NISN</span><span className="font-semibold text-slate-800">{selectedInvoice.student_number}</span></div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-500">Kelas</span><span className="font-semibold text-slate-800">{selectedInvoice.student_class}</span></div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-500">Nama Orang Tua</span><span className="font-semibold text-slate-800">{selectedInvoice.parent_name || '-'}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-500">No. Telepon</span><span className="font-semibold text-slate-800">{selectedInvoice.parent_phone || '-'}</span></div>
-                  </div>
-                </div>
-                <div className="bg-blue-50/50 rounded-xl p-5 border border-blue-100">
-                  <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Info className="w-4 h-4" /> Detail Tagihan</h4>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between border-b border-blue-100 pb-2"><span className="text-slate-500">Bulan / Tahun</span><span className="font-semibold text-slate-800">{selectedInvoice.month} / {selectedInvoice.year}</span></div>
-                    <div className="flex justify-between border-b border-blue-100 pb-2"><span className="text-slate-500">Status</span><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${STATUS_COLORS[selectedInvoice.status]}`}>{STATUS_LABELS[selectedInvoice.status] || selectedInvoice.status}</span></div>
-                    <div className="flex justify-between border-b border-blue-100 pb-2"><span className="text-slate-500">Total Tagihan</span><span className="font-bold text-slate-800">Rp {selectedInvoice.amount.toLocaleString("id-ID")}</span></div>
-                    <div className="flex justify-between border-b border-blue-100 pb-2"><span className="text-slate-500">Sudah Dibayar</span><span className="font-bold text-emerald-600">Rp {(selectedInvoice.paid_amount || 0).toLocaleString("id-ID")}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-500">Kekurangan</span><span className="font-bold text-red-600">Rp {(selectedInvoice.amount - (selectedInvoice.paid_amount || 0)).toLocaleString("id-ID")}</span></div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-blue-100">
-                    <button 
-                      onClick={() => handleSingleSendWA(selectedInvoice.student_id, selectedInvoice.student_name)} 
-                      disabled={actionLoading} 
-                      className="w-full bg-green-100 text-green-700 hover:bg-green-200 py-2 rounded-lg text-sm font-semibold transition-colors flex justify-center items-center gap-2 disabled:opacity-50"
-                    >
-                      <MessageCircle className="w-4 h-4" /> Kirim Notif WA
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-3 space-y-4">
-                  <h4 className="font-bold text-slate-800 text-base">Riwayat Transaksi Tagihan Ini</h4>
-                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                    <div className="overflow-x-auto max-h-64">
-                      <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 sticky top-0">
-                          <tr>
-                            <th className="px-4 py-3 font-medium">Tanggal</th>
-                            <th className="px-4 py-3 font-medium">Metode</th>
-                            <th className="px-4 py-3 font-medium">Nominal</th>
-                            <th className="px-4 py-3 font-medium">Bukti</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {loadingTx ? (
-                            <tr><td colSpan={4} className="text-center py-6 text-slate-400 text-xs">Memuat riwayat...</td></tr>
-                          ) : transactions.length === 0 ? (
-                            <tr><td colSpan={4} className="text-center py-6 text-slate-400 text-xs">Belum ada transaksi pembayaran.</td></tr>
-                          ) : (
-                            transactions.map(tx => (
-                              <tr key={tx.id} className="hover:bg-slate-50">
-                                <td className="px-4 py-3 text-slate-600">{new Date(tx.created_at).toLocaleDateString("id-ID")}</td>
-                                <td className="px-4 py-3"><span className="bg-slate-100 px-2 py-1 rounded text-xs font-semibold text-slate-600">{tx.payment_method}</span></td>
-                                <td className="px-4 py-3 font-semibold text-emerald-600">Rp {tx.amount.toLocaleString("id-ID")}</td>
-                                <td className="px-4 py-3">
-                                  {tx.proof_url ? (
-                                    <a href={tx.proof_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline text-xs font-medium">
-                                      <Download className="w-3 h-3" /> Unduh
-                                    </a>
-                                  ) : <span className="text-slate-400 text-xs">-</span>}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-2 space-y-4">
-                  {selectedInvoice.status === 'PENDING_VERIFICATION' && (
-                    <div className="bg-blue-50 border border-blue-200 p-5 rounded-xl">
-                      <h4 className="font-bold text-blue-800 mb-2">Menunggu Verifikasi</h4>
-                      <p className="text-xs text-blue-600 mb-4">
-                        Orang tua telah mengunggah bukti transfer. 
-                        {selectedInvoice.note && (
-                          <span className="block mt-2 font-medium bg-blue-100/50 p-2 rounded-lg border border-blue-100">
-                            Catatan: {selectedInvoice.note}
-                          </span>
-                        )}
-                      </p>
-                      <a href={selectedInvoice.bukti_transfer} target="_blank" rel="noreferrer" className="block w-full text-center bg-white border border-blue-200 text-blue-700 py-2 rounded-lg text-sm font-semibold mb-3 hover:bg-blue-100 transition-colors">Lihat Bukti Transfer</a>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleVerifyAction(selectedInvoice.id, 'REJECT')} disabled={actionLoading} className="flex-1 bg-red-100 text-red-600 hover:bg-red-200 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50">Tolak</button>
-                        <button onClick={() => handleVerifyAction(selectedInvoice.id, 'APPROVE')} disabled={actionLoading} className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">Setujui</button>
-                      </div>
-                    </div>
-                  )}
-                  {selectedInvoice.status !== 'PAID' && selectedInvoice.status !== 'PENDING_VERIFICATION' && (
-                    <form onSubmit={handleManualPayment} className="bg-slate-50 border border-slate-200 p-5 rounded-xl space-y-4">
-                      <h4 className="font-bold text-slate-800 text-sm">Input Pembayaran Manual (TU)</h4>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Nominal Tunai (Rp) <span className="text-red-500">*</span></label>
-                        <input
-                          type="number" required min="1" max={selectedInvoice.amount - (selectedInvoice.paid_amount || 0)}
-                          placeholder={`Maks: Rp ${(selectedInvoice.amount - (selectedInvoice.paid_amount || 0)).toLocaleString('id-ID')}`}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm"
-                          value={manualAmount}
-                          onChange={(e) => setManualAmount(e.target.value)}
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1">Dapat mengisi sebagian (cicilan) dari sisa tagihan.</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Catatan</label>
-                        <textarea 
-                          rows={2} 
-                          placeholder="Misal: Pembayaran tunai ke TU"
-                          className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-sm resize-none" 
-                          value={manualDesc} 
-                          onChange={(e) => setManualDesc(e.target.value)}
-                        />
-                        <p className="text-[10px] text-slate-400 mt-1">Nominal pembayaran akan otomatis ditambahkan ke catatan.</p>
-                      </div>
-                      <button type="submit" disabled={actionLoading} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-lg transition-all text-sm disabled:opacity-50">
-                        {actionLoading ? "Memproses..." : "Simpan Pembayaran"}
-                      </button>
-                    </form>
-                  )}
-                  {selectedInvoice.status === 'PAID' && (
-                    <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl text-center">
-                      <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2 opacity-50" />
-                      <h4 className="font-bold text-emerald-800">Lunas</h4>
-                      <p className="text-xs text-emerald-600 mt-1">Tagihan ini sudah diselesaikan.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {selectedInvoiceId && (
+        <GeneralInvoiceDetailModal
+          invoiceId={selectedInvoiceId}
+          onClose={() => setSelectedInvoiceId(null)}
+          onUpdated={handleInvoiceUpdated}
+        />
       )}
 
       {/* Generate Modal */}
@@ -597,21 +520,104 @@ export default function ManageTab() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800">Generate Tagihan SPP</h3>
+              <h3 className="text-lg font-bold text-slate-800">Buat Tagihan Infaq Bulanan</h3>
               <button onClick={() => setShowGenerateModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleGenerate} className="p-6 space-y-4">
               <div className="bg-blue-50 p-4 rounded-xl text-sm text-blue-700 border border-blue-100">
-                Sistem akan membuat tagihan untuk <b>seluruh siswa aktif</b>.
+                Data ini otomatis masuk ke <b>Keuangan Umum</b>, namun tetap dapat dipantau riwayatnya di sini.<br/>
+                Jika siswa memiliki tagihan aktif sebelumnya, tagihan Infaq ini akan <b>ditambahkan/digabung</b> ke dalam tagihan tersebut agar tidak muncul double tagihan. Nominal disesuaikan otomatis (Fullday: 160rb, Reguler: 60rb).
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Judul Tagihan</label>
-                <input type="text" required value={genTitle} onChange={e => setGenTitle(e.target.value)} className="w-full border border-slate-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-blue-500" />
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Target Tagihan</label>
+                <select 
+                  value={genTargetType} 
+                  onChange={(e: any) => setGenTargetType(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-blue-500"
+                >
+                  <option value="all">Seluruh Siswa Aktif</option>
+                  <option value="class">Berdasarkan Kelas</option>
+                  <option value="student">Per Siswa (Individu)</option>
+                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nominal (Rp)</label>
-                <input type="number" required value={genAmount} onChange={e => setGenAmount(Number(e.target.value))} className="w-full border border-slate-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-blue-500" />
-              </div>
+
+              {genTargetType === 'class' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Pilih Kelas</label>
+                  <select
+                    value={genClassId}
+                    onChange={e => setGenClassId(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm"
+                  >
+                    <option value="">-- Pilih Kelas --</option>
+                    {classes.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {genTargetType === 'student' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Cari Siswa</label>
+                  {genStudentId ? (
+                    <div className="flex items-center justify-between p-3 border border-blue-200 bg-blue-50 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <User size={16} className="text-blue-500" />
+                        <span className="text-sm font-semibold text-blue-800">{selectedGenStudentName}</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setGenStudentId('')
+                          setSelectedGenStudentName('')
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium"
+                      >
+                        Ganti
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search size={16} className="text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={searchGenQuery}
+                        onChange={(e) => handleSearchStudent(e.target.value)}
+                        placeholder="Ketik Nama atau NISN..."
+                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition text-sm"
+                      />
+                      
+                      {searchGenQuery.length >= 2 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {isGenSearching ? (
+                            <div className="p-3 text-center text-sm text-slate-500">Mencari...</div>
+                          ) : searchGenResults.length > 0 ? (
+                            <ul className="py-1">
+                              {searchGenResults.map(student => (
+                                <li 
+                                  key={student.id}
+                                  onClick={() => handleSelectStudent(student)}
+                                  className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
+                                >
+                                  <div className="font-semibold text-slate-800 text-sm">{student.name}</div>
+                                  <div className="text-xs text-slate-500">{student.student_number} • {student.class}</div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="p-3 text-center text-sm text-slate-500">Siswa tidak ditemukan</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Bulan</label>
@@ -626,14 +632,10 @@ export default function ManageTab() {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jatuh Tempo</label>
-                <input type="date" required value={genDueDate} onChange={e => setGenDueDate(e.target.value)} className="w-full border border-slate-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-blue-500" />
-              </div>
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setShowGenerateModal(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors">Batal</button>
                 <button type="submit" disabled={actionLoading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
-                  {actionLoading ? "Memproses..." : "Buat Tagihan"}
+                  {actionLoading ? "Memproses..." : "Buat Tagihan Infaq"}
                 </button>
               </div>
             </form>

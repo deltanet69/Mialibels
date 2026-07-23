@@ -14,8 +14,8 @@ export default function SPPPage() {
         
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Sistem Pembayaran SPP</h1>
-          <p className="text-slate-500 mt-1 text-sm">Kelola tagihan, pantau pembayaran, dan verifikasi mutasi SPP siswa.</p>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Sistem Pembayaran Infaq Sekolah</h1>
+          <p className="text-slate-500 mt-1 text-sm">Kelola tagihan, pantau pembayaran, dan rekapitulasi bulanan Infaq siswa.</p>
         </div>
 
         {/* Main Navigation Tabs */}

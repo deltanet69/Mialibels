@@ -39,6 +39,24 @@ export async function GET(
       return NextResponse.json({ error: "Tagihan tidak ditemukan." }, { status: 404 });
     }
 
+    let has_active_invoices = false;
+    let active_invoice_id = null;
+
+    if (data.status === 'PAID') {
+      const { data: activeInvoices } = await supabase
+        .from('general_invoices')
+        .select('id')
+        .eq('student_id', data.student_id)
+        .eq('type', 'Infaq')
+        .in('status', ['UNPAID', 'PARTIAL', 'PENDING_VERIFICATION'])
+        .limit(1);
+        
+      if (activeInvoices && activeInvoices.length > 0) {
+        has_active_invoices = true;
+        active_invoice_id = activeInvoices[0].id;
+      }
+    }
+
     const formatted = {
       ...data,
       student_name: data.students?.name || "-",
@@ -48,6 +66,8 @@ export async function GET(
       student_class_id: data.students?.class_id || null,
       parent_name: data.students?.parent_name || "-",
       parent_phone: data.students?.parent_phone || "-",
+      has_active_invoices,
+      active_invoice_id
     };
 
     return NextResponse.json({ success: true, data: formatted });

@@ -1,65 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from "@supabase/supabase-js";
 import { sendWhatsAppMessage } from '@/lib/openwa';
 
-export async function POST(request: NextRequest) {
-  try {
-    const { student_id } = await request.json();
+function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
 
-    if (!student_id) {
-      return NextResponse.json({ error: 'student_id wajib diisi' }, { status: 400 });
+export async function POST(request: NextRequest) {
+  const supabase = getAdminSupabase();
+  try {
+    const { invoice_id, item_name } = await request.json();
+
+    if (!invoice_id || !item_name) {
+      return NextResponse.json({ error: 'invoice_id dan item_name wajib diisi' }, { status: 400 });
     }
 
-    // Ambil data siswa
-    const { data, error: studentError } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', student_id)
+    // Ambil data tagihan dari general_invoices
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('general_invoices')
+      .select(`
+        *,
+        students (
+          id,
+          name,
+          student_number,
+          class,
+          parent_name,
+          parent_phone
+        )
+      `)
+      .eq('id', invoice_id)
       .single();
 
-    const student: any = data;
-
-    if (studentError || !student) {
-      return NextResponse.json({ error: 'Siswa tidak ditemukan' }, { status: 404 });
+    if (invoiceError || !invoice) {
+      return NextResponse.json({ error: 'Tagihan tidak ditemukan' }, { status: 404 });
     }
 
-    if (!student.parent_phone) {
+    const student: any = Array.isArray(invoice.students) ? invoice.students[0] : invoice.students;
+
+    if (!student || !student.parent_phone) {
       return NextResponse.json({ error: 'Nomor HP orang tua tidak tersedia' }, { status: 400 });
     }
 
-    // Ambil semua tagihan yang belum lunas
-    const { data: rawInvoices, error: invoicesError } = await supabase
-      .from('spp_invoices')
-      .select('*')
-      .eq('student_id', student_id)
-      .neq('status', 'PAID')
-      .order('due_date', { ascending: true });
-
-    if (invoicesError) {
-      return NextResponse.json({ error: 'Gagal mengambil data tagihan' }, { status: 500 });
-    }
-
-    const invoices: any[] = rawInvoices || [];
-
-    if (invoices.length === 0) {
-      return NextResponse.json({ message: 'Tidak ada tagihan tertunggak untuk siswa ini' }, { status: 200 });
-    }
-
-    let totalTagihan = 0;
-    let totalTerbayar = 0;
-    let detailsText = '';
-    
-    // Nearest due date is the first one since we ordered by due_date ascending
-    const due_date_terdekat = invoices[0].due_date ? new Date(invoices[0].due_date).toLocaleDateString('id-ID') : '-';
-
-    invoices.forEach((inv, index) => {
-      totalTagihan += inv.amount || 0;
-      totalTerbayar += inv.paid_amount || 0;
-      
-      const sisa = (inv.amount || 0) - (inv.paid_amount || 0);
-      detailsText += `${index + 1}. ${inv.title} - Sisa Rp ${sisa.toLocaleString('id-ID')}\n`;
+    // Cari semua item yang belum lunas
+    const items = invoice.items || [];
+    const unpaidItems = items.filter((i: any) => {
+      const sisa = (Number(i.amount) || 0) - (Number(i.paid_amount) || 0);
+      return sisa > 0;
     });
 
+    if (unpaidItems.length === 0) {
+      return NextResponse.json({ message: 'Semua tagihan di rincian ini sudah lunas' }, { status: 200 });
+    }
+    
+    // Nearest due date
+    const due_date_terdekat = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('id-ID') : '-';
+
+    let detailsText = '';
+    unpaidItems.forEach((item: any, index: number) => {
+      const itemSisa = (Number(item.amount) || 0) - (Number(item.paid_amount) || 0);
+      detailsText += `${index + 1}. ${item.name} - Sisa Rp ${itemSisa.toLocaleString('id-ID')}\n`;
+    });
+
+    const totalTagihan = Number(invoice.total_amount) || 0;
+    const totalTerbayar = Number(invoice.paid_amount) || 0;
     const totalTunggakan = totalTagihan - totalTerbayar;
 
     const messageTemplate = `Assalamu'alaikum Warahmatullahi Wabarakatuh
@@ -70,12 +78,12 @@ Orang tua dari: ${student.name} - Kelas ${student.class || ''}
 Informasi Tagihan Keuangan MI Attaqwa 15 Babelan, untuk ananda ${student.name}:
 
 ${detailsText}
-Total Tagihan: Rp ${totalTagihan.toLocaleString('id-ID')}
-Total Tunggakan: Rp ${totalTunggakan.toLocaleString('id-ID')}
-Total Terbayar: Rp ${totalTerbayar.toLocaleString('id-ID')}
+Total Keseluruhan Tagihan: Rp ${totalTagihan.toLocaleString('id-ID')}
+Total Telah Terbayar: Rp ${totalTerbayar.toLocaleString('id-ID')}
+Sisa Tunggakan: Rp ${totalTunggakan.toLocaleString('id-ID')}
 Due Date Terdekat: ${due_date_terdekat}
 
-Mohon segera lakukan pembayaran untuk menghindari denda dan tunggakan lebih lanjut.
+Mohon segera lakukan pembayaran untuk menghindari tunggakan lebih lanjut.
 
 Bayar melalui transfer silahkan akses portal orang tua di :
 URL : https://parent.miattaqwa15.sch.id
@@ -105,15 +113,21 @@ Terima kasih`;
     
     // Coba simpan history gagal
     try {
-      // @ts-ignore (we know student_id might not be available here, but we try)
-      const { student_id, phone } = await request.clone().json().catch(() => ({}));
-      if (student_id && phone) {
-        await supabase.from('wa_history').insert({
-          student_id,
-          phone_number: phone,
-          message: error.message || 'Failed',
-          status: 'FAILED'
-        } as any);
+      // @ts-ignore
+      const { invoice_id } = await request.clone().json().catch(() => ({}));
+      if (invoice_id) {
+        const { data: inv } = await supabase.from('general_invoices').select('students(id, parent_phone)').eq('id', invoice_id).single();
+        if (inv && inv.students) {
+          const studentData: any = Array.isArray(inv.students) ? inv.students[0] : inv.students;
+          if (studentData) {
+            await supabase.from('wa_history').insert({
+              student_id: studentData.id,
+              phone_number: studentData.parent_phone,
+              message: error.message || 'Failed',
+              status: 'FAILED'
+            } as any);
+          }
+        }
       }
     } catch (e) {}
 

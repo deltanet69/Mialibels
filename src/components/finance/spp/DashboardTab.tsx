@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { DollarSign, AlertCircle, Users, CheckCircle2 } from "lucide-react";
+import { DollarSign, AlertCircle, Users, CheckCircle2, Filter, Printer } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface DashboardStats {
@@ -20,14 +20,18 @@ export default function DashboardTab() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1);
+  const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear());
+  const [filterClass, setFilterClass] = useState<string>("ALL");
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [filterMonth, filterYear, filterClass]);
 
   const fetchStats = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/spp/dashboard");
+      const res = await fetch(`/api/spp/dashboard?month=${filterMonth}&year=${filterYear}&class=${filterClass}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       setStats(result.data);
@@ -60,12 +64,41 @@ export default function DashboardTab() {
 
   const totalTagihanCount = stats.paidCount + stats.unpaidCount + stats.pendingVerification + stats.partialCount;
 
+  const handlePrint = () => {
+    window.open(`/print/infaq-summary?month=${filterMonth}&year=${filterYear}&class=${filterClass}`, '_blank');
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between md:items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Ringkasan SPP</h2>
-          <p className="text-sm text-slate-500">Periode {getMonthName(stats.month)} {stats.year}</p>
+          <h2 className="text-lg font-bold text-slate-800">Ringkasan Infaq Sekolah</h2>
+          <p className="text-sm text-slate-500">Periode {getMonthName(stats.month)} {stats.year} {filterClass !== 'ALL' ? `- Kelas ${filterClass}` : ''}</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500">Filter:</span>
+          </div>
+          <select value={filterMonth} onChange={(e) => setFilterMonth(Number(e.target.value))} className="border border-slate-200 bg-white rounded-lg text-sm px-3 py-2 outline-none focus:border-blue-500">
+            {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>Bulan {m}</option>)}
+          </select>
+          <select value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))} className="border border-slate-200 bg-white rounded-lg text-sm px-3 py-2 outline-none focus:border-blue-500">
+            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)} className="border border-slate-200 bg-white rounded-lg text-sm px-3 py-2 outline-none focus:border-blue-500">
+            <option value="ALL">Semua Kelas</option>
+            <optgroup label="Kelas 1"><option value="1A">1A</option><option value="1B">1B</option><option value="1C">1C</option><option value="1D">1D</option></optgroup>
+            <optgroup label="Kelas 2"><option value="2A">2A</option><option value="2B">2B</option><option value="2C">2C</option><option value="2D">2D</option></optgroup>
+            <optgroup label="Kelas 3"><option value="3A">3A</option><option value="3B">3B</option><option value="3C">3C</option><option value="3D">3D</option></optgroup>
+            <optgroup label="Kelas 4"><option value="4A">4A</option><option value="4B">4B</option><option value="4C">4C</option><option value="4D">4D</option></optgroup>
+            <optgroup label="Kelas 5"><option value="5A">5A</option><option value="5B">5B</option><option value="5C">5C</option><option value="5D">5D</option></optgroup>
+            <optgroup label="Kelas 6"><option value="6A">6A</option><option value="6B">6B</option><option value="6C">6C</option><option value="6D">6D</option></optgroup>
+          </select>
+          <button onClick={handlePrint} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Printer className="w-4 h-4" /> Cetak Laporan
+          </button>
         </div>
       </div>
 
@@ -112,7 +145,7 @@ export default function DashboardTab() {
 
       {/* CHART SECTION */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-800 mb-6">Persentase Pembayaran SPP Per Kelas</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-6">Persentase Pembayaran Infaq Per Kelas</h3>
         <div className="w-full h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart

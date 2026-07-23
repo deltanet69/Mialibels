@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const status = url.searchParams.get("status");
     const classId = url.searchParams.get("classId");
+    const studentId = url.searchParams.get("studentId");
 
     const supabase = getAdminSupabase();
 
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
           class_id
         )
       `)
+      .neq("type", "Infaq") // EXCLUDE Infaq from General Finance list
       .order("created_at", { ascending: false })
       .limit(3000); // Prevent extreme payloads that cause Vercel 504 timeouts
 
@@ -46,6 +48,10 @@ export async function GET(request: NextRequest) {
 
     if (classId && classId !== "ALL") {
       query = query.eq("students.class_id", classId);
+    }
+
+    if (studentId) {
+      query = query.eq("student_id", studentId);
     }
 
     const { data, error } = await query;

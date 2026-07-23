@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const PREDEFINED_ITEMS = [
-  'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
+  'Mutu', 'Infaq Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
   'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
 ]
 
@@ -39,7 +39,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
   // Edit Mode States
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editItems, setEditItems] = useState<{name: string, amount: number | string, paid_amount: number | string, _isCustom?: boolean}[]>([])
+  const [editItems, setEditItems] = useState<{name: string, amount: number | string, paid_amount: number | string, _isCustom?: boolean, infaqMonth?: string, infaqYear?: string}[]>([])
 
   // Cash payment form (Itemized)
   const [cashNote, setCashNote] = useState('')
@@ -216,11 +216,21 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'EDIT_ITEMS',
-          items: editItems.map(item => ({
-            ...item,
-            amount: Number(item.amount) || 0,
-            paid_amount: Number(item.paid_amount) || 0
-          }))
+          items: editItems.map(item => {
+            const getMonthName = (m: string) => {
+              const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+              return months[parseInt(m) - 1];
+            };
+            const finalName = item.name === 'Infaq Sekolah' 
+              ? `Infaq Sekolah - ${getMonthName(item.infaqMonth || '1')} ${item.infaqYear || new Date().getFullYear()}` 
+              : item.name;
+
+            return {
+              name: finalName,
+              amount: Number(item.amount) || 0,
+              paid_amount: Number(item.paid_amount) || 0
+            }
+          })
         }),
       })
       const data = await res.json()
@@ -249,7 +259,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   }
 
   const handleAddEditItem = () => {
-    setEditItems([...editItems, { name: '', amount: 0, paid_amount: 0 }])
+    setEditItems([...editItems, { name: '', amount: 0, paid_amount: 0, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }])
   }
 
   const handleRemoveEditItem = (index: number) => {
@@ -260,10 +270,30 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   const toggleEditMode = () => {
     if (!isEditMode) {
       setEditItems(
-        JSON.parse(JSON.stringify(invoice.items || [])).map((item: any) => ({
-          ...item,
-          _isCustom: item.name && !PREDEFINED_ITEMS.includes(item.name)
-        }))
+        JSON.parse(JSON.stringify(invoice.items || [])).map((item: any) => {
+          let name = item.name;
+          let infaqMonth = (new Date().getMonth() + 1).toString();
+          let infaqYear = new Date().getFullYear().toString();
+          
+          if (name && name.startsWith('Infaq Sekolah - ')) {
+             const parts = name.replace('Infaq Sekolah - ', '').split(' ');
+             if (parts.length === 2) {
+                const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                const mIdx = months.indexOf(parts[0]);
+                if (mIdx !== -1) infaqMonth = (mIdx + 1).toString();
+                infaqYear = parts[1];
+             }
+             name = 'Infaq Sekolah';
+          }
+
+          return {
+            ...item,
+            name,
+            infaqMonth,
+            infaqYear,
+            _isCustom: name && !PREDEFINED_ITEMS.includes(name)
+          }
+        })
       )
     }
     setIsEditMode(!isEditMode)
@@ -292,7 +322,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
         <div className="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
           <div>
             <h3 className="text-lg font-bold text-slate-800">Detail Tagihan Umum</h3>
-            {invoice && <p className="text-sm text-slate-500 mt-0.5">{invoice.title}</p>}
+            {invoice && <p className="text-md text-slate-500 mt-0.5">{invoice.title}</p>}
           </div>
           <button
             onClick={onClose}
@@ -334,6 +364,27 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
           {invoice && (
             <>
+              {/* Banner Peringatan Tagihan Aktif */}
+              {invoice.status === 'PAID' && invoice.has_active_invoices && (
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <h4 className="font-bold text-amber-800 text-sm">Siswa memiliki Tagihan Aktif / Tunggakan</h4>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        Tagihan ini sudah lunas, namun siswa memiliki tagihan lain yang belum dibayar.
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => fetchDetail(invoice.active_invoice_id)}
+                    className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition w-full sm:w-auto text-center"
+                  >
+                    Lihat Tagihan Aktif
+                  </button>
+                </div>
+              )}
+
               {/* Top Info Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Biodata Siswa */}
@@ -460,6 +511,28 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                       <option value="OTHER">Tulis Manual (Lainnya)...</option>
                                     </select>
                                   )}
+                                  {item.name === 'Infaq Sekolah' && (
+                                    <div className="flex gap-2 w-full mt-2">
+                                      <select
+                                        value={item.infaqMonth || (new Date().getMonth() + 1).toString()}
+                                        onChange={e => handleEditItemChange(idx, 'infaqMonth', e.target.value)}
+                                        className="px-2 py-1.5 rounded-md border border-slate-200 focus:border-blue-500 outline-none text-xs bg-white flex-1"
+                                      >
+                                        {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                                          <option key={m} value={m}>Bulan {m}</option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={item.infaqYear || new Date().getFullYear().toString()}
+                                        onChange={e => handleEditItemChange(idx, 'infaqYear', e.target.value)}
+                                        className="px-2 py-1.5 rounded-md border border-slate-200 focus:border-blue-500 outline-none text-xs bg-white w-20 shrink-0"
+                                      >
+                                        {[2024, 2025, 2026, 2027].map(y => (
+                                          <option key={y} value={y}>{y}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="w-full sm:w-1/3">
@@ -467,6 +540,8 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                 <input
                                   type="number"
                                   value={item.amount}
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
+                                  onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
                                   onChange={e => {
                                     const val = e.target.value;
                                     const newAmt = val === '' ? '' : Number(val);
@@ -483,6 +558,8 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                 <input
                                   type="number"
                                   value={item.paid_amount ?? ''}
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
+                                  onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
                                   onChange={e => {
                                     const val = e.target.value;
                                     handleEditItemChange(idx, 'paid_amount', val === '' ? '' : Number(val));
@@ -684,6 +761,8 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                   min="0"
                                   max={itemSisa}
                                   value={paymentInput}
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
+                                  onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
                                   onChange={(e) => {
                                     const val = Number(e.target.value);
                                     setPaymentItems(prev => prev.map(p => p.name === item.name ? { ...p, paid_amount: val } : p));
@@ -762,6 +841,8 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                   min="0"
                                   max={itemSisa}
                                   value={paymentInput}
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
+                                  onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
                                   onChange={(e) => {
                                     const val = Number(e.target.value);
                                     setPaymentItems(prev => prev.map(p => p.name === item.name ? { ...p, paid_amount: val } : p));

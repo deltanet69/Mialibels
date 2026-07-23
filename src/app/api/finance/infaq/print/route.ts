@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from "@supabase/supabase-js";
 
@@ -22,33 +21,34 @@ export async function GET(request: NextRequest) {
     const yearStr = searchParams.get('year');
     const classStr = searchParams.get('class');
     
-    // Default to current month/year if not provided
     const now = new Date();
     const month = monthStr ? parseInt(monthStr, 10) : now.getMonth() + 1;
     const year = yearStr ? parseInt(yearStr, 10) : now.getFullYear();
 
     const supabase = getAdminSupabase();
     
-    // Fetch invoices with student class info
     const { data: invoices, error } = await supabase
       .from('general_invoices')
-      .select('items, students(class)')
+      .select('items, students(name, student_number, class)')
       .limit(2000);
 
     if (error) throw error;
 
-    let totalCollected = 0;
-    let totalUnpaid = 0;
-    let pendingVerification = 0;
-    let paidCount = 0;
-    let unpaidCount = 0;
-    let partialCount = 0;
+    let totalTagihan = 0;
+    let totalTerkumpul = 0;
+    let totalTunggakan = 0;
     
-    // Data for Chart
-    const classStats: Record<string, { class: string; lunas: number; belum_lunas: number; cicilan: number }> = {};
+    // Untuk laporan spesifik kelas
+    const studentRows: any[] = [];
+    
+    // Untuk laporan semua kelas
+    const classStats: Record<string, { class: string; total_tagihan: number; terkumpul: number; tunggakan: number; lunas_count: number; belum_count: number }> = {};
 
     invoices.forEach((inv: any) => {
+      const studentName = inv.students?.name || 'Unknown';
+      const studentNis = inv.students?.student_number || '-';
       const studentClass = inv.students?.class || 'Unknown';
+      
       if (classStr && classStr !== 'ALL' && studentClass !== classStr) return;
       if (!inv.items || !Array.isArray(inv.items)) return;
 
@@ -60,50 +60,58 @@ export async function GET(request: NextRequest) {
             const yNum = parseInt(parts[1], 10);
 
             if (mNum === month && yNum === year) {
-              if (!classStats[studentClass]) {
-                classStats[studentClass] = { class: studentClass, lunas: 0, belum_lunas: 0, cicilan: 0 };
-              }
-
               const amt = Number(item.amount) || 0;
               const paid = Number(item.paid_amount) || 0;
-              let itemStatus = 'UNPAID';
-              if (paid >= amt && amt > 0) itemStatus = 'PAID';
-              else if (paid > 0) itemStatus = 'PARTIAL';
+              const tunggakan = amt - paid;
+              
+              let itemStatus = 'Belum Bayar';
+              if (paid >= amt && amt > 0) itemStatus = 'Lunas';
+              else if (paid > 0) itemStatus = 'Mencicil';
 
-              if (itemStatus === 'PAID') {
-                totalCollected += amt;
-                paidCount++;
-                classStats[studentClass].lunas++;
-              } else if (itemStatus === 'PARTIAL') {
-                totalCollected += paid;
-                totalUnpaid += (amt - paid);
-                partialCount++;
-                classStats[studentClass].cicilan++;
-              } else if (itemStatus === 'UNPAID') {
-                totalUnpaid += amt;
-                unpaidCount++;
-                classStats[studentClass].belum_lunas++;
+              totalTagihan += amt;
+              totalTerkumpul += paid;
+              totalTunggakan += tunggakan;
+
+              if (!classStats[studentClass]) {
+                classStats[studentClass] = { class: studentClass, total_tagihan: 0, terkumpul: 0, tunggakan: 0, lunas_count: 0, belum_count: 0 };
               }
+
+              classStats[studentClass].total_tagihan += amt;
+              classStats[studentClass].terkumpul += paid;
+              classStats[studentClass].tunggakan += tunggakan;
+              
+              if (itemStatus === 'Lunas') classStats[studentClass].lunas_count++;
+              else classStats[studentClass].belum_count++;
+
+              studentRows.push({
+                name: studentName,
+                nis: studentNis,
+                class: studentClass,
+                tagihan: amt,
+                terbayar: paid,
+                tunggakan: tunggakan,
+                status: itemStatus
+              });
             }
           }
         }
       });
     });
 
-    const chartData = Object.values(classStats).sort((a, b) => a.class.localeCompare(b.class));
+    const summaryPerClass = Object.values(classStats).sort((a, b) => a.class.localeCompare(b.class));
+    const sortedStudentRows = studentRows.sort((a, b) => a.name.localeCompare(b.name));
 
     return NextResponse.json({
       success: true,
       data: {
-        totalCollected,
-        totalUnpaid,
-        pendingVerification, // not tracked per item currently
-        paidCount,
-        unpaidCount,
-        partialCount,
-        chartData,
+        totalTagihan,
+        totalTerkumpul,
+        totalTunggakan,
+        summaryPerClass,
+        studentRows: sortedStudentRows,
         month,
-        year
+        year,
+        classFilter: classStr || 'ALL'
       }
     });
   } catch (error: any) {
