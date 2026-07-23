@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { CreateBillModal } from '@/components/portal/finance/general/CreateBillModal'
@@ -152,24 +152,47 @@ export default function GeneralFinancePage() {
   }
 
   // Summary calculations
-  const totalIncome = invoices.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0)
-  const totalUnpaid = invoices.reduce((acc, curr) => {
-    const sisa = (Number(curr.total_amount) || 0) - (Number(curr.paid_amount) || 0)
-    return acc + (sisa > 0 ? sisa : 0)
-  }, 0)
-  const transferIncome = invoices
-    .filter(i => i.payment_method === 'TRANSFER')
-    .reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0)
-  const cashIncome = totalIncome - transferIncome
+  const { totalIncome, totalUnpaid, transferIncome, cashIncome } = useMemo(() => {
+    let tIncome = 0;
+    let tUnpaid = 0;
+    let trIncome = 0;
+    
+    for (const curr of invoices) {
+      const paid = Number(curr.paid_amount) || 0;
+      const total = Number(curr.total_amount) || 0;
+      tIncome += paid;
+      
+      const sisa = total - paid;
+      if (sisa > 0) tUnpaid += sisa;
+      
+      if (curr.payment_method === 'TRANSFER') {
+        trIncome += paid;
+      }
+    }
+    
+    return {
+      totalIncome: tIncome,
+      totalUnpaid: tUnpaid,
+      transferIncome: trIncome,
+      cashIncome: tIncome - trIncome
+    };
+  }, [invoices]);
 
   // Client-side search filter & sort
-  const filteredInvoices = invoices
-    .filter(i =>
-      i.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      i.student_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      i.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''))
+  const filteredInvoices = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    let filtered = [...invoices];
+    
+    if (term) {
+      filtered = filtered.filter(i =>
+        i.student_name?.toLowerCase().includes(term) ||
+        i.student_number?.toLowerCase().includes(term) ||
+        i.title?.toLowerCase().includes(term)
+      );
+    }
+    
+    return filtered.sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
+  }, [invoices, searchTerm]);
 
   const totalPages = Math.ceil(filteredInvoices.length / pageSize)
   const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * pageSize, currentPage * pageSize)

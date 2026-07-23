@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from("general_invoices")
       .select(`
-        *,
-        students (
+        id, title, type, due_date, items, total_amount, paid_amount, status, payment_method, bukti_transfer, note, student_id, created_at,
+        students!inner (
           id,
           name,
           student_number,
@@ -37,10 +37,15 @@ export async function GET(request: NextRequest) {
           class_id
         )
       `)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(3000); // Prevent extreme payloads that cause Vercel 504 timeouts
 
     if (status && status !== "ALL") {
       query = query.eq("status", status);
+    }
+
+    if (classId && classId !== "ALL") {
+      query = query.eq("students.class_id", classId);
     }
 
     const { data, error } = await query;
@@ -53,13 +58,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let filteredData = data ?? [];
-
-    if (classId && classId !== "ALL") {
-      filteredData = filteredData.filter(
-        (item: any) => item.students?.class_id === classId
-      );
-    }
+    const filteredData = data ?? [];
 
     const formattedData = filteredData.map((item: any) => ({
       id: item.id,
