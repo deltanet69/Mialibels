@@ -11,7 +11,7 @@ type CreateBillModalProps = {
 
 const PREDEFINED_ITEMS = [
   'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
-  'Kartu Pelajar', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Tagihan Akhir tahun'
+  'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
 ]
 
 export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalProps) {

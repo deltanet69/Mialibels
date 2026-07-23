@@ -27,7 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const PREDEFINED_ITEMS = [
   'Mutu', 'Infaq / SPP Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
-  'Kartu Pelajar', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Tagihan Akhir tahun'
+  'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
 ]
 
 export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) {
@@ -39,7 +39,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
   // Edit Mode States
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editItems, setEditItems] = useState<{name: string, amount: number, paid_amount: number, _isCustom?: boolean}[]>([])
+  const [editItems, setEditItems] = useState<{name: string, amount: number | string, paid_amount: number | string, _isCustom?: boolean}[]>([])
 
   // Cash payment form (Itemized)
   const [cashNote, setCashNote] = useState('')
@@ -216,7 +216,11 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'EDIT_ITEMS',
-          items: editItems
+          items: editItems.map(item => ({
+            ...item,
+            amount: Number(item.amount) || 0,
+            paid_amount: Number(item.paid_amount) || 0
+          }))
         }),
       })
       const data = await res.json()
@@ -237,9 +241,11 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   }
 
   const handleEditItemChange = (index: number, field: string, value: string | number | boolean) => {
-    const newItems = [...editItems]
-    newItems[index] = { ...newItems[index], [field]: value }
-    setEditItems(newItems)
+    setEditItems(prev => {
+      const newItems = [...prev]
+      newItems[index] = { ...newItems[index], [field]: value }
+      return newItems
+    })
   }
 
   const handleAddEditItem = () => {
@@ -462,9 +468,10 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                   type="number"
                                   value={item.amount}
                                   onChange={e => {
-                                    const newAmt = Number(e.target.value);
+                                    const val = e.target.value;
+                                    const newAmt = val === '' ? '' : Number(val);
                                     handleEditItemChange(idx, 'amount', newAmt);
-                                    if (Number(item.paid_amount) > newAmt) {
+                                    if (typeof newAmt === 'number' && Number(item.paid_amount) > newAmt) {
                                       handleEditItemChange(idx, 'paid_amount', newAmt);
                                     }
                                   }}
@@ -475,8 +482,11 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                 <label className="text-[10px] font-semibold text-emerald-600 uppercase">Sdh Dibayar</label>
                                 <input
                                   type="number"
-                                  value={item.paid_amount || 0}
-                                  onChange={e => handleEditItemChange(idx, 'paid_amount', Number(e.target.value))}
+                                  value={item.paid_amount ?? ''}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    handleEditItemChange(idx, 'paid_amount', val === '' ? '' : Number(val));
+                                  }}
                                   className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-emerald-500 text-emerald-700 font-semibold bg-emerald-50"
                                 />
                               </div>

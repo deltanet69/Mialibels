@@ -91,7 +91,7 @@ Total Tunggakan: Rp ${totalTunggakan.toLocaleString('id-ID')}
 Total Terbayar: Rp ${totalTerbayar.toLocaleString('id-ID')}
 Due Date Terdekat: ${due_date_terdekat}
 
-Mohon segera lakukan pembayaran untuk menghindari denda dan tunggakan lebih lanjut.
+Mohon segera lakukan pembayaran untuk menghindari tunggakan lebih lanjut.
 
 Bayar melalui transfer silahkan akses portal orang tua di :
 URL : https://parent.miattaqwa15.sch.id
