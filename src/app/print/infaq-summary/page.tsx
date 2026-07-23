@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 
@@ -15,7 +15,7 @@ interface PrintData {
   classFilter: string;
 }
 
-export default function InfaqPrintSummaryPage() {
+function InfaqPrintSummaryContent() {
   const searchParams = useSearchParams();
   const month = searchParams.get('month');
   const year = searchParams.get('year');
@@ -187,5 +187,13 @@ export default function InfaqPrintSummaryPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function InfaqPrintSummaryPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Memuat Halaman...</div>}>
+      <InfaqPrintSummaryContent />
+    </Suspense>
   );
 }
