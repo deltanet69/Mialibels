@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2, MessageCircle } from "lucide-react";
 
 // Constants outside component = never re-created
 const STATUS_COLORS: Record<string, string> = {
@@ -54,6 +54,12 @@ export default function ManageTab() {
     d.setDate(10);
     return d.toISOString().split("T")[0];
   });
+
+  // WA Bulk Send
+  const [isSendingWA, setIsSendingWA] = useState(false);
+  const [waProgress, setWaProgress] = useState(0);
+  const [waTotal, setWaTotal] = useState(0);
+  const [waCurrentName, setWaCurrentName] = useState("");
 
   // Fetch from server ONLY when month or year changes
   const fetchInvoices = useCallback(async (month: number, year: number) => {
@@ -142,6 +148,76 @@ export default function ManageTab() {
     }
   };
 
+  const handleBulkSendWA = async () => {
+    const targetStudents = Array.from(new Set(
+      allInvoices
+        .filter(inv => inv.status !== 'PAID')
+        .map(inv => inv.student_id)
+    ));
+
+    if (targetStudents.length === 0) {
+      setMessage({ text: "Tidak ada tagihan tertunggak untuk dikirim.", type: "error" });
+      return;
+    }
+
+    if (!confirm(`Kirim notifikasi WA ke ${targetStudents.length} siswa menunggak? Proses ini membutuhkan waktu (4 detik per pesan).`)) return;
+
+    setIsSendingWA(true);
+    setWaTotal(targetStudents.length);
+    setWaProgress(0);
+    setMessage({ text: "", type: "" });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < targetStudents.length; i++) {
+      const studentId = targetStudents[i];
+      const studentName = allInvoices.find(inv => inv.student_id === studentId)?.student_name || "Siswa";
+      setWaCurrentName(studentName);
+      
+      try {
+        const res = await fetch("/api/spp/wa-notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ student_id: studentId })
+        });
+        
+        if (res.ok) successCount++;
+        else failCount++;
+      } catch (error) {
+        failCount++;
+      }
+
+      setWaProgress(i + 1);
+      
+      if (i < targetStudents.length - 1) {
+        await new Promise(r => setTimeout(r, 4000));
+      }
+    }
+
+    setIsSendingWA(false);
+    setMessage({ text: `Selesai! Berhasil kirim: ${successCount}, Gagal: ${failCount}`, type: "success" });
+  };
+
+  const handleSingleSendWA = async (studentId: string, studentName: string) => {
+    if (!confirm(`Kirim notifikasi tagihan ke WA orang tua ${studentName}?`)) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch("/api/spp/wa-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ student_id: studentId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mengirim notifikasi");
+      setMessage({ text: data.message || "Notifikasi WA berhasil dikirim", type: "success" });
+    } catch (err: any) {
+      setMessage({ text: err.message, type: "error" });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoice || !manualAmount) return;
@@ -212,12 +288,21 @@ export default function ManageTab() {
               className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-500"
             />
           </div>
-          <button 
-            onClick={() => setShowGenerateModal(true)}
-            className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> Generate Massal
-          </button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <button 
+              onClick={() => setShowGenerateModal(true)}
+              className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Generate Massal
+            </button>
+            <button 
+              onClick={handleBulkSendWA}
+              disabled={isSendingWA}
+              className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              <MessageCircle className="w-4 h-4" /> {isSendingWA ? "Mengirim..." : "Kirim WA Massal"}
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -253,6 +338,22 @@ export default function ManageTab() {
           </select>
         </div>
       </div>
+
+      {isSendingWA && (
+        <div className="bg-white p-5 rounded-2xl border border-green-200 shadow-sm space-y-2">
+          <div className="flex justify-between text-sm font-semibold text-green-700">
+            <span>Mengirim Notifikasi WA Massal...</span>
+            <span>{waProgress} / {waTotal}</span>
+          </div>
+          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+            <div 
+              className="bg-green-500 h-full transition-all duration-300"
+              style={{ width: `${waTotal > 0 ? (waProgress / waTotal) * 100 : 0}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-500 text-center">Sedang mengirim ke: <span className="font-semibold text-slate-700">{waCurrentName}</span> (Mohon jangan tutup halaman ini)</p>
+        </div>
+      )}
 
       {message.text && (
         <div className={`p-4 rounded-xl text-sm font-medium ${message.type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
@@ -324,6 +425,13 @@ export default function ManageTab() {
                         <Eye className="w-3 h-3" /> Detail
                       </button>
                       <button 
+                        onClick={() => handleSingleSendWA(inv.student_id, inv.student_name)}
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-flex"
+                        title="Kirim WA Tagihan"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                      <button 
                         onClick={() => handleDelete(inv.id)}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-flex"
                         title="Hapus Tagihan"
@@ -367,6 +475,15 @@ export default function ManageTab() {
                     <div className="flex justify-between border-b border-blue-100 pb-2"><span className="text-slate-500">Total Tagihan</span><span className="font-bold text-slate-800">Rp {selectedInvoice.amount.toLocaleString("id-ID")}</span></div>
                     <div className="flex justify-between border-b border-blue-100 pb-2"><span className="text-slate-500">Sudah Dibayar</span><span className="font-bold text-emerald-600">Rp {(selectedInvoice.paid_amount || 0).toLocaleString("id-ID")}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Kekurangan</span><span className="font-bold text-red-600">Rp {(selectedInvoice.amount - (selectedInvoice.paid_amount || 0)).toLocaleString("id-ID")}</span></div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-blue-100">
+                    <button 
+                      onClick={() => handleSingleSendWA(selectedInvoice.student_id, selectedInvoice.student_name)} 
+                      disabled={actionLoading} 
+                      className="w-full bg-green-100 text-green-700 hover:bg-green-200 py-2 rounded-lg text-sm font-semibold transition-colors flex justify-center items-center gap-2 disabled:opacity-50"
+                    >
+                      <MessageCircle className="w-4 h-4" /> Kirim Notif WA
+                    </button>
                   </div>
                 </div>
               </div>

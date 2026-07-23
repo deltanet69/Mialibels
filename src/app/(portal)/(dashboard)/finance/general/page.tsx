@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt } from 'lucide-react'
+import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { CreateBillModal } from '@/components/portal/finance/general/CreateBillModal'
 import { GeneralInvoiceDetailModal } from '@/components/portal/finance/general/GeneralInvoiceDetailModal'
@@ -46,6 +46,65 @@ export default function GeneralFinancePage() {
 
   // Detail Modal
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null)
+
+  // WA Notify State
+  const [isSendingWA, setIsSendingWA] = useState(false)
+  const [sendingProgress, setSendingProgress] = useState({ current: 0, total: 0 })
+
+  const handleSendWA = async (invoiceId: string) => {
+    try {
+      setIsSendingWA(true)
+      const res = await fetch('/api/finance/general/wa-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_id: invoiceId })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal mengirim WA')
+      alert('Berhasil mengirim notifikasi WA!')
+    } catch (error: any) {
+      alert(error.message)
+    } finally {
+      setIsSendingWA(false)
+    }
+  }
+
+  const handleBulkSendWA = async () => {
+    const unpaidInvoices = filteredInvoices.filter(i => i.status !== 'PAID')
+    if (unpaidInvoices.length === 0) {
+      alert('Tidak ada tagihan yang belum lunas pada filter saat ini.')
+      return
+    }
+
+    if (!confirm(`Anda akan mengirim notifikasi ke ${unpaidInvoices.length} orang tua. Lanjutkan?`)) return
+
+    setIsSendingWA(true)
+    setSendingProgress({ current: 0, total: unpaidInvoices.length })
+
+    let successCount = 0
+    for (let i = 0; i < unpaidInvoices.length; i++) {
+      try {
+        setSendingProgress(p => ({ ...p, current: i + 1 }))
+        const res = await fetch('/api/finance/general/wa-notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoice_id: unpaidInvoices[i].id })
+        })
+        if (res.ok) {
+            successCount++
+        }
+        // Delay 3 seconds between messages
+        if (i < unpaidInvoices.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 3000))
+        }
+      } catch (err) {
+        console.error('Error sending WA to', unpaidInvoices[i].student_name, err)
+      }
+    }
+    
+    setIsSendingWA(false)
+    alert(`Berhasil mengirim ${successCount} dari ${unpaidInvoices.length} notifikasi.`)
+  }
 
   useEffect(() => {
     fetchData()
@@ -122,12 +181,21 @@ export default function GeneralFinancePage() {
           <h1 className="text-2xl font-bold text-slate-800">Keuangan Umum</h1>
           <p className="text-sm text-slate-500 mt-1">Kelola tagihan administrasi sekolah, buku, seragam, dll.</p>
         </div>
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/20 transition flex items-center gap-2"
-        >
-          <Plus size={20} /> Buat Tagihan
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleBulkSendWA}
+            disabled={isSendingWA}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-emerald-500/20 transition flex items-center gap-2 text-sm sm:text-base"
+          >
+            <Send size={20} /> {isSendingWA ? `Mengirim... (${sendingProgress.current}/${sendingProgress.total})` : 'Kirim Notifikasi'}
+          </button>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/20 transition flex items-center gap-2 text-sm sm:text-base"
+          >
+            <Plus size={20} /> Buat Tagihan
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -287,12 +355,24 @@ export default function GeneralFinancePage() {
                       </td>
                       <td className="px-5 py-4">{statusBadge}</td>
                       <td className="px-5 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedInvoiceId(inv.id)}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5"
-                        >
-                          <Eye size={14} /> Detail
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {inv.status !== 'PAID' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleSendWA(inv.id); }}
+                              disabled={isSendingWA}
+                              className="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-50 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5"
+                              title="Kirim Notifikasi WA"
+                            >
+                              <Send size={14} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setSelectedInvoiceId(inv.id)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5"
+                          >
+                            <Eye size={14} /> Detail
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -338,10 +418,21 @@ export default function GeneralFinancePage() {
                       <div className="text-[10px] text-slate-400 uppercase">Total Tagihan</div>
                       <div className="font-semibold text-slate-800 text-sm">Rp {Number(inv.total_amount).toLocaleString('id-ID')}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-[10px] text-slate-400 uppercase">Sisa Tagihan</div>
-                      <div className="font-semibold text-red-500 text-sm">
-                        {sisa > 0 ? `Rp ${sisa.toLocaleString('id-ID')}` : <span className="text-emerald-500">Lunas</span>}
+                    <div className="flex items-center gap-3">
+                      {inv.status !== 'PAID' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleSendWA(inv.id); }}
+                          disabled={isSendingWA}
+                          className="px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-50 rounded-md transition"
+                        >
+                          <Send size={14} />
+                        </button>
+                      )}
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-400 uppercase">Sisa Tagihan</div>
+                        <div className="font-semibold text-red-500 text-sm">
+                          {sisa > 0 ? `Rp ${sisa.toLocaleString('id-ID')}` : <span className="text-emerald-500">Lunas</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
