@@ -579,6 +579,10 @@ export default function GeneralFinancePage() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSuccess={fetchData}
+        onOpenInvoice={(invoice) => {
+          setIsCreateOpen(false)
+          setSelectedInvoiceId(invoice.id)
+        }}
       />
 
       <GeneralInvoiceDetailModal

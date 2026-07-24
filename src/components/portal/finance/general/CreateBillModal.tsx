@@ -7,6 +7,7 @@ type CreateBillModalProps = {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  onOpenInvoice?: (invoice: any) => void
 }
 
 const PREDEFINED_ITEMS = [
@@ -14,7 +15,7 @@ const PREDEFINED_ITEMS = [
   'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
 ]
 
-export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalProps) {
+export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: CreateBillModalProps) {
   const [loading, setLoading] = useState(false)
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -89,6 +90,8 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
 
   const [activeInvoice, setActiveInvoice] = useState<any>(null)
 
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
+
   const handleSelectStudent = async (student: any) => {
     setFormData({ ...formData, student_id: student.id })
     setSelectedStudentName(`${student.name} (${student.student_number}) - ${student.class}`)
@@ -96,6 +99,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
     setSearchResults([])
     setActiveInvoice(null)
     setError(null)
+    setInfoMessage(null)
 
     // Cek apakah siswa sudah punya tagihan aktif
     try {
@@ -106,13 +110,25 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
         const active = data.data.find((inv: any) => inv.status !== 'PAID')
         if (active) {
           setActiveInvoice(active)
-          setError(`Siswa ini sudah memiliki Tagihan Aktif. Anda tidak bisa membuat tagihan baru. Silakan tambahkan item ke tagihan yang sudah ada.`)
+          setInfoMessage(`Siswa ini sudah memiliki Tagihan Aktif. Item baru akan ditambahkan secara otomatis ke tagihan tersebut.`)
+        } else {
+          // If they only have PAID invoices, we will still append to the latest one based on the new backend logic
+          const latest = data.data[0]
+          setActiveInvoice(latest)
+          setInfoMessage(`Siswa ini sudah lunas. Penambahan tagihan baru akan memperbarui statusnya menjadi Belum Bayar/Cicilan.`)
         }
       }
     } catch (err) {
       console.error('Failed to check active invoice', err)
     }
   }
+
+  // Effect to reset activeInvoice and messages when target_type changes
+  useEffect(() => {
+    setActiveInvoice(null)
+    setError(null)
+    setInfoMessage(null)
+  }, [formData.target_type])
 
   const handleAddItem = () => {
     setItems([...items, { name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }])
@@ -152,11 +168,6 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
 
   const handleSubmit = async () => {
     setError(null)
-
-    if (activeInvoice) {
-      setError('Siswa ini sudah memiliki Tagihan Aktif. Anda tidak bisa membuat tagihan baru. Silakan tambahkan item ke tagihan yang sudah ada.')
-      return
-    }
 
     if (formData.target_type === 'class' && !formData.class_id) {
       setError('Kelas wajib dipilih.')
@@ -506,11 +517,30 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
 
         {/* Footer — termasuk error dan tombol submit */}
         <div className="p-6 border-t border-slate-100 bg-white space-y-3">
-          {/* Error ditampilkan tepat di atas tombol agar selalu terlihat */}
+          {/* Error & Info */}
           {error && (
             <div className="flex items-start gap-2 p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
+            </div>
+          )}
+          {infoMessage && (
+            <div className="flex flex-col gap-2 p-3 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium border border-blue-100">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{infoMessage}</span>
+              </div>
+              {activeInvoice && onOpenInvoice && (
+                <div className="pl-6">
+                  <button
+                    type="button"
+                    onClick={() => onOpenInvoice(activeInvoice)}
+                    className="text-blue-600 underline hover:text-blue-800 font-bold"
+                  >
+                    Lihat Tagihan Terakhir
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <div className="flex justify-end gap-3">
@@ -525,7 +555,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess }: CreateBillModalP
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={loading || !!activeInvoice}
+              disabled={loading}
               className="px-6 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/20 flex items-center gap-2"
             >
               {loading

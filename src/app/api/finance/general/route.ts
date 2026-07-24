@@ -161,33 +161,109 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buat tagihan untuk setiap siswa
-    const invoicesToInsert = targetStudents.map((student: any) => ({
-      student_id: student.id,
-      title: title.trim(),
-      type: (type || "Administrasi Sekolah").trim(),
-      due_date: due_date || null,
-      items: validItems,
-      total_amount,
-      paid_amount: 0,
-      status: "UNPAID",
-      note: (note || "").trim(),
-    }));
+    const studentIds = targetStudents.map((s: any) => s.id);
 
-    const { data: newInvoices, error: insertError } = await supabase
+    // Ambil semua tagihan yang BUKAN Infaq untuk siswa-siswa ini, urutkan dari yang terbaru
+    const { data: existingInvoices, error: fetchErr } = await supabase
       .from("general_invoices")
-      .insert(invoicesToInsert)
-      .select("id");
+      .select("*")
+      .in("student_id", studentIds)
+      .neq("type", "Infaq")
+      .order("created_at", { ascending: false });
 
-    if (insertError) {
-      console.error("Error inserting invoices:", insertError);
-      return NextResponse.json({ error: "Gagal menyimpan tagihan: " + insertError.message }, { status: 500 });
+    if (fetchErr) {
+      console.error("Error fetching existing invoices:", fetchErr);
+      return NextResponse.json({ error: "Gagal mengambil data tagihan siswa: " + fetchErr.message }, { status: 500 });
+    }
+
+    // Kelompokkan tagihan terakhir per siswa
+    const latestInvoicePerStudent = new Map();
+    (existingInvoices || []).forEach(inv => {
+      if (!latestInvoicePerStudent.has(inv.student_id)) {
+        latestInvoicePerStudent.set(inv.student_id, inv);
+      }
+    });
+
+    const invoicesToInsert: any[] = [];
+    const updatePromises: any[] = [];
+    let updatedCount = 0;
+
+    for (const student of targetStudents) {
+      const latestInv = latestInvoicePerStudent.get(student.id);
+
+      if (latestInv) {
+        // Jika sudah punya tagihan, tambahkan item ke tagihan terakhir tersebut
+        const newItems = [...(latestInv.items || []), ...validItems];
+        const newTotal = Number(latestInv.total_amount) + total_amount;
+        const paidAmount = Number(latestInv.paid_amount) || 0;
+        
+        let newStatus = latestInv.status;
+        
+        // Sesuai request: Jika sebelumnya PAID (Lunas), kembalikan jadi UNPAID
+        // Jika sudah bayar sebagian tapi belum lunas, ubah jadi PARTIAL
+        if (paidAmount === 0) {
+          newStatus = "UNPAID";
+        } else if (paidAmount < newTotal) {
+          // Jika sebelumnya lunas dan sekarang ditambah tagihan baru, status bisa diset ke UNPAID (sesuai request) atau PARTIAL
+          // Kita pakai UNPAID saja agar jelas ada tagihan baru yang belum dibayar, atau PARTIAL.
+          newStatus = latestInv.status === "PAID" ? "UNPAID" : "PARTIAL";
+        } else if (paidAmount >= newTotal) {
+           newStatus = "PAID";
+        }
+
+        const updatePromise = supabase
+          .from("general_invoices")
+          .update({
+            items: newItems,
+            total_amount: newTotal,
+            status: newStatus
+          })
+          .eq("id", latestInv.id)
+          .then(({ error }) => {
+            if (!error) updatedCount++;
+            else console.error("Error updating invoice for student", student.id, error);
+          });
+          
+        updatePromises.push(updatePromise);
+      } else {
+        // Buat tagihan baru jika belum pernah ada
+        invoicesToInsert.push({
+          student_id: student.id,
+          title: title.trim(),
+          type: (type || "Administrasi Sekolah").trim(),
+          due_date: due_date || null,
+          items: validItems,
+          total_amount,
+          paid_amount: 0,
+          status: "UNPAID",
+          note: (note || "").trim(),
+        });
+      }
+    }
+
+    // Jalankan semua update
+    await Promise.all(updatePromises);
+
+    // Insert tagihan baru
+    let insertedCount = 0;
+    if (invoicesToInsert.length > 0) {
+      const { data: newInvoices, error: insertError } = await supabase
+        .from("general_invoices")
+        .insert(invoicesToInsert)
+        .select("id");
+
+      if (insertError) {
+        console.error("Error inserting invoices:", insertError);
+        // Tetap lanjut meskipun insert gagal, karena update mungkin berhasil
+      } else {
+        insertedCount = newInvoices?.length || 0;
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Berhasil membuat ${newInvoices?.length || 0} tagihan.`,
-      count: newInvoices?.length || 0,
+      message: `Berhasil menambahkan item ke ${updatedCount} tagihan siswa & membuat ${insertedCount} tagihan baru.`,
+      count: insertedCount + updatedCount,
     });
   } catch (error: any) {
     console.error("Error creating general invoices:", error);
