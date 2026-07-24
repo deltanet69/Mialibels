@@ -139,12 +139,19 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   }
 
   const handleSelectChange = (value: string, index: number) => {
+    if (value === 'Infaq Sekolah') {
+      alert('Harap lakukan tagihan infaq pada halaman Infaq Sekolah')
+    }
+
     setItems(prev => {
       const next = [...prev]
       if (value === 'OTHER') {
         next[index] = { ...next[index], name: '', isCustom: true }
       } else {
         next[index] = { ...next[index], name: value, isCustom: false }
+        if (value === 'Infaq Sekolah') {
+          next[index].amount = 0
+        }
       }
       return next
     })
@@ -486,8 +493,9 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
                       min="0"
                       value={item.amount || ''}
                       onChange={e => handleItemFieldChange(index, 'amount', Number(e.target.value))}
+                      disabled={item.name === 'Infaq Sekolah'}
                       placeholder="Nominal"
-                      className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-sm"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                     />
                   </div>
 
