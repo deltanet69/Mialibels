@@ -1,16 +1,10 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { createClient } from "@supabase/supabase-js";
 import { getSession } from "@/lib/session";
+import { getAdminSupabase } from "@/lib/supabase";
 
-function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 const getMonthNumber = (mName: string) => {
   const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
