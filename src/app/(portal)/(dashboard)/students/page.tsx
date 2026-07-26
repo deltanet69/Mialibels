@@ -46,7 +46,7 @@ export default function StudentsPage() {
   const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/students')
+      const res = await fetch('/api/students?_t=' + Date.now())
       const data = await res.json()
       if (data.success) {
         setAllStudents(data.data)
@@ -85,6 +85,20 @@ export default function StudentsPage() {
         s.nisn?.toLowerCase().includes(q)
       )
     }
+    
+    // Sort strictly by class first (1A-6D), then by name (A-Z) to ensure stable positioning
+    filtered.sort((a, b) => {
+      const classA = a.class || ''
+      const classB = b.class || ''
+      if (classA !== classB) {
+        return classA.localeCompare(classB)
+      }
+      
+      const nameA = a.name || ''
+      const nameB = b.name || ''
+      return nameA.localeCompare(nameB)
+    })
+
     return filtered
   }, [allStudents, search, classFilter])
 

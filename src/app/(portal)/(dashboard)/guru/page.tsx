@@ -47,7 +47,7 @@ export default function GuruPage() {
   const fetchGuru = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/guru')
+      const res = await fetch('/api/guru?_t=' + Date.now())
       const data = await res.json()
       if (data.success) {
         setAllGuru(data.data)
@@ -91,6 +91,30 @@ export default function GuruPage() {
         g.phone?.toLowerCase().includes(q)
       )
     }
+    
+    const positionSortWeight: Record<string, number> = {
+      'kepala sekolah': 1,
+      'wakil kepala sekolah': 2,
+      'bendahara': 3,
+      'kurikulum': 4,
+      'guru kelas': 5,
+      'guru pengajar': 6,
+      'guru': 6,
+      'staff administrasi': 7,
+      'staff sekolah': 8
+    }
+    
+    filtered.sort((a, b) => {
+      const posA = (a.position || '').toLowerCase()
+      const posB = (b.position || '').toLowerCase()
+      const weightA = positionSortWeight[posA] || 99
+      const weightB = positionSortWeight[posB] || 99
+      if (weightA !== weightB) {
+        return weightA - weightB
+      }
+      return (a.name || '').localeCompare(b.name || '')
+    })
+
     return filtered
   }, [allGuru, search, positionFilter, statusFilter])
 

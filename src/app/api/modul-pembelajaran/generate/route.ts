@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // === Attempt 1: Google AI Studio (Gemini) ===
     if (geminiKey) {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -67,14 +67,15 @@ export async function POST(request: NextRequest) {
             ],
             generationConfig: {
               temperature: 0.7,
-              responseMimeType: 'application/json'
+              maxOutputTokens: 8192
             }
           })
         })
 
         if (res.ok) {
           const geminiData = await res.json()
-          resultText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+          const parts = geminiData.candidates?.[0]?.content?.parts || []
+          resultText = parts.map((p: any) => p.text).join('') || ''
           console.log('AI generated via Google AI Studio (Gemini)')
         } else {
           const errText = await res.text()
@@ -91,23 +92,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Semua layanan AI gagal merespons. Detail: ${lastError}` }, { status: 503 })
     }
 
-    
     let parsedResult;
-    try {
-      parsedResult = JSON.parse(resultText)
-    } catch (e) {
-      // Try to extract JSON from text if it contains extra content
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        try {
-          parsedResult = JSON.parse(jsonMatch[0])
-        } catch {
-          console.error('Failed to parse AI JSON even after extraction:', resultText)
-          throw new Error('Format respon AI tidak valid. Coba lagi.')
-        }
+    let cleanText = resultText.trim();
+    
+    // Remove markdown code blocks if present
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '');
+    }
+
+    // Auto-fix truncated JSON (missing closing brace)
+    if (!cleanText.endsWith('}')) {
+      const lastQuoteIdx = cleanText.lastIndexOf('"');
+      const lastColonIdx = cleanText.lastIndexOf(':');
+      const lastCommaIdx = cleanText.lastIndexOf(',');
+      
+      if (lastCommaIdx > lastColonIdx) {
+        // Cut off after the last comma
+        cleanText = cleanText.substring(0, lastCommaIdx) + '\n}';
       } else {
-        console.error('No JSON found in AI response:', resultText)
-        throw new Error('Format respon AI tidak valid. Coba lagi.')
+        // Just force a quote and brace
+        cleanText += '"\n}';
+      }
+    }
+
+    try {
+      // First attempt
+      parsedResult = JSON.parse(cleanText);
+    } catch (e) {
+      try {
+        // Second attempt: strip all literal control characters (like unescaped newlines) which breaks JSON parse
+        const sanitized = cleanText.replace(/[\n\r\t]+/g, ' ');
+        parsedResult = JSON.parse(sanitized);
+      } catch (err) {
+        console.error('Failed to parse AI JSON:', cleanText);
+        throw new Error('Format respon AI tidak valid. Coba lagi.');
       }
     }
 

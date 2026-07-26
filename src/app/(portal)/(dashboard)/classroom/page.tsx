@@ -2,9 +2,16 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Users, UserCircle2, ArrowRight, Plus, Search, X } from 'lucide-react';
+import { Users, UserCircle2, ArrowRight, Plus, Search, X, LayoutGrid, List } from 'lucide-react';
 
-const CLASS_OPTIONS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
+const CLASS_OPTIONS = [
+  '1A','1B','1C','1D',
+  '2A','2B','2C','2D',
+  '3A','3B','3C','3D',
+  '4A','4B','4C','4D',
+  '5A','5B','5C','5D',
+  '6A','6B','6C','6D'
+];
 
 function SkeletonCard() {
   return (
@@ -28,6 +35,7 @@ export default function ClassroomPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', homeroomTeacherId: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Fetch classrooms once
   const fetchClassrooms = useCallback(async () => {
@@ -69,9 +77,7 @@ export default function ClassroomPage() {
         (c.homeroomTeacher && c.homeroomTeacher.toLowerCase().includes(q))
       );
     }
-    return [...result].sort(
-      (a, b) => CLASS_OPTIONS.indexOf(a.name.toUpperCase()) - CLASS_OPTIONS.indexOf(b.name.toUpperCase())
-    );
+    return result;
   }, [allClassrooms, searchQuery]);
 
   const existingClassNames = allClassrooms.map(c => c.name.toUpperCase());
@@ -141,9 +147,27 @@ export default function ClassroomPage() {
             />
           </div>
           {!loading && (
-            <span className="text-md text-slate-400 shrink-0 ml-4">
-              Total : {sortedClassrooms.length} kelas
-            </span>
+            <div className="flex items-center gap-3 shrink-0 ml-4">
+              <span className="text-md text-slate-400 hidden sm:block">
+                Total : {sortedClassrooms.length} kelas
+              </span>
+              <div className="flex bg-slate-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="List View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           )}
         </div>
 
@@ -163,7 +187,7 @@ export default function ClassroomPage() {
               <p className="text-slate-400 text-sm mt-1">Klik "Tambah Kelas" untuk membuat kelas baru.</p>
             )}
           </div>
-        ) : (
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {sortedClassrooms.map((classroom) => (
               <Link
@@ -183,7 +207,6 @@ export default function ClassroomPage() {
                     <span>{classroom.enrolledStudents || 0} Siswa</span>
                   </div>
                   <div className="flex items-center gap-1 text-md text-slate-400 mt-1">
-                    {/* <UserCircle2 className="w-4 h-4 mt-2" /> */}
                     <span className="text-md truncate" title={classroom.homeroomTeacher}>
                       {classroom.homeroomTeacher || 'Belum Ditugaskan'}
                     </span>
@@ -195,6 +218,42 @@ export default function ClassroomPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                <tr>
+                  <th className="px-4 py-3 font-medium text-center w-12">No</th>
+                  <th className="px-4 py-3 font-medium">Nama Kelas</th>
+                  <th className="px-4 py-3 font-medium">Wali Kelas</th>
+                  <th className="px-4 py-3 font-medium text-center">Total Siswa</th>
+                  <th className="px-4 py-3 font-medium text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {sortedClassrooms.map((classroom, i) => (
+                  <tr key={classroom.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-center text-slate-400 font-medium">{i + 1}</td>
+                    <td className="px-4 py-3 font-bold text-slate-700">Kelas {classroom.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{classroom.homeroomTeacher || 'Belum Ditugaskan'}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium text-xs">
+                        {classroom.enrolledStudents || 0} Siswa
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Link
+                        href={`/classroom/kelas-${classroom.name.toLowerCase().replace(/\s+/g, '-')}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 hover:border-blue-200 rounded-lg font-medium transition-colors"
+                      >
+                        Detail
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -96,7 +96,7 @@ export function SidebarClient({ role, userName }: Props) {
         aria-hidden="true"
       />
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 p-4 flex flex-col gap-6 justify-between overflow-y-auto transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-100 p-4 flex flex-col gap-6 justify-between overflow-y-auto transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col gap-6">
           {/* Brand */}
           <div className="flex items-center justify-between mb-2 px-2 sticky top-0 bg-white py-2 z-10">
@@ -169,7 +169,7 @@ export function SidebarClient({ role, userName }: Props) {
                     <Wallet size={20} /> <span className="font-medium">Keuangan Umum</span>
                   </Link>
                   <Link href="/finance/spp" className={linkClass('/finance/spp')} onClick={() => setIsOpen(false)}>
-                    <CreditCard size={20} /> <span className="font-medium">SPP Sekolah</span>
+                    <CreditCard size={20} /> <span className="font-medium">Infaq Sekolah</span>
                   </Link>
                   <Link href="/finance/savings" className={linkClass('/finance/savings')} onClick={() => setIsOpen(false)}>
                     <PiggyBank size={20} /> <span className="font-medium">Tabungan Siswa</span>

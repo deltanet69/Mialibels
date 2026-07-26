@@ -35,9 +35,7 @@ export default function ModulCard({ modul, onDelete, currentUserRole }: ModulCar
   })
 
   return (
-    <div className="group relative bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-3xl p-6 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:border-blue-200/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full overflow-hidden">
-      {/* Decorative gradient blob */}
-      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 rounded-full bg-gradient-to-br from-blue-100/40 to-purple-100/40 blur-2xl group-hover:from-blue-200/40 group-hover:to-purple-200/40 transition-colors duration-500"></div>
+    <div className="group relative bg-white rounded-3xl p-7 shadow-[0_2px_15px_rgb(0,0,0,0.03)] border border-slate-100 hover:shadow-[0_20px_50px_rgba(18,112,255,0.08)] hover:border-blue-100 hover:ring-2 hover:ring-blue-500/10 hover:-translate-y-2 transition-all duration-400 ease-out flex flex-col justify-between h-full overflow-hidden">
 
       {/* Status Badge */}
       <div className="relative flex justify-between items-start mb-5">
@@ -45,15 +43,15 @@ export default function ModulCard({ modul, onDelete, currentUserRole }: ModulCar
           {modul.status}
         </span>
         <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <Link href={`/modul-pembelajaran/${modul.id}`} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Lihat">
-            <Eye size={18} />
+          <Link href={`/modul-pembelajaran/${modul.id}`} className="p-2 text-slate-400 hover:text-white hover:bg-blue-600 rounded-xl transition-all shadow-sm hover:shadow-md" title="Lihat">
+            <Eye size={16} strokeWidth={2.5} />
           </Link>
-          <Link href={`/modul-pembelajaran/edit/${modul.id}`} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Edit">
-            <Edit3 size={18} />
+          <Link href={`/modul-pembelajaran/edit/${modul.id}`} className="p-2 text-slate-400 hover:text-white hover:bg-emerald-600 rounded-xl transition-all shadow-sm hover:shadow-md" title="Edit">
+            <Edit3 size={16} strokeWidth={2.5} />
           </Link>
           {(currentUserRole === 'admin' || currentUserRole === 'superadmin') && onDelete && (
-             <button onClick={() => onDelete(modul.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Hapus">
-               <Trash2 size={18} />
+             <button onClick={() => onDelete(modul.id)} className="p-2 text-slate-400 hover:text-white hover:bg-rose-600 rounded-xl transition-all shadow-sm hover:shadow-md" title="Hapus">
+               <Trash2 size={16} strokeWidth={2.5} />
              </button>
           )}
         </div>
@@ -61,27 +59,29 @@ export default function ModulCard({ modul, onDelete, currentUserRole }: ModulCar
 
       {/* Content */}
       <div className="relative mb-6 flex-grow">
-        <h3 className="text-[1.1rem] font-bold text-slate-800 leading-snug mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
-          {modul.title}
-        </h3>
+        <Link href={`/modul-pembelajaran/${modul.id}`}>
+          <h3 className="text-[1.15rem] font-extrabold text-slate-800 leading-snug mb-4 hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer decoration-blue-500 decoration-2 hover:underline underline-offset-4">
+            {modul.title}
+          </h3>
+        </Link>
         
-        <div className="flex flex-wrap gap-2 mt-4">
-          <span className="inline-flex items-center px-2.5 py-1 bg-slate-50 border border-slate-100 text-slate-600 text-[11px] font-medium rounded-lg">
-            <BookOpen size={12} className="mr-1.5 text-blue-500" />
+        <div className="flex flex-wrap gap-2.5 mt-5">
+          <span className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 text-[11px] font-bold uppercase tracking-wider rounded-lg">
+            <BookOpen size={12} className="mr-1.5" strokeWidth={2.5} />
             {modul.subject}
           </span>
-          <span className="inline-flex items-center px-2.5 py-1 bg-slate-50 border border-slate-100 text-slate-600 text-[11px] font-medium rounded-lg">
+          <span className="inline-flex items-center px-3 py-1.5 bg-slate-100 text-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg">
             Kelas {modul.grade}
           </span>
-          <span className="inline-flex items-center px-2.5 py-1 bg-slate-50 border border-slate-100 text-slate-600 text-[11px] font-medium rounded-lg">
+          <span className="inline-flex items-center px-3 py-1.5 bg-slate-100 text-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg">
             {modul.semester}
           </span>
         </div>
       </div>
 
       {/* Footer / Meta */}
-      <div className="relative pt-4 border-t border-slate-100/80 flex items-center justify-between text-xs font-medium text-slate-500">
-        <div className="flex items-center gap-1.5">
+      <div className="relative pt-5 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-400 group-hover:text-slate-500 transition-colors">
+        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
           <User size={14} className="text-gray-400" />
           <span className="truncate max-w-[100px]">{modul.admins?.name || 'Unknown'}</span>
         </div>

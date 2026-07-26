@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
 
     // Single insert
     const { classroom_id, ...staffData } = body
+    if (staffData.rfid === '') {
+      staffData.rfid = null
+    }
     
     const { data: guru, error } = await supabase
       .from('staffs')

@@ -9,8 +9,7 @@ export default function SPPPage() {
   const [activeMenu, setActiveMenu] = useState<"DASHBOARD" | "MANAGE">("DASHBOARD");
 
   return (
-    <div className="bg-slate-50 min-h-screen p-6">
-      <div className="w-full space-y-6">
+    <div className="space-y-6 w-full">
         
         {/* Header */}
         <div>
@@ -49,7 +48,6 @@ export default function SPPPage() {
         </div>
         
       </div>
-    </div>
   );
 }
 

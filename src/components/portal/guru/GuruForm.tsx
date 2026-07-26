@@ -200,6 +200,8 @@ export function GuruForm({ initialData, onSuccess, onClose }: GuruFormProps) {
                     <option value="">-- Pilih Posisi --</option>
                     <option value="Kepala Sekolah">Kepala Sekolah</option>
                     <option value="Wakil Kepala Sekolah">Wakil Kepala Sekolah</option>
+                    <option value="Bendahara">Bendahara</option>
+                    <option value="Kurikulum">Kurikulum</option>
                     <option value="Guru Kelas">Guru Kelas</option>
                     <option value="Guru Pengajar">Guru Pengajar</option>
                     <option value="Staff Administrasi">Staff Administrasi</option>

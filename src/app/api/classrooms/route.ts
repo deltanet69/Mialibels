@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
         homeroom_teacher:staffs(name),
         students(count)
       `)
-      .order('created_at', { ascending: false })
+      .order('name', { ascending: true })
 
     if (search) {
       query = query.ilike('name', `%${search}%`)

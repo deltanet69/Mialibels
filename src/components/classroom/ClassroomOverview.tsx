@@ -41,7 +41,9 @@ export function ClassroomOverview({ totalStudents, classroomId, classroomSlug }:
         const data = await res.json();
         if (data.success && data.data) {
           const records = data.data;
-          const today = new Date().toISOString().split('T')[0];
+          const d = new Date();
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          const today = d.toISOString().split('T')[0];
           let hadir = 0, izinSakit = 0, alpha = 0;
           records.forEach((r: any) => {
             if (r.date === today) {
@@ -54,7 +56,9 @@ export function ClassroomOverview({ totalStudents, classroomId, classroomSlug }:
 
           const grouped: Record<string, number> = {};
           for (let i = 4; i >= 0; i--) {
-            const d = new Date(); d.setDate(d.getDate() - i);
+            const d = new Date(); 
+            d.setDate(d.getDate() - i);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
             grouped[d.toISOString().split('T')[0]] = 0;
           }
           records.forEach((r: any) => {

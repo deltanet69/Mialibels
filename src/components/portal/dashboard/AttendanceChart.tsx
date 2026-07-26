@@ -17,7 +17,7 @@ export function AttendanceChart() {
   // Fetch unique classes for filter
   useEffect(() => {
     async function fetchClasses() {
-      const { data } = await supabase.from('classrooms').select('id, name');
+      const { data } = await supabase.from('classrooms').select('id, name').order('name', { ascending: true });
       if (data) {
         // Filter out any class that might be named "Semua Kelas" to avoid duplicates with our static 'all' option
         setClasses((data as any[]).filter((c: any) => c.name && c.name.toLowerCase() !== 'semua kelas'));

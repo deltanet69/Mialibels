@@ -76,11 +76,11 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
               parent_email: row.parent_email || row.Email || null,
               is_active: row.is_active !== 'false',
             }))
-            .filter((s) => s.name && s.student_number && s.class)
+            .filter((s) => s.name && s.class)
 
           if (students.length === 0) {
             throw new Error(
-              'Tidak ada data valid. Pastikan kolom: name, student_number, class, parent_name, parent_phone.'
+              'Tidak ada data valid. Pastikan minimal kolom "name" dan "class" telah terisi.'
             )
           }
 

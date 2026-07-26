@@ -81,7 +81,7 @@ export function NavbarClient({ user }: { user: any }) {
   };
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30">
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30 print:hidden">
       <div className="flex items-center gap-4">
         <button 
           onClick={() => setIsOpen(true)}

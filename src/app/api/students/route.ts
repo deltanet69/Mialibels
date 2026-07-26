@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const { isBulk, students } = body
 
     // Build class map (name → id)
-    const { data: classroomsData } = await supabase.from('classrooms').select('id, name')
+    const { data: classroomsData } = await supabase.from('classrooms').select('id, name').order('name', { ascending: true })
     const classMap: Record<string, string> = {}
     if (classroomsData) {
       classroomsData.forEach(c => {
@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
     if (isBulk && Array.isArray(students)) {
       const uniqueClasses = [...new Set(
         students
-          .map((s: any) => s.class?.replace(/^kelas\s+/i, '').trim())
+          .map((s: any) => {
+            if (!s.class) return null;
+            let c = s.class.replace(/^kelas\s+/i, '').trim().toUpperCase();
+            c = c.replace(/^(\d+)\s+([A-Z])$/, '$1$2');
+            return c;
+          })
           .filter(Boolean)
       )]
       const missingClasses = uniqueClasses.filter((cls: any) => !classMap[cls.toLowerCase()])
@@ -66,8 +71,9 @@ export async function POST(request: NextRequest) {
 
     const getClassId = (rawClass: string) => {
       if (!rawClass) return null
-      const cleanName = rawClass.replace(/^kelas\s+/i, '').trim().toLowerCase()
-      return classMap[cleanName] || null
+      let cleanName = rawClass.replace(/^kelas\s+/i, '').trim().toUpperCase()
+      cleanName = cleanName.replace(/^(\d+)\s+([A-Z])$/, '$1$2')
+      return classMap[cleanName.toLowerCase()] || null
     }
 
     // Helper to generate unique student IDs
@@ -78,7 +84,8 @@ export async function POST(request: NextRequest) {
       if (!rawClass) return `TMP${Date.now()}${Math.floor(Math.random() * 1000)}`
 
       // Strip prefix "Kelas" and normalize
-      const cleanClass = rawClass.replace(/^kelas\s*/i, '').trim().toUpperCase()
+      let cleanClass = rawClass.replace(/^kelas\s*/i, '').trim().toUpperCase()
+      cleanClass = cleanClass.replace(/^(\d+)\s+([A-Z])$/, '$1$2')
       // Extract leading digits (class number) and trailing letters (class letter)
       const matchResult = cleanClass.match(/^(\d+)([A-Z]?)$/)
       if (!matchResult) return `TMP${Date.now()}`

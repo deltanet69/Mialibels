@@ -53,40 +53,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tidak ada siswa aktif ditemukan' }, { status: 400 });
     }
 
-    // 2. Ambil semua tagihan Infaq aktif (UNPAID, PARTIAL, PENDING_VERIFICATION)
-    const { data: activeInvoices, error: activeErr } = await supabase
-      .from('general_invoices')
-      .select('id, student_id, items, total_amount, paid_amount, status')
-      .eq('type', 'Infaq')
-      .in('status', ['UNPAID', 'PARTIAL', 'PENDING_VERIFICATION']);
-
-    if (activeErr) throw activeErr;
-
-    // Cari tagihan (apapun statusnya) yang mengandung nama item ini, untuk menghindari duplikasi
-    // Supabase jsonb contains: kita bisa gunakan syntax [{ "name": "..." }] atau mengecek secara manual
-    // Kita akan mengecek secara manual setelah mengambil student invoices jika syntax contains bermasalah
-    // Tapi syntax supabase .contains('items', [{name: '...'}]) biasanya bekerja jika items adalah array of objects.
+    // 2. Ambil semua tagihan Infaq di bulan dan tahun ini untuk mencegah duplikasi
     const { data: existingInfaq, error: existingErr } = await supabase
-      .from('general_invoices')
-      .select('student_id, items')
-      .eq('type', 'Infaq');
+      .from('spp_invoices')
+      .select('student_id')
+      .eq('month', parseInt(month))
+      .eq('year', parseInt(year));
 
     if (existingErr) throw existingErr;
     
-    // Filter manual di js untuk lebih aman
-    const studentsWithInfaq = new Set();
-    if (existingInfaq) {
-      existingInfaq.forEach((inv: any) => {
-        if (inv.items && Array.isArray(inv.items)) {
-          if (inv.items.some((item: any) => item.name === itemName)) {
-            studentsWithInfaq.add(inv.student_id);
-          }
-        }
-      });
-    }
+    const studentsWithInfaq = new Set(existingInfaq?.map(inv => inv.student_id) || []);
 
     let createdCount = 0;
-    let updatedCount = 0;
 
     const newInvoicesToInsert = [];
     
@@ -95,43 +73,23 @@ export async function POST(request: NextRequest) {
       if (studentsWithInfaq.has(student.id)) continue;
 
       const nominal = student.class.endsWith('A') ? 160000 : 60000;
-      const newItem = { name: itemName, amount: nominal, paid_amount: 0 };
-
-      // Cari tagihan aktif untuk siswa ini
-      const activeInv = activeInvoices?.find(inv => inv.student_id === student.id);
-
-      if (activeInv) {
-        // Update tagihan aktif
-        const newItems = [...(activeInv.items || []), newItem];
-        const newTotal = Number(activeInv.total_amount) + nominal;
-        
-        await supabase
-          .from('general_invoices')
-          .update({
-            items: newItems,
-            total_amount: newTotal
-          })
-          .eq('id', activeInv.id);
-        
-        updatedCount++;
-      } else {
-        // Buat tagihan baru
-        newInvoicesToInsert.push({
-          student_id: student.id,
-          title: "Tagihan Infaq Sekolah",
-          type: "Infaq",
-          items: [newItem],
-          total_amount: nominal,
-          paid_amount: 0,
-          status: "UNPAID",
-          note: `Tagihan otomatis untuk ${itemName}`
-        });
-      }
+      
+      // Buat tagihan baru per bulan
+      newInvoicesToInsert.push({
+        student_id: student.id,
+        title: itemName,
+        amount: nominal,
+        month: parseInt(month),
+        year: parseInt(year),
+        due_date: new Date(year, parseInt(month) - 1, 10).toISOString(),
+        paid_amount: 0,
+        status: "UNPAID"
+      });
     }
 
     if (newInvoicesToInsert.length > 0) {
       const { error: insertErr } = await supabase
-        .from('general_invoices')
+        .from('spp_invoices')
         .insert(newInvoicesToInsert);
       
       if (insertErr) throw insertErr;
@@ -140,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Berhasil menambahkan Infaq Sekolah. Tagihan Baru dibuat: ${createdCount}, Tagihan Aktif di-update: ${updatedCount}, Dilewati (Sudah ada): ${students.length - createdCount - updatedCount}.` 
+      message: `Berhasil menambahkan Infaq Sekolah. Tagihan Baru dibuat: ${createdCount}, Dilewati (Sudah ada): ${students.length - createdCount}.` 
     });
 
   } catch (error: any) {

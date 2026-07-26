@@ -37,6 +37,10 @@ export default function SavingsPage() {
   const [depositPeriod, setDepositPeriod] = useState('month');
   const [withdrawalPeriod, setWithdrawalPeriod] = useState('month');
   
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
@@ -125,6 +129,18 @@ export default function SavingsPage() {
       return a.className.localeCompare(b.className);
     });
   }, [allStudents, searchQuery, selectedClass, sortBy]);
+
+  // Reset page when filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedClass, sortBy, itemsPerPage]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(students.length / itemsPerPage);
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return students.slice(start, start + itemsPerPage);
+  }, [students, currentPage, itemsPerPage]);
 
   const openTransactionModal = (id: string, name: string) => {
     setSelectedStudent({ id, name });
@@ -317,7 +333,7 @@ export default function SavingsPage() {
                   </td>
                 </tr>
               ) : (
-                students.map((student) => (
+                paginatedStudents.map((student) => (
                   <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50/80 transition group">
                     <td className="p-4">
                       <Link href={`/finance/savings/${student.id}`} className="hover:text-blue-600 font-medium text-slate-800 flex items-center gap-2">
@@ -363,6 +379,74 @@ export default function SavingsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && students.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-5 gap-4 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              Tampilkan
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-700 font-medium"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              siswa per halaman
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Sebelumnya
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const page = i + 1;
+                  if (
+                    totalPages <= 5 ||
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded-lg transition ${
+                          currentPage === page
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  }
+                  if (page === currentPage - 2 || page === currentPage + 2) {
+                    return <span key={page} className="text-slate-400">...</span>
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <TransactionModal 

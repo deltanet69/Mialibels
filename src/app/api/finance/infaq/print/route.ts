@@ -9,11 +9,6 @@ function getAdminSupabase() {
   );
 }
 
-const getMonthNumber = (mName: string) => {
-  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  return months.indexOf(mName) + 1;
-};
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -27,10 +22,14 @@ export async function GET(request: NextRequest) {
 
     const supabase = getAdminSupabase();
     
-    const { data: invoices, error } = await supabase
-      .from('general_invoices')
-      .select('items, students(name, student_number, class)')
-      .limit(2000);
+    let query = supabase
+      .from('spp_invoices')
+      .select('amount, paid_amount, status, students(name, student_number, class)')
+      .eq('month', month)
+      .eq('year', year)
+      .limit(3000);
+
+    const { data: invoices, error } = await query;
 
     if (error) throw error;
 
@@ -50,51 +49,38 @@ export async function GET(request: NextRequest) {
       const studentClass = inv.students?.class || 'Unknown';
       
       if (classStr && classStr !== 'ALL' && studentClass !== classStr) return;
-      if (!inv.items || !Array.isArray(inv.items)) return;
 
-      inv.items.forEach((item: any) => {
-        if (item.name && item.name.startsWith('Infaq Sekolah - ')) {
-          const parts = item.name.replace('Infaq Sekolah - ', '').split(' ');
-          if (parts.length === 2) {
-            const mNum = getMonthNumber(parts[0]);
-            const yNum = parseInt(parts[1], 10);
+      const amt = Number(inv.amount) || 0;
+      const paid = Number(inv.paid_amount) || 0;
+      const tunggakan = amt - paid;
+      
+      let itemStatus = 'Belum Bayar';
+      if (paid >= amt && amt > 0) itemStatus = 'Lunas';
+      else if (paid > 0) itemStatus = 'Mencicil';
 
-            if (mNum === month && yNum === year) {
-              const amt = Number(item.amount) || 0;
-              const paid = Number(item.paid_amount) || 0;
-              const tunggakan = amt - paid;
-              
-              let itemStatus = 'Belum Bayar';
-              if (paid >= amt && amt > 0) itemStatus = 'Lunas';
-              else if (paid > 0) itemStatus = 'Mencicil';
+      totalTagihan += amt;
+      totalTerkumpul += paid;
+      totalTunggakan += tunggakan;
 
-              totalTagihan += amt;
-              totalTerkumpul += paid;
-              totalTunggakan += tunggakan;
+      if (!classStats[studentClass]) {
+        classStats[studentClass] = { class: studentClass, total_tagihan: 0, terkumpul: 0, tunggakan: 0, lunas_count: 0, belum_count: 0 };
+      }
 
-              if (!classStats[studentClass]) {
-                classStats[studentClass] = { class: studentClass, total_tagihan: 0, terkumpul: 0, tunggakan: 0, lunas_count: 0, belum_count: 0 };
-              }
+      classStats[studentClass].total_tagihan += amt;
+      classStats[studentClass].terkumpul += paid;
+      classStats[studentClass].tunggakan += tunggakan;
+      
+      if (itemStatus === 'Lunas') classStats[studentClass].lunas_count++;
+      else classStats[studentClass].belum_count++;
 
-              classStats[studentClass].total_tagihan += amt;
-              classStats[studentClass].terkumpul += paid;
-              classStats[studentClass].tunggakan += tunggakan;
-              
-              if (itemStatus === 'Lunas') classStats[studentClass].lunas_count++;
-              else classStats[studentClass].belum_count++;
-
-              studentRows.push({
-                name: studentName,
-                nis: studentNis,
-                class: studentClass,
-                tagihan: amt,
-                terbayar: paid,
-                tunggakan: tunggakan,
-                status: itemStatus
-              });
-            }
-          }
-        }
+      studentRows.push({
+        name: studentName,
+        nis: studentNis,
+        class: studentClass,
+        tagihan: amt,
+        terbayar: paid,
+        tunggakan: tunggakan,
+        status: itemStatus
       });
     });
 

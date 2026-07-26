@@ -41,6 +41,9 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     const { classroom_id, ...staffData } = body
+    if (staffData.rfid === '') {
+      staffData.rfid = null
+    }
 
     const updateData = {
       ...staffData,

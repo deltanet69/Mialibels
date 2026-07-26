@@ -55,86 +55,93 @@ export default function DetailModulPage() {
   const Section = ({ title, children, isList = false }: any) => {
     if (!children || (Array.isArray(children) && children.length === 0) || (Array.isArray(children) && children[0] === '')) return null;
     return (
-      <div className="mb-8 bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
-          <CheckCircle2 size={20} className="text-blue-500" /> {title}
+      <div className="mb-12 group print:mb-8">
+        <h3 className="text-[1.35rem] font-black text-slate-900 mb-5 flex items-center gap-3 print:text-black">
+          <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 print:hidden">
+            <CheckCircle2 size={18} strokeWidth={3} />
+          </span>
+          {title}
         </h3>
-        {isList ? (
-          <ul className="list-disc pl-5 space-y-2 text-slate-700 leading-relaxed">
-            {children.map((item: string, i: number) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-slate-700 leading-relaxed whitespace-pre-wrap">{children}</div>
-        )}
+        <div className="pl-4 md:pl-11 border-l-[3px] border-slate-100 group-hover:border-blue-300 transition-colors duration-300 print:border-l-0 print:pl-0">
+          {isList ? (
+            <ul className="list-disc pl-5 space-y-3.5 text-slate-700 leading-loose text-[1.05rem] marker:text-slate-300 print:text-black">
+              {children.map((item: string, i: number) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-slate-700 leading-loose text-[1.05rem] whitespace-pre-wrap print:text-black">{children}</div>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200/60 shadow-sm relative overflow-hidden">
-        {/* Decorative BG */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 blur-3xl"></div>
-
-        <div className="relative z-10 space-y-4 flex-1">
+    <div className="p-4 md:p-10 max-w-[1200px] mx-auto space-y-12 animate-in fade-in duration-700 print:p-0 print:m-0 print:w-full print:max-w-full">
+      {/* Notion-Style Header */}
+      <div className="flex flex-col gap-8 bg-white p-8 md:p-12 rounded-[2.5rem] shadow-[0_2px_40px_rgb(0,0,0,0.03)] border border-slate-100 print:shadow-none print:border-b-2 print:border-black print:rounded-none print:p-0 print:pb-8 print:mb-8">
+        
+        {/* Breadcrumb & Status */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <Link 
             href="/modul-pembelajaran"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-2"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-400 hover:text-slate-800 transition-colors print:hidden uppercase tracking-wider"
           >
-            <ChevronLeft size={16} /> Kembali ke List Modul
+            <ChevronLeft size={16} strokeWidth={3} /> KEMBALI
           </Link>
           
           <div className="flex flex-wrap gap-2 items-center">
-            <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border shadow-sm ${
-              data.status === 'Published' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-              data.status === 'Draft' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+            <span className={`px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest rounded-lg ${
+              data.status === 'Published' ? 'bg-emerald-100 text-emerald-800' : 
+              data.status === 'Draft' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
             }`}>
               {data.status}
             </span>
-            <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 text-xs font-bold rounded-full">
+            <span className="px-3 py-1 bg-slate-900 text-white text-[11px] font-extrabold uppercase tracking-widest rounded-lg">
               Fase {data.phase}
             </span>
           </div>
+        </div>
 
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">
-            {data.title}
-          </h1>
-          
-          <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-600 font-medium">
-            <div className="flex items-center gap-1.5">
-              <BookOpen size={16} className="text-blue-500" />
-              <span>{data.subject}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-              <span>Kelas {data.grade}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-              <span>Semester {data.semester}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-              <span>Oleh: {data.admins?.name || 'Guru'}</span>
-            </div>
+        {/* Title */}
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight print:text-black">
+          {data.title}
+        </h1>
+        
+        {/* Metadata Grid */}
+        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-x-8 gap-y-6 pt-4 border-t border-slate-100">
+          <div>
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 mr-16">Mata Pelajaran</p>
+            <p className="font-semibold text-slate-800 text-[17px] flex items-center gap-2"><BookOpen size={16} className="text-slate-400" /> {data.subject}</p>
+          </div>
+          <div> 
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 mr-16">Tingkat</p>
+            <p className="font-semibold text-slate-800 text-[17px]">Kelas {data.grade}</p>
+          </div>
+          <div>
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 mr-16">Semester</p>
+            <p className="font-semibold text-slate-800 text-[17px]">{data.semester}</p>
+          </div>
+          <div>
+            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 mr-16">Penyusun</p>
+            <div className="font-semibold text-slate-800 text-[17px] flex items-center gap-2"><div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center text-[10px]">{data.admins?.name?.[0] || 'G'}</div> {data.admins?.name || 'Guru'}</div>
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-row md:flex-col gap-3 min-w-[140px]">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3 pt-6 print:hidden">
           <Link 
             href={`/modul-pembelajaran/edit/${data.id}`}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg hover:shadow-blue-500/20"
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all shadow-[0_4px_15px_rgba(0,0,0,0.1)] active:scale-95"
           >
-            <Edit3 size={18} /> Edit Modul
+            <Edit3 size={16} /> Edit Modul
           </Link>
           <button 
             onClick={() => window.print()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-semibold transition-all shadow-sm"
+            className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-sm active:scale-95"
           >
-            <Download size={18} /> Cetak PDF
+            <Download size={16} /> Cetak PDF
           </button>
         </div>
       </div>
@@ -162,27 +169,30 @@ export default function DetailModulPage() {
         </Section>
 
         {(data.assessment_diagnostic || data.assessment_formative || data.assessment_summative) && (
-          <div className="mb-8 bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
-              <FileText size={20} className="text-blue-500" /> Asesmen Pembelajaran
+          <div className="mb-12 group print:mb-8">
+            <h3 className="text-[1.35rem] font-black text-slate-900 mb-5 flex items-center gap-3 print:text-black">
+              <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 print:hidden">
+                <FileText size={18} strokeWidth={3} />
+              </span>
+              Asesmen Pembelajaran
             </h3>
-            <div className="space-y-4">
+            <div className="pl-4 md:pl-11 border-l-[3px] border-slate-100 group-hover:border-emerald-300 transition-colors duration-300 print:border-l-0 print:pl-0 space-y-6">
               {data.assessment_diagnostic && (
                 <div>
-                  <h4 className="font-semibold text-slate-800 mb-1">Asesmen Diagnostik</h4>
-                  <p className="text-slate-700">{data.assessment_diagnostic}</p>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Asesmen Diagnostik</h4>
+                  <p className="text-slate-700 leading-loose text-[1.05rem]">{data.assessment_diagnostic}</p>
                 </div>
               )}
               {data.assessment_formative && (
                 <div>
-                  <h4 className="font-semibold text-slate-800 mb-1">Asesmen Formatif</h4>
-                  <p className="text-slate-700">{data.assessment_formative}</p>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Asesmen Formatif</h4>
+                  <p className="text-slate-700 leading-loose text-[1.05rem]">{data.assessment_formative}</p>
                 </div>
               )}
               {data.assessment_summative && (
                 <div>
-                  <h4 className="font-semibold text-slate-800 mb-1">Asesmen Sumatif</h4>
-                  <p className="text-slate-700">{data.assessment_summative}</p>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Asesmen Sumatif</h4>
+                  <p className="text-slate-700 leading-loose text-[1.05rem]">{data.assessment_summative}</p>
                 </div>
               )}
             </div>
@@ -190,21 +200,24 @@ export default function DetailModulPage() {
         )}
 
         {(data.teacher_reflection || data.student_reflection) && (
-          <div className="mb-8 bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100 flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-blue-500" /> Refleksi
+          <div className="mb-12 group print:mb-8">
+            <h3 className="text-[1.35rem] font-black text-slate-900 mb-5 flex items-center gap-3 print:text-black">
+              <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 print:hidden">
+                <CheckCircle2 size={18} strokeWidth={3} />
+              </span>
+              Refleksi
             </h3>
-            <div className="space-y-4">
+            <div className="pl-4 md:pl-11 border-l-[3px] border-slate-100 group-hover:border-purple-300 transition-colors duration-300 print:border-l-0 print:pl-0 space-y-6">
               {data.teacher_reflection && (
                 <div>
-                  <h4 className="font-semibold text-slate-800 mb-1">Refleksi Guru</h4>
-                  <p className="text-slate-700">{data.teacher_reflection}</p>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Refleksi Guru</h4>
+                  <p className="text-slate-700 leading-loose text-[1.05rem]">{data.teacher_reflection}</p>
                 </div>
               )}
               {data.student_reflection && (
                 <div>
-                  <h4 className="font-semibold text-slate-800 mb-1">Refleksi Siswa</h4>
-                  <p className="text-slate-700">{data.student_reflection}</p>
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-2">Refleksi Siswa</h4>
+                  <p className="text-slate-700 leading-loose text-[1.05rem]">{data.student_reflection}</p>
                 </div>
               )}
             </div>

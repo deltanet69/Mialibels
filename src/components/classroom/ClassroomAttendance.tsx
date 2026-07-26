@@ -23,7 +23,7 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Record<string, StudentAttendance>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'daily' | 'recap'>('daily');
 
@@ -80,15 +80,38 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
     fetchData();
   }, [classroomId, selectedDate]);
 
+  const autoSaveStudent = async (studentId: string, status: AttendanceStatus, reason: string) => {
+    setSavingStatus(prev => ({ ...prev, [studentId]: true }));
+    try {
+      await fetch('/api/attendance/classroom/auto-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classroomId,
+          date: selectedDate,
+          studentId,
+          status,
+          reason
+        })
+      });
+    } catch (e) {
+      console.error('Failed to auto-save', e);
+    } finally {
+      setSavingStatus(prev => ({ ...prev, [studentId]: false }));
+    }
+  };
+
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
+    const reason = status !== 'Izin' ? '' : attendance[studentId]?.reason || '';
     setAttendance(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
         status,
-        reason: status !== 'Izin' ? '' : prev[studentId].reason
+        reason
       }
     }));
+    autoSaveStudent(studentId, status, reason);
   };
 
   const handleReasonChange = (studentId: string, reason: string) => {
@@ -101,35 +124,10 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
     }));
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const payload = Object.values(attendance).map(a => ({
-        classroom_id: classroomId,
-        student_id: a.student_id,
-        date: selectedDate,
-        status: a.status,
-        reason: a.reason
-      })).filter(a => a.status !== ''); // only save if status is set
-      
-      const res = await fetch('/api/attendance/classroom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          classroomId,
-          date: selectedDate,
-          attendances: payload
-        })
-      });
-      
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      
-      alert('Data absensi berhasil disimpan!');
-    } catch (e: any) {
-      alert(e.message || 'Gagal menyimpan absensi');
-    } finally {
-      setSaving(false);
+  const handleReasonBlur = (studentId: string) => {
+    const record = attendance[studentId];
+    if (record && record.status) {
+      autoSaveStudent(studentId, record.status, record.reason);
     }
   };
 
@@ -184,14 +182,6 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="w-full sm:w-auto pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700"
           />
-          <button 
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? 'Menyimpan...' : 'Simpan'}
-          </button>
         </div>
       </div>
 
@@ -233,7 +223,8 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
                           placeholder="Keterangan izin..."
                           value={record.reason}
                           onChange={(e) => handleReasonChange(student.id, e.target.value)}
-                          className="w-full sm:w-64 px-3 py-1.5 border border-amber-200 bg-amber-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-amber-900 placeholder-amber-400"
+                          onBlur={() => handleReasonBlur(student.id)}
+                          className="w-full sm:w-64 px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400"
                         />
                       </div>
                     )}

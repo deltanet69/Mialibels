@@ -11,7 +11,7 @@ type CreateBillModalProps = {
 }
 
 const PREDEFINED_ITEMS = [
-  'Mutu', 'Infaq Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
+  'Mutu', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
   'Kartu Siswa', 'Foto Siswa', 'Qurban', "Yanbu'a", 'Kegiatan Fullday', 'Kegiatan Akhir tahun'
 ]
 
@@ -37,8 +37,8 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   const [selectedStudentName, setSelectedStudentName] = useState('')
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [items, setItems] = useState<{ name: string; amount: number; isCustom: boolean; infaqMonth?: string; infaqYear?: string }>([
-    { name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }
+  const [items, setItems] = useState<{ name: string; amount: number; isCustom: boolean }[]>([
+    { name: '', amount: 0, isCustom: false }
   ])
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
       fetchClasses()
       setError(null)
       setFormData({ title: '', type: 'Administrasi Sekolah', due_date: '', class_id: '', student_id: '', target_type: 'class', note: '' })
-      setItems([{ name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }])
+      setItems([{ name: '', amount: 0, isCustom: false }])
       setSearchQuery('')
       setSearchResults([])
       setSelectedStudentName('')
@@ -131,7 +131,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   }, [formData.target_type])
 
   const handleAddItem = () => {
-    setItems([...items, { name: '', amount: 0, isCustom: false, infaqMonth: (new Date().getMonth() + 1).toString(), infaqYear: new Date().getFullYear().toString() }])
+    setItems([...items, { name: '', amount: 0, isCustom: false }])
   }
 
   const handleRemoveItem = (index: number) => {
@@ -139,25 +139,18 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   }
 
   const handleSelectChange = (value: string, index: number) => {
-    if (value === 'Infaq Sekolah') {
-      alert('Harap lakukan tagihan infaq pada halaman Infaq Sekolah')
-    }
-
     setItems(prev => {
       const next = [...prev]
       if (value === 'OTHER') {
         next[index] = { ...next[index], name: '', isCustom: true }
       } else {
         next[index] = { ...next[index], name: value, isCustom: false }
-        if (value === 'Infaq Sekolah') {
-          next[index].amount = 0
-        }
       }
       return next
     })
   }
 
-  const handleItemFieldChange = (index: number, field: 'name' | 'amount' | 'infaqMonth' | 'infaqYear', value: string | number) => {
+  const handleItemFieldChange = (index: number, field: 'name' | 'amount', value: string | number) => {
     setItems(prev => {
       const next = [...prev]
       next[index] = { ...next[index], [field]: value }
@@ -192,20 +185,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
       return
     }
 
-    // Build items with Infaq format
-    const getMonthName = (m: string) => {
-      const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-      return months[parseInt(m) - 1];
-    };
-
     const finalItems = validItems.map(item => {
-      if (item.name === 'Infaq Sekolah') {
-        return {
-          name: `Infaq Sekolah - ${getMonthName(item.infaqMonth || '1')} ${item.infaqYear}`,
-          amount: Number(item.amount),
-          paid_amount: 0
-        };
-      }
       return {
         name: item.name,
         amount: Number(item.amount),
@@ -459,28 +439,6 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
                         <option value="OTHER">+ Lainnya</option>
                       </select>
                     )}
-                    {item.name === 'Infaq Sekolah' && (
-                      <div className="flex gap-2 w-full mt-2 sm:mt-0 sm:w-auto">
-                        <select
-                          value={item.infaqMonth}
-                          onChange={e => handleItemFieldChange(index, 'infaqMonth', e.target.value)}
-                          className="px-2 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-xs bg-white flex-1"
-                        >
-                          {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                            <option key={m} value={m}>Bulan {m}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={item.infaqYear}
-                          onChange={e => handleItemFieldChange(index, 'infaqYear', e.target.value)}
-                          className="px-2 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-xs bg-white w-20 shrink-0"
-                        >
-                          {[2024, 2025, 2026, 2027].map(y => (
-                            <option key={y} value={y}>{y}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
                   </div>
 
                   {/* Amount */}
@@ -493,7 +451,6 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
                       min="0"
                       value={item.amount || ''}
                       onChange={e => handleItemFieldChange(index, 'amount', Number(e.target.value))}
-                      disabled={item.name === 'Infaq Sekolah'}
                       placeholder="Nominal"
                       className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                     />

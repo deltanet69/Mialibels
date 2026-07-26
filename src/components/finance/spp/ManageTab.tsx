@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2, MessageCircle, User, ChevronUp, ChevronDown } from "lucide-react";
-import { GeneralInvoiceDetailModal } from "@/components/portal/finance/general/GeneralInvoiceDetailModal";
+import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2, MessageCircle, User, ChevronUp, ChevronDown, Clock } from "lucide-react";
+import { SppInvoiceDetailModal } from "@/components/finance/spp/SppInvoiceDetailModal";
 
 // Constants outside component = never re-created
 const STATUS_COLORS: Record<string, string> = {
@@ -37,6 +37,10 @@ export default function ManageTab() {
   const [filterPayment, setFilterPayment] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -201,10 +205,21 @@ export default function ManageTab() {
         }
         return 0;
       });
+    } else {
+      // Default stable sort (by name ascending) to prevent jumping when updated
+      result = [...result].sort((a, b) => (a.student_name || '').localeCompare(b.student_name || ''));
     }
 
     return result;
   }, [allInvoices, filterClass, filterStatus, filterPayment, searchQuery, sortConfig]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterClass, filterStatus, filterPayment, searchQuery, sortConfig, allInvoices, itemsPerPage]);
+
+  const totalPages = Math.ceil(invoices.length / itemsPerPage);
+  const paginatedInvoices = invoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleInvoiceUpdated = () => {
     fetchInvoices(filterMonth, filterYear);
@@ -406,13 +421,12 @@ export default function ManageTab() {
 
       {/* Main Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
               <tr>
                 <th className="px-5 py-4 font-medium text-center w-12">No</th>
-                <th className="px-5 py-4 font-medium">Bulan/Tahun</th>
-                <th className="px-5 py-4 font-medium">NISN</th>
                 <th 
                   className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
                   onClick={() => handleSort('name')}
@@ -420,23 +434,24 @@ export default function ManageTab() {
                   Nama Siswa <SortIcon columnKey="name" />
                 </th>
                 <th className="px-5 py-4 font-medium">Kelas</th>
-                <th 
-                  className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
-                  onClick={() => handleSort('status')}
-                >
-                  Status <SortIcon columnKey="status" />
-                </th>
+                <th className="px-5 py-4 font-medium">Tagihan</th>
                 <th 
                   className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
                   onClick={() => handleSort('amount')}
                 >
-                  Tagihan <SortIcon columnKey="amount" />
+                  Total <SortIcon columnKey="amount" />
                 </th>
                 <th 
                   className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
                   onClick={() => handleSort('sisa')}
                 >
-                  Sisa Tagihan <SortIcon columnKey="sisa" />
+                  Sisa <SortIcon columnKey="sisa" />
+                </th>
+                <th 
+                  className="px-5 py-4 font-medium cursor-pointer hover:text-slate-800 select-none"
+                  onClick={() => handleSort('status')}
+                >
+                  Status <SortIcon columnKey="status" />
                 </th>
                 <th className="px-5 py-4 font-medium text-right">Aksi</th>
               </tr>
@@ -457,31 +472,41 @@ export default function ManageTab() {
                     <td className="px-5 py-4"><div className="h-8 bg-slate-100 rounded w-16 ml-auto" /></td>
                   </tr>
                 ))
-              ) : invoices.length === 0 ? (
+              ) : paginatedInvoices.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-10 text-slate-400">Tidak ada tagihan ditemukan.</td></tr>
               ) : (
-                invoices.map((inv, idx) => (
+                paginatedInvoices.map((inv, idx) => (
                   <tr key={inv.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-4 text-center text-slate-400">{idx + 1}</td>
-                    <td className="px-5 py-4 font-semibold text-blue-600">Bulan {inv.month} / {inv.year}</td>
-                    <td className="px-5 py-4 font-medium text-slate-600">{inv.student_number}</td>
-                    <td className="px-5 py-4 font-semibold text-slate-800">{inv.student_name}</td>
-                    <td className="px-5 py-4 text-slate-600">{inv.student_class}</td>
+                    <td className="px-5 py-4 text-center text-slate-400">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                    <td className="px-5 py-4">
+                      <div 
+                        className="font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+                        onClick={() => setSelectedInvoiceId(inv.id)}
+                      >
+                        {inv.student_name || '-'}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">{inv.student_nisn || inv.student_number || '-'}</div>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">{inv.student_class || '-'}</td>
+                    <td className="px-5 py-4 text-slate-600 text-sm">{inv.title}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-800">Rp {inv.amount.toLocaleString("id-ID")}</td>
+                    <td className="px-5 py-4 font-semibold">
+                      {(inv.amount - (inv.paid_amount || 0)) > 0
+                        ? <span className="text-red-500">Rp {(inv.amount - (inv.paid_amount || 0)).toLocaleString("id-ID")}</span>
+                        : <span className="text-emerald-500">Lunas</span>
+                      }
+                    </td>
                     <td className="px-5 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[inv.status] || "bg-slate-100 text-slate-600"}`}>
                         {STATUS_LABELS[inv.status] || inv.status}
                       </span>
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-slate-800">Rp {inv.amount.toLocaleString("id-ID")}</td>
-                    <td className="px-5 py-4 font-semibold text-red-500">
-                      {inv.amount - (inv.paid_amount || 0) > 0 ? `Rp ${(inv.amount - (inv.paid_amount || 0)).toLocaleString("id-ID")}` : '-'}
                     </td>
                     <td className="px-5 py-4 text-right space-x-2">
                       <button 
                         onClick={() => setSelectedInvoiceId(inv.id)}
                         className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors font-medium text-xs inline-flex items-center gap-1"
                       >
-                        <Eye className="w-3 h-3" /> Detail  Infaq
+                        <Eye className="w-3 h-3" /> Detail Infaq
                       </button>
                       <button 
                         onClick={() => handleSingleSendWA(inv.id, inv._item_name, inv.student_name)}
@@ -504,11 +529,108 @@ export default function ManageTab() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-4 space-y-3 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2" />
+                <div className="h-4 bg-slate-100 rounded w-3/4" />
+                <div className="h-4 bg-slate-100 rounded w-1/4" />
+              </div>
+            ))
+          ) : paginatedInvoices.length === 0 ? (
+            <div className="px-6 py-10 text-center text-slate-500 text-sm">Belum ada data tagihan.</div>
+          ) : (
+            paginatedInvoices.map((inv) => {
+              const sisa = Number(inv.amount) - Number(inv.paid_amount || 0);
+              
+              let statusBadge = <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold text-[10px]">Belum Bayar</span>;
+              if (inv.status === 'PAID') statusBadge = <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-semibold text-[10px] flex items-center gap-1 w-max"><CheckCircle2 className="w-2.5 h-2.5" /> Lunas</span>;
+              if (inv.status === 'PARTIAL') statusBadge = <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 font-semibold text-[10px] flex items-center gap-1 w-max"><Clock className="w-2.5 h-2.5" /> Cicilan</span>;
+              if (inv.status === 'PENDING_VERIFICATION') statusBadge = <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-semibold text-[10px]">Menunggu Verifikasi</span>;
+
+              return (
+                <div key={inv.id} className="p-4 hover:bg-slate-50 transition cursor-pointer" onClick={() => setSelectedInvoiceId(inv.id)}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-semibold text-blue-600 text-sm">{inv.student_name}</div>
+                      <div className="text-[11px] text-slate-400">Kls: {inv.student_class} • NISN: {inv.student_nisn || inv.student_number || '-'}</div>
+                    </div>
+                    {statusBadge}
+                  </div>
+                  <div className="text-sm font-medium text-slate-700 mb-2 truncate" title={inv.title}>{inv.title}</div>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50">
+                    <div>
+                      <div className="text-[10px] text-slate-400 uppercase">Total Tagihan</div>
+                      <div className="font-semibold text-slate-800 text-sm">Rp {Number(inv.amount).toLocaleString('id-ID')}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSingleSendWA(inv.id, inv._item_name, inv.student_name); }}
+                        className="px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-50 rounded-md transition"
+                        title="Kirim Notifikasi WA"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-400 uppercase">Sisa Tagihan</div>
+                        <div className="font-semibold text-red-500 text-sm">
+                          {sisa > 0 ? `Rp ${sisa.toLocaleString('id-ID')}` : <span className="text-emerald-500">Lunas</span>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        
+        {/* Pagination UI */}
+        {!loading && invoices.length > 0 && (
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Tampilkan</span>
+              <select
+                value={itemsPerPage}
+                onChange={e => setItemsPerPage(Number(e.target.value))}
+                className="border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-blue-500 bg-white"
+              >
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span>dari {invoices.length} data</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                className="px-4 py-2 text-sm border border-slate-200 bg-white rounded-xl hover:bg-slate-50 disabled:opacity-50 transition font-medium text-slate-600"
+              >
+                Sebelumnya
+              </button>
+              <span className="text-sm font-semibold text-slate-700">
+                {currentPage} <span className="text-slate-400 font-normal">/ {totalPages || 1}</span>
+              </span>
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                className="px-4 py-2 text-sm border border-slate-200 bg-white rounded-xl hover:bg-slate-50 disabled:opacity-50 transition font-medium text-slate-600"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detail Data Siswa Modal */}
       {selectedInvoiceId && (
-        <GeneralInvoiceDetailModal
+        <SppInvoiceDetailModal
           invoiceId={selectedInvoiceId}
           onClose={() => setSelectedInvoiceId(null)}
           onUpdated={handleInvoiceUpdated}
@@ -525,8 +647,8 @@ export default function ManageTab() {
             </div>
             <form onSubmit={handleGenerate} className="p-6 space-y-4">
               <div className="bg-blue-50 p-4 rounded-xl text-sm text-blue-700 border border-blue-100">
-                Data ini otomatis masuk ke <b>Keuangan Umum</b>, namun tetap dapat dipantau riwayatnya di sini.<br/>
-                Jika siswa memiliki tagihan aktif sebelumnya, tagihan Infaq ini akan <b>ditambahkan/digabung</b> ke dalam tagihan tersebut agar tidak muncul double tagihan. Nominal disesuaikan otomatis (Fullday: 160rb, Reguler: 60rb).
+                Data ini otomatis masuk ke <b>Database SPP/Infaq</b> yang terpisah dari Keuangan Umum.<br/>
+                Jika siswa memiliki tagihan aktif sebelumnya, maka akan ada dua tagihan Infaq, namun saat pengingat WA dikirimkan, semua tagihan yang belum lunas akan direkap otomatis. Nominal disesuaikan otomatis (Fullday: 160rb, Reguler: 60rb).
               </div>
               
               <div className="space-y-2">
