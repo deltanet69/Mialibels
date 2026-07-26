@@ -277,7 +277,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
   const openPrintReceipt = () => {
     if (invoiceId) {
-      window.open(`/print/invoice/${invoiceId}`, '_blank')
+      window.open(`/print/invoice/${invoiceId}?t=${Date.now()}`, '_blank')
     }
   }
 

@@ -2,11 +2,11 @@ import '../globals.css'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Absensi Guru - MI Attaqwa 15',
-  description: 'Halaman standby absensi guru MI Attaqwa 15',
+  title: 'Absensi Siswa - MI Attaqwa 15',
+  description: 'Halaman standby absensi siswa MI Attaqwa 15',
 }
 
-export default function AbsenLayout({
+export default function AbsenSiswaLayout({
   children,
 }: {
   children: React.ReactNode

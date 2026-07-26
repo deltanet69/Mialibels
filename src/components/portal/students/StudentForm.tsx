@@ -22,6 +22,7 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
     parent_name: initialData?.parent_name || '',
     parent_phone: initialData?.parent_phone || '',
     parent_email: initialData?.parent_email || '',
+    rfid_number: initialData?.rfid_number || '',
     is_active: initialData?.is_active ?? true,
   })
 
@@ -202,6 +203,18 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
                   value={formData.parent_email}
                   onChange={handleChange}
                   placeholder="email@example.com"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Nomor Kartu RFID (Opsional)</label>
+                <input 
+                  type="text" 
+                  name="rfid_number"
+                  value={formData.rfid_number}
+                  onChange={handleChange}
+                  placeholder="Tempelkan atau ketik ID Kartu RFID"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
                 />
               </div>

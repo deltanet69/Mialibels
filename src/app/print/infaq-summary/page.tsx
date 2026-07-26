@@ -77,7 +77,7 @@ function InfaqPrintSummaryContent() {
         <div className="w-20 h-20 bg-slate-200 flex-shrink-0 flex items-center justify-center font-bold text-xs">LOGO</div>
         <div className="ml-6 flex-1 text-center">
           <h1 className="text-xl font-bold uppercase">MADRASAH IBTIDAIYAH ATTAQWA 15</h1>
-          <p className="text-sm">Jl. Raya Babelan No. 123, Babelan, Bekasi</p>
+          <p className="text-sm">Jl. Raya Ps. Babelan No.1, Babelan Kota, Kec. Babelan, Kabupaten Bekasi, Jawa Barat 17610</p>
           <p className="text-xs">Telp: (021) 1234567 | Email: info@miattaqwa15.sch.id</p>
         </div>
         <div className="w-20 h-20 flex-shrink-0"></div>

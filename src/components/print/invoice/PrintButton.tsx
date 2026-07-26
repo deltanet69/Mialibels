@@ -1,9 +1,21 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Printer } from 'lucide-react'
 
 export default function PrintButton() {
+  const hasPrinted = useRef(false)
+
+  useEffect(() => {
+    if (hasPrinted.current) return
+    hasPrinted.current = true
+    // Auto-print setelah 800ms (menunggu font & style load)
+    const timer = setTimeout(() => {
+      window.print()
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <button 
       onClick={() => window.print()} 

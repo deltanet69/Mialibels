@@ -138,6 +138,12 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/') {
       return NextResponse.rewrite(new URL('/absen', request.url));
     }
+    
+    // Redirect /1a, /1b, dll ke /absen-siswa/[kelas]
+    if (pathname.match(/^\/[1-6][a-d]$/i)) {
+      return NextResponse.rewrite(new URL(`/absen-siswa${pathname.toLowerCase()}`, request.url));
+    }
+
     // Allow public API and other routes (like /api/attendance/scan) to pass through
     return NextResponse.next();
   }

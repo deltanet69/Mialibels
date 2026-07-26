@@ -9,9 +9,13 @@ async function check() {
   });
   
   const data = await res.json();
-  const sppInvoices = data.definitions.spp_invoices;
-  console.log("SPP Invoices Schema:", JSON.stringify(sppInvoices, null, 2));
-  const generalInvoices = data.definitions.general_invoices;
-  console.log("General Invoices Schema:", JSON.stringify(generalInvoices, null, 2));
+  const students = data.definitions.students;
+  console.log("Students Schema:", JSON.stringify(students, null, 2));
+  
+  const studentAttendances = data.definitions.student_attendances;
+  console.log("Student Attendances Schema:", JSON.stringify(studentAttendances, null, 2));
+
+  const attendances = data.definitions.attendances;
+  console.log("Attendances (Guru) Schema:", JSON.stringify(attendances, null, 2));
 }
 check();

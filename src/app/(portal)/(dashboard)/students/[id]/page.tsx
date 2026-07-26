@@ -181,6 +181,10 @@ export default function StudentDetailPage() {
                     <p className="text-slate-800 font-medium">{student.class || '—'}</p>
                   </div>
                   <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">No RFID</p>
+                    <p className="text-slate-800 font-medium">{student.rfid_number || '—'}</p>
+                  </div>
+                  <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">Didaftarkan Pada</p>
                     <p className="text-slate-800">{new Date(student.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>

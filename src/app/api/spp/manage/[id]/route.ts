@@ -39,14 +39,38 @@ export async function GET(
     if (error) throw error;
     if (!invoice) return NextResponse.json({ error: "Tagihan tidak ditemukan" }, { status: 404 });
 
-    // 2. Fetch other unpaid invoices for this student (excluding current)
-    const { data: otherUnpaidInvoices } = await adminSupabase
+    // 2. Fetch other relevant invoices for this student (excluding current):
+    //    - PAST months that are still UNPAID/PARTIAL (tunggakan bulan lalu)
+    //    - FUTURE months only if already PAID (dibayar duluan)
+    //    - Do NOT include future UNPAID months (bukan tunggakan, belum waktunya)
+    const currentDueDate = invoice.due_date ? new Date(invoice.due_date) : null;
+    const currentYear = invoice.year || new Date().getFullYear();
+    const currentMonth = invoice.month || (new Date().getMonth() + 1);
+
+    // Fetch ALL other invoices for this student
+    const { data: allOtherInvoices } = await adminSupabase
       .from('spp_invoices')
-      .select('id, title, amount, paid_amount, status, due_date, payment_method')
+      .select('id, title, amount, paid_amount, status, due_date, payment_method, month, year')
       .eq('student_id', invoice.student_id)
-      .in('status', ['UNPAID', 'PARTIAL'])
       .neq('id', id)
       .order('due_date', { ascending: true });
+
+    // Filter: past months UNPAID/PARTIAL + any month that is PAID (pre-paid future or lunas past)
+    const otherUnpaidInvoices = (allOtherInvoices || []).filter((inv: any) => {
+      const invYear = inv.year || 0;
+      const invMonth = inv.month || 0;
+      const isPast = (invYear < currentYear) || (invYear === currentYear && invMonth < currentMonth);
+      const isFuture = (invYear > currentYear) || (invYear === currentYear && invMonth > currentMonth);
+      const isUnpaid = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
+      const isPaid = inv.status === 'PAID';
+
+      // Include past months that still have outstanding balance
+      if (isPast && isUnpaid) return true;
+      // Include future months ONLY if already paid (pre-paid)
+      if (isFuture && isPaid) return true;
+      // Exclude future months that are UNPAID
+      return false;
+    });
 
     // 3. Fetch transaction notes for ALL invoices of this student (for history)
     const allInvoiceIds = [id, ...(otherUnpaidInvoices || []).map((i: any) => i.id)];
