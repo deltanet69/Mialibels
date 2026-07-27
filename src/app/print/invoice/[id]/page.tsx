@@ -173,6 +173,8 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             </div>
           </div>
 
+          
+
           {/* Footer Signature */}
           <div className="flex justify-between text-[10px] font-bold tracking-wide mt-auto">
             <div className="text-center w-32">
@@ -186,6 +188,10 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
               <p className="break-words leading-tight">{session?.name || 'Admin'}</p>
             </div>
           </div>
+
+          <div>
+                <p className="text-[10px] text-gray-400 mt-3">*Bukti ini asli dan sah sebagai tanda bukti pembayaran yang sah, harap disimpan dengan baik jangan sampai hilang.</p>
+              </div>
  
           <div className="absolute top-2 -right-16 print-hide">
             <PrintButton />
