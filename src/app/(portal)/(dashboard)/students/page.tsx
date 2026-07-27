@@ -171,7 +171,7 @@ export default function StudentsPage() {
           <p className="text-slate-500">Kelola data siswa, absensi, dan profil.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-          <button 
+          {/* <button 
             onClick={handleRegenerateIds}
             disabled={regenerating || loading}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-amber-300 text-amber-700 px-4 py-2.5 rounded-xl hover:bg-amber-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -179,7 +179,7 @@ export default function StudentsPage() {
           >
             <RefreshCw size={18} className={regenerating ? 'animate-spin' : ''} />
             {regenerating ? 'Memperbarui...' : 'Perbarui ID Siswa'}
-          </button>
+          </button> */}
           <button 
             onClick={() => setShowImport(true)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
