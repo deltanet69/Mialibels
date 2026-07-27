@@ -1,4 +1,18 @@
 import type { Metadata } from 'next'
+import { Open_Sans, Oswald } from 'next/font/google'
+import './globals.css'
+
+const openSans = Open_Sans({
+  subsets: ['latin'],
+  variable: '--font-open-sans',
+  display: 'swap',
+})
+
+const oswald = Oswald({
+  subsets: ['latin'],
+  variable: '--font-oswald',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'MI Attaqwa 15 Babelan',
@@ -11,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
+    <html lang="id" className={`${openSans.variable} ${oswald.variable} antialiased`}>
       <body>
         {children}
       </body>

@@ -1,19 +1,5 @@
 import type { Metadata } from 'next'
-import { Open_Sans, Oswald } from 'next/font/google'
-import '../globals.css'
 import './parent.css'
-
-const openSans = Open_Sans({
-  subsets: ['latin'],
-  variable: '--font-open-sans',
-  display: 'swap',
-})
-
-const oswald = Oswald({
-  subsets: ['latin'],
-  variable: '--font-oswald',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'Portal Wali Murid - MI Attaqwa 15 Babelan',
@@ -26,10 +12,8 @@ export default function ParentRootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id" className={`${openSans.variable} ${oswald.variable} h-full antialiased`}>
-      <body className="min-h-full bg-slate-50 text-slate-900 font-sans">
-        {children}
-      </body>
-    </html>
+    <div className="min-h-full bg-slate-50 text-slate-900 font-sans">
+      {children}
+    </div>
   )
 }

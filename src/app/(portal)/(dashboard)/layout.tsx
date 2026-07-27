@@ -1,7 +1,6 @@
 import React from 'react';
 import { Sidebar } from '@/components/portal/Sidebar';
 import { Navbar } from '@/components/portal/Navbar';
-import '../../globals.css';
 
 import { SidebarProvider } from '@/components/portal/SidebarProvider';
 import { GlobalAttendanceScanner } from '@/components/portal/GlobalAttendanceScanner';
