@@ -92,10 +92,12 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   const [forceCreate, setForceCreate] = useState<boolean>(false)
   const [activeInvoice, setActiveInvoice] = useState<any>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
+  const [generalWarningType, setGeneralWarningType] = useState<'block' | 'info' | null>(null)
 
   const checkActiveInvoices = async (type: 'class' | 'student', id: string) => {
     try {
       setHasActiveInvoice(false)
+      setGeneralWarningType(null)
       setForceCreate(false)
       setActiveInvoice(null)
       setInfoMessage(null)
@@ -112,8 +114,16 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
         if (activeInvoices.length > 0) {
           setHasActiveInvoice(true)
           setActiveInvoice(activeInvoices[0])
-          const targetName = type === 'student' ? 'Siswa' : 'Kelas'
-          setInfoMessage(`${targetName} ini sudah memiliki Tagihan Aktif. Membuat tagihan baru dapat menyebabkan double tagihan.`)
+
+          if (type === 'student') {
+            // Per siswa: benar-benar blocking karena siswa ini sudah punya tagihan aktif
+            setGeneralWarningType('block')
+            setInfoMessage(`Siswa ini sudah memiliki Tagihan Aktif. Centang opsi di bawah jika ingin membuat tagihan baru.`)
+          } else {
+            // Per kelas: informatif saja — backend membuat per-siswa dan akan skip yang sudah ada
+            setGeneralWarningType('info')
+            setInfoMessage(`${activeInvoices.length} siswa di kelas ini sudah memiliki tagihan aktif dengan judul serupa. Siswa yang belum ada tagihan akan tetap dibuatkan.`)
+          }
         }
       }
     } catch (err) {
@@ -127,6 +137,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
       checkActiveInvoices('class', class_id)
     } else {
       setHasActiveInvoice(false)
+      setGeneralWarningType(null)
       setForceCreate(false)
       setActiveInvoice(null)
       setInfoMessage(null)
@@ -149,6 +160,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
     setError(null)
     setInfoMessage(null)
     setHasActiveInvoice(false)
+    setGeneralWarningType(null)
     setForceCreate(false)
     if (formData.target_type === 'class' && formData.class_id) {
       checkActiveInvoices('class', formData.class_id)
@@ -533,7 +545,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
               )}
             </div>
           )}
-          {hasActiveInvoice && (
+          {hasActiveInvoice && generalWarningType === 'block' && (
             <div className="flex items-center gap-2 mt-2 bg-yellow-50 p-3 rounded-xl border border-yellow-200">
               <input
                 type="checkbox"
@@ -543,7 +555,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
                 className="w-4 h-4 text-blue-600 rounded border-gray-300"
               />
               <label htmlFor="forceCreate" className="text-sm font-medium text-yellow-800 cursor-pointer">
-                Ya, saya ingin tetap tambah tagihan baru
+                Ya, saya ingin tetap tambah tagihan baru untuk siswa ini
               </label>
             </div>
           )}
@@ -559,7 +571,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={loading || (hasActiveInvoice && !forceCreate)}
+              disabled={loading || (generalWarningType === 'block' && !forceCreate)}
               className="px-6 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/20 flex items-center gap-2"
             >
               {loading

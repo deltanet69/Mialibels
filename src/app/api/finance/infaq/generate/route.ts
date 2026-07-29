@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { month, year, targetType, classId, studentId, force } = body; // month is 1-12
+    const { month, year, targetType, classId, studentId } = body; // month is 1-12
 
     if (!month || !year) {
       return NextResponse.json({ error: "Bulan dan Tahun wajib diisi" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getAdminSupabase();
 
-    // 1. Ambil semua siswa aktif
+    // 1. Ambil semua siswa aktif sesuai target
     let studentsQuery = supabase
       .from('students')
       .select('id, class')
@@ -53,52 +53,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tidak ada siswa aktif ditemukan' }, { status: 400 });
     }
 
-    // 2. Ambil semua tagihan Infaq di bulan dan tahun ini untuk mencegah duplikasi
+    const studentIds = students.map(s => s.id);
+
+    // 2. Ambil tagihan Infaq yang sudah ada (bulan & tahun ini) KHUSUS untuk siswa yang ditarget
+    // Selalu skip yang sudah ada - respek unique constraint (student_id, month, year)
     const { data: existingInfaq, error: existingErr } = await supabase
       .from('spp_invoices')
       .select('student_id')
+      .in('student_id', studentIds)
       .eq('month', parseInt(month))
       .eq('year', parseInt(year));
 
     if (existingErr) throw existingErr;
-    
+
     const studentsWithInfaq = new Set(existingInfaq?.map(inv => inv.student_id) || []);
 
-    let createdCount = 0;
+    const newInvoicesToInsert: any[] = [];
 
-    const newInvoicesToInsert = [];
-    
     for (const student of students) {
-      // Jika siswa sudah punya infaq bulan ini dan force tidak dicentang, skip
-      if (!force && studentsWithInfaq.has(student.id)) continue;
+      // Selalu skip siswa yang sudah punya tagihan bulan ini (respek unique constraint DB)
+      if (studentsWithInfaq.has(student.id)) continue;
 
       const nominal = student.class.endsWith('A') ? 160000 : 60000;
-      
-      // Buat tagihan baru per bulan
+
       newInvoicesToInsert.push({
         student_id: student.id,
         title: itemName,
         amount: nominal,
         month: parseInt(month),
         year: parseInt(year),
-        due_date: new Date(year, parseInt(month) - 1, 10).toISOString(),
+        due_date: new Date(parseInt(year), parseInt(month) - 1, 10).toISOString(),
         paid_amount: 0,
-        status: "UNPAID"
+        status: "UNPAID",
+        student_class: student.class,
       });
     }
 
+    let createdCount = 0;
     if (newInvoicesToInsert.length > 0) {
       const { error: insertErr } = await supabase
         .from('spp_invoices')
         .insert(newInvoicesToInsert);
-      
+
       if (insertErr) throw insertErr;
       createdCount = newInvoicesToInsert.length;
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Berhasil menambahkan Infaq Sekolah. Tagihan Baru dibuat: ${createdCount}, Dilewati (Sudah ada): ${students.length - createdCount}.` 
+    const skippedCount = studentsWithInfaq.size;
+
+    return NextResponse.json({
+      success: true,
+      message: `Berhasil membuat Tagihan Infaq: ${createdCount} tagihan baru dibuat, ${skippedCount} dilewati (sudah ada tagihan aktif).`
     });
 
   } catch (error: any) {

@@ -70,28 +70,47 @@ export default function ManageTab() {
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   
   const [hasActiveInvoice, setHasActiveInvoice] = useState<boolean>(false)
+  const [infaqWarningType, setInfaqWarningType] = useState<'block' | 'info' | null>(null)
   const [forceCreate, setForceCreate] = useState<boolean>(false)
 
-  const checkActiveInvoices = async (type: 'class' | 'student' | 'all', id?: string) => {
+  const checkActiveInvoicesForInfaq = async (type: 'class' | 'student', id: string, month: number, year: number) => {
     try {
       setHasActiveInvoice(false)
+      setInfaqWarningType(null)
       setForceCreate(false)
-      if (type === 'all') return
+      setMessage({ text: '', type: '' })
 
-      const url = type === 'student' 
-        ? `/api/spp/manage?studentId=${id}` 
-        : `/api/spp/manage?classId=${id}`
-      
-      const res = await fetch(url)
-      const data = await res.json()
-      
-      if (data.success && data.data && data.data.length > 0) {
-        const activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
-        if (activeInvoices.length > 0) {
-          setHasActiveInvoice(true)
-          setMessage({ text: `${type === 'student' ? 'Siswa' : 'Kelas'} ini sudah memiliki Tagihan Infaq Aktif (Belum Lunas). Membuat tagihan baru dapat menyebabkan double tagihan.`, type: 'error' })
-        } else {
-          setMessage({ text: '', type: '' })
+      if (type === 'student') {
+        // Untuk per-siswa: cek apakah SISWA ITU SENDIRI sudah punya tagihan bulan ini
+        const url = `/api/spp/manage?studentId=${id}&month=${month}&year=${year}`
+        const res = await fetch(url)
+        const data = await res.json()
+
+        if (data.success && data.data && data.data.length > 0) {
+          const activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
+          if (activeInvoices.length > 0) {
+            // Siswa ini memang sudah punya → harus force
+            setHasActiveInvoice(true)
+            setInfaqWarningType('block')
+            setMessage({ text: 'Siswa ini sudah memiliki Tagihan Infaq Aktif untuk bulan tersebut. Centang opsi di bawah jika ingin menambahkan tagihan baru.', type: 'error' })
+          }
+          // Jika sudah PAID → tidak perlu warning, bisa langsung buat
+        }
+        // Jika siswa belum punya tagihan sama sekali → tidak ada warning
+      } else if (type === 'class') {
+        // Untuk per-kelas: cek apakah ADA SISWA MANAPUN di kelas itu yang sudah punya tagihan bulan ini
+        const url = `/api/spp/manage?classId=${id}&month=${month}&year=${year}`
+        const res = await fetch(url)
+        const data = await res.json()
+
+        if (data.success && data.data && data.data.length > 0) {
+          const activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
+          if (activeInvoices.length > 0) {
+            // Info saja — backend akan otomatis skip yang sudah ada
+            setHasActiveInvoice(true)
+            setInfaqWarningType('info')
+            setMessage({ text: `${activeInvoices.length} siswa di kelas ini sudah memiliki tagihan aktif dan akan dilewati otomatis. Siswa lain yang belum ada tagihan akan tetap dibuatkan.`, type: 'error' })
+          }
         }
       }
     } catch (err) {
@@ -117,7 +136,7 @@ export default function ManageTab() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ month: month.toString(), year: year.toString() });
-      const res = await fetch(`/api/spp/manage?${params.toString()}`);
+      const res = await fetch(`/api/spp/manage?${params.toString()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setAllInvoices(data.data);
@@ -166,11 +185,11 @@ export default function ManageTab() {
 
   const handleSelectStudent = (student: any) => {
     setGenStudentId(student.id);
-    setSelectedGenStudentName(`${student.name} (${student.nisn || '—'}) - ${student.class}`);
+    setSelectedGenStudentName(`${student.name} (${student.nisn || '\u2014'}) - ${student.class}`);
     setSearchGenQuery('');
     setSearchGenResults([]);
     setMessage({ text: '', type: '' });
-    checkActiveInvoices('student', student.id);
+    checkActiveInvoicesForInfaq('student', student.id, genMonth, genYear);
   };
 
   const handleDeleteInfaq = async (invoiceId: string, itemName: string, status: string) => {
@@ -280,18 +299,28 @@ export default function ManageTab() {
           targetType: genTargetType,
           classId: genClassId,
           studentId: genStudentId,
-          force: forceCreate
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Gagal membuat tagihan Infaq");
-      setMessage({ text: data.message || "Berhasil membuat tagihan Infaq", type: "success" });
+
+      // Reset semua state modal
       setShowGenerateModal(false);
-      // Data Infaq masuk ke general_invoices, bukan spp_invoices lagi
-      // Namun untuk sementara kita refresh jika ternyata API lama / manajemen lokal memerlukannya
+      setHasActiveInvoice(false);
+      setInfaqWarningType(null);
+      setForceCreate(false);
+      setGenStudentId('');
+      setSelectedGenStudentName('');
+      setGenClassId('');
+      setGenTargetType('all');
+
+      // Refresh listing
       setFilterMonth(genMonth);
       setFilterYear(genYear);
-      fetchInvoices(genMonth, genYear);
+      await fetchInvoices(genMonth, genYear);
+
+      // Tampilkan pesan sukses di listing (setelah fetch selesai)
+      setMessage({ text: data.message || "Berhasil membuat tagihan Infaq", type: "success" });
     } catch (error: any) {
       setMessage({ text: error.message, type: "error" });
     } finally {
@@ -677,12 +706,22 @@ export default function ManageTab() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-slate-800">Buat Tagihan Infaq Bulanan</h3>
-              <button onClick={() => setShowGenerateModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button onClick={() => {
+                  setShowGenerateModal(false);
+                  setHasActiveInvoice(false);
+                  setInfaqWarningType(null);
+                  setForceCreate(false);
+                  setMessage({ text: '', type: '' });
+                  setGenStudentId('');
+                  setSelectedGenStudentName('');
+                  setGenClassId('');
+                  setGenTargetType('all');
+                }} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <form onSubmit={handleGenerate} className="p-6 space-y-4">
               <div className="bg-blue-50 p-4 rounded-xl text-sm text-blue-700 border border-blue-100">
                 Data ini otomatis masuk ke <b>Database SPP/Infaq</b> yang terpisah dari Keuangan Umum.<br/>
-                Jika siswa memiliki tagihan aktif sebelumnya, maka akan ada dua tagihan Infaq, namun saat pengingat WA dikirimkan, semua tagihan yang belum lunas akan direkap otomatis. Nominal disesuaikan otomatis (Fullday: 160rb, Reguler: 60rb).
+                Sistem akan otomatis <b>melewati siswa yang sudah ada tagihan</b> di bulan tersebut, dan hanya membuat tagihan baru untuk siswa yang belum tercatat. Nominal disesuaikan otomatis (Fullday: 160rb, Reguler: 60rb).
               </div>
               
               <div className="space-y-2">
@@ -693,10 +732,11 @@ export default function ManageTab() {
                     const val = e.target.value;
                     setGenTargetType(val);
                     setHasActiveInvoice(false);
+                    setInfaqWarningType(null);
                     setForceCreate(false);
                     setMessage({ text: '', type: '' });
-                    if (val === 'class' && genClassId) checkActiveInvoices('class', genClassId);
-                    if (val === 'student' && genStudentId) checkActiveInvoices('student', genStudentId);
+                    if (val === 'class' && genClassId) checkActiveInvoicesForInfaq('class', genClassId, genMonth, genYear);
+                    if (val === 'student' && genStudentId) checkActiveInvoicesForInfaq('student', genStudentId, genMonth, genYear);
                   }}
                   className="w-full border border-slate-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-blue-500"
                 >
@@ -713,9 +753,10 @@ export default function ManageTab() {
                     value={genClassId}
                     onChange={e => {
                       setGenClassId(e.target.value);
-                      if (e.target.value) checkActiveInvoices('class', e.target.value);
+                      if (e.target.value) checkActiveInvoicesForInfaq('class', e.target.value, genMonth, genYear);
                       else {
                         setHasActiveInvoice(false);
+                        setInfaqWarningType(null);
                         setForceCreate(false);
                         setMessage({ text: '', type: '' });
                       }
@@ -804,7 +845,8 @@ export default function ManageTab() {
                   </select>
                 </div>
               </div>
-              {hasActiveInvoice && (
+              {/* Checkbox force hanya muncul jika jenis peringatan adalah 'block' (siswa sudah punya tagihan aktif bulan ini) */}
+              {hasActiveInvoice && infaqWarningType === 'block' && (
                 <div className="flex items-center gap-2 mt-2 bg-yellow-50 p-3 rounded-xl border border-yellow-200">
                   <input
                     type="checkbox"
@@ -814,13 +856,24 @@ export default function ManageTab() {
                     className="w-4 h-4 text-blue-600 rounded border-gray-300"
                   />
                   <label htmlFor="forceCreateInfaq" className="text-sm font-medium text-yellow-800 cursor-pointer">
-                    Ya, saya ingin tetap tambah tagihan infaq baru
+                    Ya, saya ingin tetap tambah tagihan infaq baru untuk siswa ini
                   </label>
                 </div>
               )}
               <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setShowGenerateModal(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors">Batal</button>
-                <button type="submit" disabled={actionLoading || (hasActiveInvoice && !forceCreate)} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button type="button" onClick={() => {
+                    setShowGenerateModal(false);
+                    setHasActiveInvoice(false);
+                    setInfaqWarningType(null);
+                    setForceCreate(false);
+                    setMessage({ text: '', type: '' });
+                    setGenStudentId('');
+                    setSelectedGenStudentName('');
+                    setGenClassId('');
+                    setGenTargetType('all');
+                  }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors">Batal</button>
+                {/* Disabled hanya jika 'block' warning dan belum di-force. Type 'info' = informasi saja, tidak memblokir */}
+                <button type="submit" disabled={actionLoading || (infaqWarningType === 'block' && !forceCreate)} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   {actionLoading ? "Memproses..." : "Buat Tagihan Infaq"}
                 </button>
               </div>

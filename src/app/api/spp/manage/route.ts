@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
     const adminSupabase = getAdminSupabase();
     
     // Query spp_invoices
+    // Sort by student name for stable, alphabetical display
+    // No hard limit - filtered by month/year so bounded to ~jumlah siswa aktif
     let query = adminSupabase
       .from('spp_invoices')
       .select('id, student_id, title, amount, paid_amount, status, payment_method, month, year, due_date, created_at, students(name, student_number, nisn, class, class_id, parent_name, parent_phone)')
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
     if (status && status !== 'ALL') query = query.eq('status', status);
     if (studentId) query = query.eq('student_id', studentId);
 
-    const { data, error } = await query.limit(500);
+    const { data, error } = await query.limit(2000);
     
     if (error) throw error;
 
