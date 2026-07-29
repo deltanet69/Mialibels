@@ -12,6 +12,8 @@ export async function GET(request: NextRequest) {
     const filterYear = searchParams.get('year');
     const search = searchParams.get('search');
     const studentClass = searchParams.get('class');
+    const classId = searchParams.get('classId');
+    const studentId = searchParams.get('studentId');
     const status = searchParams.get('status');
     
     const adminSupabase = getAdminSupabase();
@@ -19,12 +21,13 @@ export async function GET(request: NextRequest) {
     // Query spp_invoices
     let query = adminSupabase
       .from('spp_invoices')
-      .select('id, student_id, title, amount, paid_amount, status, payment_method, month, year, due_date, created_at, students(name, student_number, nisn, class, parent_name, parent_phone)')
+      .select('id, student_id, title, amount, paid_amount, status, payment_method, month, year, due_date, created_at, students(name, student_number, nisn, class, class_id, parent_name, parent_phone)')
       .order('created_at', { ascending: false });
 
     if (filterMonth) query = query.eq('month', parseInt(filterMonth));
     if (filterYear) query = query.eq('year', parseInt(filterYear));
     if (status && status !== 'ALL') query = query.eq('status', status);
+    if (studentId) query = query.eq('student_id', studentId);
 
     const { data, error } = await query.limit(500);
     
@@ -47,6 +50,7 @@ export async function GET(request: NextRequest) {
       student_number: inv.students?.student_number,
       student_nisn: inv.students?.nisn,
       student_class: inv.students?.class,
+      student_class_id: inv.students?.class_id,
       parent_name: inv.students?.parent_name,
       parent_phone: inv.students?.parent_phone,
     }));
@@ -55,10 +59,15 @@ export async function GET(request: NextRequest) {
     if (studentClass && studentClass !== 'Semua Kelas') {
       infaqItems = infaqItems.filter(inv => inv.student_class === studentClass);
     }
+    // API Route ClassID is used for filtering active invoices by class_id of student
+    if (classId && classId !== 'ALL') {
+      infaqItems = infaqItems.filter(inv => inv.student_class_id === classId);
+    }
     if (search) {
       const q = search.toLowerCase();
       infaqItems = infaqItems.filter(inv =>
         inv.student_name?.toLowerCase().includes(q) ||
+        inv.student_nisn?.toLowerCase().includes(q) ||
         inv.student_number?.toLowerCase().includes(q)
       );
     }
@@ -86,6 +95,11 @@ export async function POST(request: NextRequest) {
     const invMonth = month || (d.getMonth() + 1);
     const invYear = year || d.getFullYear();
     
+    const { data: studentData, error: studentError } = await adminSupabase.from("students").select("class").eq("id", student_id).single();
+    if (studentError) {
+      return NextResponse.json({ error: "Gagal mengambil data siswa" }, { status: 500 });
+    }
+
     const { data, error } = await (adminSupabase.from('spp_invoices') as any).insert({
       student_id,
       title,
@@ -94,6 +108,7 @@ export async function POST(request: NextRequest) {
       year: Number(invYear),
       due_date: new Date(Number(invYear), Number(invMonth) - 1, 10).toISOString(),
       status: 'UNPAID',
+      student_class: studentData?.class || null,
     }).select().single();
 
     if (error) throw error;

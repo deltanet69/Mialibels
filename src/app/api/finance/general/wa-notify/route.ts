@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
           id,
           name,
           student_number,
+          nisn,
           class,
           parent_name,
           parent_phone
@@ -95,7 +96,7 @@ Mohon segera lakukan pembayaran untuk menghindari tunggakan lebih lanjut.
 
 Bayar melalui transfer silahkan akses portal orang tua di :
 URL : https://parent.miattaqwa15.sch.id
-Login ID Siswa : ${student.student_number}
+Login ID Siswa : ${student.nisn || student.student_number}
 
 Terima kasih`;
 

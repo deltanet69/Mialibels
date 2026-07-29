@@ -99,13 +99,14 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
               </div>
 
               {/* Nomor Induk Siswa dihilangkan karena di-generate otomatis oleh sistem */}
-
+              {/* Sementara di-hide
               {!isEditing && (
                 <div className="col-span-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 flex items-start gap-2">
                   <span className="text-blue-500 font-bold shrink-0 mt-0.5">ℹ</span>
                   <span><strong>ID Siswa</strong> akan digenerate otomatis oleh sistem setelah data disimpan.<br/>Format: <code className="bg-blue-100 px-1.5 py-0.5 rounded font-mono text-xs">01A2026001</code> → {`{Kelas}{Tahun}{No Urut}`}</span>
                 </div>
               )}
+              */}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">Nama Lengkap Siswa *</label>

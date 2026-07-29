@@ -77,7 +77,7 @@ export default function StudentDetailPage() {
           <h2 className="text-xl font-bold text-slate-800">{student.name}</h2>
           <div className="mt-1 flex items-center justify-center gap-2 flex-wrap">
             <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-mono tracking-widest">
-              {student.student_number || 'Belum ada ID'}
+              {student.nisn || 'Belum ada NISN'}
             </span>
             <span className="text-slate-400 text-sm">·</span>
             <span className="text-slate-500 font-medium text-sm">{student.class}</span>
@@ -166,16 +166,18 @@ export default function StudentDetailPage() {
               <div className="space-y-6">
                 <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-4">Informasi Siswa</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* ID Siswa Unik */}
+                  {/* NISN */}
                   <div className="md:col-span-2 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">ID Unik Siswa (untuk Login Portal Wali Murid)</p>
-                    <p className="text-2xl font-black font-mono tracking-widest text-blue-700">{student.student_number || '—'}</p>
-                    <p className="text-xs text-blue-500 mt-1">Berikan ID ini kepada Wali Murid untuk login ke Portal Orang Tua.</p>
+                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">NISN (untuk Login Portal Wali Murid)</p>
+                    <p className="text-2xl font-black font-mono tracking-widest text-blue-700">{student.nisn || '—'}</p>
+                    <p className="text-xs text-blue-500 mt-1">Berikan NISN ini kepada Wali Murid untuk login ke Portal Orang Tua.</p>
                   </div>
+                  {/*
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">NISN (Nasional)</p>
                     <p className="text-slate-800 font-medium">{student.nisn || '—'}</p>
                   </div>
+                  */}
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">Kelas</p>
                     <p className="text-slate-800 font-medium">{student.class || '—'}</p>

@@ -371,7 +371,6 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                   <div className="space-y-2.5 text-sm">
                     {[
                       ['Nama', invoice.student_name],
-                      ['ID Siswa', invoice.student_number],
                       ['NISN', invoice.student_nisn || '-'],
                       ['Kelas', invoice.student_class],
                       ['Nama Orang Tua', invoice.parent_name || '-'],

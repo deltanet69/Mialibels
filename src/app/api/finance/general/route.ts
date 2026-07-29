@@ -135,13 +135,13 @@ export async function POST(request: NextRequest) {
     let targetStudents = [];
 
     if (target_type === 'student') {
-      const { data, error } = await supabase.from("students").select("id").eq("id", student_id);
+      const { data, error } = await supabase.from("students").select("id, class").eq("id", student_id);
       if (error) {
         return NextResponse.json({ error: "Gagal mengambil data siswa: " + error.message }, { status: 500 });
       }
       targetStudents = data || [];
     } else {
-      const { data, error } = await supabase.from("students").select("id").eq("class_id", class_id);
+      const { data, error } = await supabase.from("students").select("id, class").eq("class_id", class_id);
       if (error) {
         return NextResponse.json({ error: "Gagal mengambil data siswa: " + error.message }, { status: 500 });
       }
@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
         paid_amount: 0,
         status: "UNPAID",
         note: (note || "").trim(),
+        student_class: student.class,
       });
     }
 

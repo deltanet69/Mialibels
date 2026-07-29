@@ -88,34 +88,32 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
     }, 500)
   }
 
+  const [hasActiveInvoice, setHasActiveInvoice] = useState<boolean>(false)
+  const [forceCreate, setForceCreate] = useState<boolean>(false)
   const [activeInvoice, setActiveInvoice] = useState<any>(null)
-
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
 
-  const handleSelectStudent = async (student: any) => {
-    setFormData({ ...formData, student_id: student.id })
-    setSelectedStudentName(`${student.name} (${student.student_number}) - ${student.class}`)
-    setSearchQuery('')
-    setSearchResults([])
-    setActiveInvoice(null)
-    setError(null)
-    setInfoMessage(null)
-
-    // Cek apakah siswa sudah punya tagihan aktif
+  const checkActiveInvoices = async (type: 'class' | 'student', id: string) => {
     try {
-      const res = await fetch(`/api/finance/general?studentId=${student.id}`)
+      setHasActiveInvoice(false)
+      setForceCreate(false)
+      setActiveInvoice(null)
+      setInfoMessage(null)
+
+      const url = type === 'student' 
+        ? `/api/finance/general?studentId=${id}` 
+        : `/api/finance/general?classId=${id}`
+      
+      const res = await fetch(url)
       const data = await res.json()
+      
       if (data.success && data.data && data.data.length > 0) {
-        // Cari tagihan yang belum lunas
-        const active = data.data.find((inv: any) => inv.status !== 'PAID')
-        if (active) {
-          setActiveInvoice(active)
-          setInfoMessage(`Siswa ini sudah memiliki Tagihan Aktif. Item baru akan ditambahkan secara otomatis ke tagihan tersebut.`)
-        } else {
-          // If they only have PAID invoices, we will still append to the latest one based on the new backend logic
-          const latest = data.data[0]
-          setActiveInvoice(latest)
-          setInfoMessage(`Siswa ini sudah lunas. Penambahan tagihan baru akan memperbarui statusnya menjadi Belum Bayar/Cicilan.`)
+        const activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
+        if (activeInvoices.length > 0) {
+          setHasActiveInvoice(true)
+          setActiveInvoice(activeInvoices[0])
+          const targetName = type === 'student' ? 'Siswa' : 'Kelas'
+          setInfoMessage(`${targetName} ini sudah memiliki Tagihan Aktif. Membuat tagihan baru dapat menyebabkan double tagihan.`)
         }
       }
     } catch (err) {
@@ -123,11 +121,38 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
     }
   }
 
-  // Effect to reset activeInvoice and messages when target_type changes
+  const handleSelectClass = (class_id: string) => {
+    setFormData({ ...formData, class_id })
+    if (class_id) {
+      checkActiveInvoices('class', class_id)
+    } else {
+      setHasActiveInvoice(false)
+      setForceCreate(false)
+      setActiveInvoice(null)
+      setInfoMessage(null)
+    }
+  }
+
+  const handleSelectStudent = async (student: any) => {
+    setFormData({ ...formData, student_id: student.id })
+    setSelectedStudentName(`${student.name} (NISN: ${student.nisn || '-'}) - ${student.class}`)
+    setSearchQuery('')
+    setSearchResults([])
+    setError(null)
+    
+    checkActiveInvoices('student', student.id)
+
+  }
+
   useEffect(() => {
     setActiveInvoice(null)
     setError(null)
     setInfoMessage(null)
+    setHasActiveInvoice(false)
+    setForceCreate(false)
+    if (formData.target_type === 'class' && formData.class_id) {
+      checkActiveInvoices('class', formData.class_id)
+    }
   }, [formData.target_type])
 
   const handleAddItem = () => {
@@ -297,7 +322,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
                 <label className="text-sm font-semibold text-slate-700">Pilih Kelas <span className="text-red-500">*</span></label>
                 <select
                   value={formData.class_id}
-                  onChange={e => setFormData({ ...formData, class_id: e.target.value })}
+                  onChange={e => handleSelectClass(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition bg-white text-sm"
                 >
                   <option value="">-- Pilih Kelas --</option>
@@ -352,7 +377,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
                                 className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
                               >
                                 <div className="font-semibold text-slate-800 text-sm">{student.name}</div>
-                                <div className="text-xs text-slate-500">{student.student_number} • {student.class}</div>
+                                <div className="text-xs text-slate-500">NISN: {student.nisn || '-'} • {student.class}</div>
                               </li>
                             ))}
                           </ul>
@@ -508,6 +533,20 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
               )}
             </div>
           )}
+          {hasActiveInvoice && (
+            <div className="flex items-center gap-2 mt-2 bg-yellow-50 p-3 rounded-xl border border-yellow-200">
+              <input
+                type="checkbox"
+                id="forceCreate"
+                checked={forceCreate}
+                onChange={(e) => setForceCreate(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+              />
+              <label htmlFor="forceCreate" className="text-sm font-medium text-yellow-800 cursor-pointer">
+                Ya, saya ingin tetap tambah tagihan baru
+              </label>
+            </div>
+          )}
           <div className="flex justify-end gap-3">
             <button
               type="button"
@@ -520,7 +559,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || (hasActiveInvoice && !forceCreate)}
               className="px-6 py-2.5 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-blue-500/20 flex items-center gap-2"
             >
               {loading

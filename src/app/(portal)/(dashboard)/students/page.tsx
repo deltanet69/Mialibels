@@ -154,12 +154,8 @@ export default function StudentsPage() {
     }
   }
 
-  // Deteksi apakah student_number masih format lama (hanya angka / bukan format baru)
   const isOldFormat = (sn: string | null) => {
     if (!sn) return true
-    // Format baru: diawali huruf atau angka+huruf+angka, minimal 10 karakter
-    // Contoh baru: 01A2026001 (10 chars)
-    // Format lama: 2021221 (7 chars, hanya angka)
     return /^\d+$/.test(sn) || sn.length < 10
   }
 
@@ -246,7 +242,7 @@ export default function StudentsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-100 text-md font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="pb-3 pr-4">ID Siswa / NISN</th>
+                <th className="pb-3 pr-4">NISN</th>
                 <th className="pb-3 pr-4">Nama Lengkap</th>
                 <th className="pb-3 pr-4">Kelas</th>
                 <th className="pb-3 pr-4">Orang Tua</th>
@@ -267,17 +263,21 @@ export default function StudentsPage() {
                 paginatedStudents.map((student) => (
                   <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition group">
                     <td className="py-3 pr-4">
-                      <div className={` font-semibold text-md ${
-                        isOldFormat(student.student_number) ? 'text-amber-700' : 'text-blue-700'
+                      <div className="font-semibold text-md text-blue-700">
+                        {student.nisn || '—'}
+                      </div>
+                      {/*
+                      <div className={`text-xs mt-0.5 ${
+                        isOldFormat(student.student_number) ? 'text-amber-700' : 'text-slate-400'
                       }`}>
-                        {student.student_number || '—'}
+                        ID: {student.student_number || '—'}
                         {isOldFormat(student.student_number) && (
                           <span className="ml-1.5 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase tracking-wide">
                             Lama
                           </span>
                         )}
                       </div>
-                      {student.nisn && <div className="text-xs text-slate-400 mt-0.5">NISN: {student.nisn}</div>}
+                      */}
                     </td>
                     <td className="py-3 pr-4">
                       <div className="font-medium text-md text-slate-800">{student.name}</div>
@@ -359,7 +359,7 @@ export default function StudentsPage() {
                       <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
                         Kelas {student.class}
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">ID Siswa: {student.student_number}</span>
+                      <span className="text-xs text-slate-500 font-medium">NISN: {student.nisn || '—'}</span>
                     </div>
                   </div>
                   {student.is_active ? (

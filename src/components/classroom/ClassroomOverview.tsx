@@ -181,7 +181,7 @@ export function ClassroomOverview({ totalStudents, classroomId, classroomSlug }:
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama atau NIS..."
+              placeholder="Cari nama atau NISN..."
               value={studentSearch}
               onChange={(e) => setStudentSearch(e.target.value)}
               className="w-full pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
@@ -195,7 +195,7 @@ export function ClassroomOverview({ totalStudents, classroomId, classroomSlug }:
               <tr>
                 <th className="px-4 py-3 font-medium w-10">No</th>
                 <th className="px-4 py-3 font-medium">Nama Siswa</th>
-                <th className="px-4 py-3 font-medium">NIS/NISN</th>
+                <th className="px-4 py-3 font-medium">NISN</th>
                 <th className="px-4 py-3 font-medium">Nama Orang Tua</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Aksi</th>
@@ -215,7 +215,7 @@ export function ClassroomOverview({ totalStudents, classroomId, classroomSlug }:
                   <tr key={student.id} className="hover:bg-slate-50 transition group">
                     <td className="px-4 py-3 text-slate-400">{idx + 1}</td>
                     <td className="px-4 py-3 font-medium text-slate-800">{student.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{student.student_number || '-'}</td>
+                    <td className="px-4 py-3 text-slate-600">{student.nisn || '-'}</td>
                     <td className="px-4 py-3 text-slate-600">{student.parent_name || '-'}</td>
                     <td className="px-4 py-3">
                       {student.is_active ? (

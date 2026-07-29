@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Ambil data siswa
     const { data: student, error: studentErr } = await supabase
       .from('students')
-      .select('id, name, student_number, class, parent_name, parent_phone')
+      .select('id, name, student_number, nisn, class, parent_name, parent_phone')
       .eq('id', targetStudentId)
       .single();
 
@@ -107,7 +107,7 @@ Mohon segera lakukan pembayaran untuk menghindari tunggakan lebih lanjut.
 
 Bayar melalui transfer silahkan akses portal orang tua di :
 URL : https://parent.miattaqwa15.sch.id
-Login ID Siswa : ${student.student_number}
+Login ID Siswa : ${student.nisn || student.student_number}
 Password : 123456 (Bawaan: mialibels15 jika belum diubah)
 
 Terima kasih`;

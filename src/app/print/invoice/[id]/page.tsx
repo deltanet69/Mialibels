@@ -112,7 +112,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             <div className="flex justify-between text-[10px] tracking-wide pb-1 mb-1.5 mt-1 font-semibold">
               <div className="space-y-0.5">
                 <p>Nama &nbsp;&nbsp;&nbsp;&nbsp;: {invoice.students?.name || '-'}</p>
-                <p>Kls/ID Siswa : {invoice.students?.class || '-'} / {invoice.students?.student_number || '-'}</p>
+                <p>Kls/NISN : {invoice.students?.class || '-'} / {invoice.students?.nisn || '-'}</p>
               </div>
               <div className="text-right space-y-0.5 tracking-wide">
                 <p>Tgl &nbsp;&nbsp;&nbsp;&nbsp;: {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>

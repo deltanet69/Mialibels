@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { month, year, targetType, classId, studentId } = body; // month is 1-12
+    const { month, year, targetType, classId, studentId, force } = body; // month is 1-12
 
     if (!month || !year) {
       return NextResponse.json({ error: "Bulan dan Tahun wajib diisi" }, { status: 400 });
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
     const newInvoicesToInsert = [];
     
     for (const student of students) {
-      // Jika siswa sudah punya infaq bulan ini, skip
-      if (studentsWithInfaq.has(student.id)) continue;
+      // Jika siswa sudah punya infaq bulan ini dan force tidak dicentang, skip
+      if (!force && studentsWithInfaq.has(student.id)) continue;
 
       const nominal = student.class.endsWith('A') ? 160000 : 60000;
       

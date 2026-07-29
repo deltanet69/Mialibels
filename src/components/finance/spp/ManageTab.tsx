@@ -69,6 +69,36 @@ export default function ManageTab() {
   const [genStudentId, setGenStudentId] = useState("");
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   
+  const [hasActiveInvoice, setHasActiveInvoice] = useState<boolean>(false)
+  const [forceCreate, setForceCreate] = useState<boolean>(false)
+
+  const checkActiveInvoices = async (type: 'class' | 'student' | 'all', id?: string) => {
+    try {
+      setHasActiveInvoice(false)
+      setForceCreate(false)
+      if (type === 'all') return
+
+      const url = type === 'student' 
+        ? `/api/spp/manage?studentId=${id}` 
+        : `/api/spp/manage?classId=${id}`
+      
+      const res = await fetch(url)
+      const data = await res.json()
+      
+      if (data.success && data.data && data.data.length > 0) {
+        const activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
+        if (activeInvoices.length > 0) {
+          setHasActiveInvoice(true)
+          setMessage({ text: `${type === 'student' ? 'Siswa' : 'Kelas'} ini sudah memiliki Tagihan Infaq Aktif (Belum Lunas). Membuat tagihan baru dapat menyebabkan double tagihan.`, type: 'error' })
+        } else {
+          setMessage({ text: '', type: '' })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check active invoice', err)
+    }
+  }
+  
   // Student search states for Generate Modal
   const [searchGenQuery, setSearchGenQuery] = useState('');
   const [searchGenResults, setSearchGenResults] = useState<any[]>([]);
@@ -136,9 +166,11 @@ export default function ManageTab() {
 
   const handleSelectStudent = (student: any) => {
     setGenStudentId(student.id);
-    setSelectedGenStudentName(`${student.name} (${student.student_number}) - ${student.class}`);
+    setSelectedGenStudentName(`${student.name} (${student.nisn || '—'}) - ${student.class}`);
     setSearchGenQuery('');
     setSearchGenResults([]);
+    setMessage({ text: '', type: '' });
+    checkActiveInvoices('student', student.id);
   };
 
   const handleDeleteInfaq = async (invoiceId: string, itemName: string, status: string) => {
@@ -177,6 +209,7 @@ export default function ManageTab() {
       const q = searchQuery.toLowerCase();
       result = result.filter(inv =>
         inv.student_name?.toLowerCase().includes(q) ||
+        inv.student_nisn?.toLowerCase().includes(q) ||
         inv.student_number?.toLowerCase().includes(q)
       );
     }
@@ -246,7 +279,8 @@ export default function ManageTab() {
           year: genYear,
           targetType: genTargetType,
           classId: genClassId,
-          studentId: genStudentId
+          studentId: genStudentId,
+          force: forceCreate
         })
       });
       const data = await res.json();
@@ -485,7 +519,7 @@ export default function ManageTab() {
                       >
                         {inv.student_name || '-'}
                       </div>
-                      <div className="text-xs text-slate-400 mt-0.5">{inv.student_nisn || inv.student_number || '-'}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">NISN: {inv.student_nisn || '-'}</div>
                     </td>
                     <td className="px-5 py-4 text-slate-600">{inv.student_class || '-'}</td>
                     <td className="px-5 py-4 text-slate-600 text-sm">{inv.title}</td>
@@ -556,7 +590,7 @@ export default function ManageTab() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="font-semibold text-blue-600 text-sm">{inv.student_name}</div>
-                      <div className="text-[11px] text-slate-400">Kls: {inv.student_class} • NISN: {inv.student_nisn || inv.student_number || '-'}</div>
+                      <div className="text-[11px] text-slate-400">Kls: {inv.student_class} • NISN: {inv.student_nisn || '-'}</div>
                     </div>
                     {statusBadge}
                   </div>
@@ -655,7 +689,15 @@ export default function ManageTab() {
                 <label className="text-sm font-medium text-slate-700">Target Tagihan</label>
                 <select 
                   value={genTargetType} 
-                  onChange={(e: any) => setGenTargetType(e.target.value)}
+                  onChange={(e: any) => {
+                    const val = e.target.value;
+                    setGenTargetType(val);
+                    setHasActiveInvoice(false);
+                    setForceCreate(false);
+                    setMessage({ text: '', type: '' });
+                    if (val === 'class' && genClassId) checkActiveInvoices('class', genClassId);
+                    if (val === 'student' && genStudentId) checkActiveInvoices('student', genStudentId);
+                  }}
                   className="w-full border border-slate-200 rounded-xl text-sm px-4 py-2 outline-none focus:border-blue-500"
                 >
                   <option value="all">Seluruh Siswa Aktif</option>
@@ -669,7 +711,15 @@ export default function ManageTab() {
                   <label className="text-sm font-medium text-slate-700">Pilih Kelas</label>
                   <select
                     value={genClassId}
-                    onChange={e => setGenClassId(e.target.value)}
+                    onChange={e => {
+                      setGenClassId(e.target.value);
+                      if (e.target.value) checkActiveInvoices('class', e.target.value);
+                      else {
+                        setHasActiveInvoice(false);
+                        setForceCreate(false);
+                        setMessage({ text: '', type: '' });
+                      }
+                    }}
                     className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm"
                   >
                     <option value="">-- Pilih Kelas --</option>
@@ -726,7 +776,7 @@ export default function ManageTab() {
                                   className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
                                 >
                                   <div className="font-semibold text-slate-800 text-sm">{student.name}</div>
-                                  <div className="text-xs text-slate-500">{student.student_number} • {student.class}</div>
+                                  <div className="text-xs text-slate-500">NISN: {student.nisn || '—'} • {student.class}</div>
                                 </li>
                               ))}
                             </ul>
@@ -754,9 +804,23 @@ export default function ManageTab() {
                   </select>
                 </div>
               </div>
+              {hasActiveInvoice && (
+                <div className="flex items-center gap-2 mt-2 bg-yellow-50 p-3 rounded-xl border border-yellow-200">
+                  <input
+                    type="checkbox"
+                    id="forceCreateInfaq"
+                    checked={forceCreate}
+                    onChange={(e) => setForceCreate(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300"
+                  />
+                  <label htmlFor="forceCreateInfaq" className="text-sm font-medium text-yellow-800 cursor-pointer">
+                    Ya, saya ingin tetap tambah tagihan infaq baru
+                  </label>
+                </div>
+              )}
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setShowGenerateModal(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors">Batal</button>
-                <button type="submit" disabled={actionLoading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50">
+                <button type="submit" disabled={actionLoading || (hasActiveInvoice && !forceCreate)} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   {actionLoading ? "Memproses..." : "Buat Tagihan Infaq"}
                 </button>
               </div>
