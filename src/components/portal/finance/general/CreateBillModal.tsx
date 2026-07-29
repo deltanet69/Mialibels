@@ -94,7 +94,7 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [generalWarningType, setGeneralWarningType] = useState<'block' | 'info' | null>(null)
 
-  const checkActiveInvoices = async (type: 'class' | 'student', id: string) => {
+  const checkActiveInvoices = async (type: 'class' | 'student', id: string, titleFilter?: string) => {
     try {
       setHasActiveInvoice(false)
       setGeneralWarningType(null)
@@ -110,7 +110,15 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
       const data = await res.json()
       
       if (data.success && data.data && data.data.length > 0) {
-        const activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
+        let activeInvoices = data.data.filter((inv: any) => inv.status !== 'PAID')
+        
+        // Untuk per-kelas: filter hanya tagihan dengan judul yang sama (jika ada filter)
+        if (type === 'class' && titleFilter && titleFilter.trim() !== '') {
+          activeInvoices = activeInvoices.filter((inv: any) =>
+            inv.title?.toLowerCase() === titleFilter.trim().toLowerCase()
+          )
+        }
+        
         if (activeInvoices.length > 0) {
           setHasActiveInvoice(true)
           setActiveInvoice(activeInvoices[0])
@@ -134,7 +142,8 @@ export function CreateBillModal({ isOpen, onClose, onSuccess, onOpenInvoice }: C
   const handleSelectClass = (class_id: string) => {
     setFormData({ ...formData, class_id })
     if (class_id) {
-      checkActiveInvoices('class', class_id)
+      // Cek dengan judul yang sedang diisi
+      checkActiveInvoices('class', class_id, formData.type)
     } else {
       setHasActiveInvoice(false)
       setGeneralWarningType(null)

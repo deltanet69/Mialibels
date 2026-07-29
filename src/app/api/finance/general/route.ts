@@ -28,13 +28,14 @@ export async function GET(request: NextRequest) {
           id,
           name,
           student_number,
+          nisn,
           class,
           class_id
         )
       `)
       .neq("type", "Infaq") // EXCLUDE Infaq from General Finance list
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(2000);
 
     if (status && status !== "ALL") {
       query = query.eq("status", status);
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
       student_id: item.student_id,
       student_name: item.students?.name || "Unknown",
       student_number: item.students?.student_number || "-",
+      student_nisn: item.students?.nisn || "-",
       student_class: item.students?.class || "-",
       student_class_id: item.students?.class_id || null,
       created_at: item.created_at,
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (target_type === 'class' && !class_id) {
       return NextResponse.json({ error: "Kelas wajib dipilih." }, { status: 400 });
     }
-    
+
     if (target_type === 'student' && !student_id) {
       return NextResponse.json({ error: "Siswa wajib dipilih." }, { status: 400 });
     }
@@ -132,7 +134,8 @@ export async function POST(request: NextRequest) {
 
     const supabase = getAdminSupabase();
 
-    let targetStudents = [];
+    // 1. Ambil daftar siswa sesuai target
+    let targetStudents: any[] = [];
 
     if (target_type === 'student') {
       const { data, error } = await supabase.from("students").select("id, class").eq("id", student_id);
@@ -157,8 +160,30 @@ export async function POST(request: NextRequest) {
 
     const studentIds = targetStudents.map((s: any) => s.id);
 
+    // 2. Cek siswa yang sudah punya tagihan AKTIF (belum lunas) dengan judul yang sama
+    //    Ini mencegah double tagihan, tapi tetap buat tagihan untuk siswa yang belum punya
+    const { data: existingInvoices, error: existingError } = await supabase
+      .from("general_invoices")
+      .select("student_id")
+      .in("student_id", studentIds)
+      .eq("title", title.trim())
+      .neq("status", "PAID"); // hanya skip jika masih aktif (belum lunas)
+
+    if (existingError) {
+      console.error("Error checking existing invoices:", existingError);
+      // Non-fatal - lanjutkan tanpa skip check
+    }
+
+    // Set student_id yang sudah punya tagihan aktif dengan judul yang sama
+    const studentsWithExistingInvoice = new Set(
+      (existingInvoices || []).map((inv: any) => inv.student_id)
+    );
+
+    // 3. Buat tagihan hanya untuk siswa yang BELUM punya tagihan aktif
     const invoicesToInsert: any[] = [];
     for (const student of targetStudents) {
+      if (studentsWithExistingInvoice.has(student.id)) continue; // skip yang sudah ada
+
       invoicesToInsert.push({
         student_id: student.id,
         title: title.trim(),
@@ -169,11 +194,14 @@ export async function POST(request: NextRequest) {
         paid_amount: 0,
         status: "UNPAID",
         note: (note || "").trim(),
-        student_class: student.class,
+        // Catatan: kolom student_class belum tersedia di DB general_invoices
+        // Gunakan JOIN ke students table via GET endpoint untuk data kelas
       });
     }
 
     let insertedCount = 0;
+    const skippedCount = studentsWithExistingInvoice.size;
+
     if (invoicesToInsert.length > 0) {
       const { data: newInvoices, error: insertError } = await supabase
         .from("general_invoices")
@@ -188,10 +216,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let message = `Berhasil membuat ${insertedCount} tagihan baru.`;
+    if (skippedCount > 0) {
+      message += ` ${skippedCount} siswa dilewati (sudah memiliki tagihan aktif dengan judul yang sama).`;
+    }
+    if (insertedCount === 0 && skippedCount === 0) {
+      message = "Tidak ada tagihan yang perlu dibuat.";
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Berhasil membuat ${insertedCount} tagihan baru.`,
+      message,
       count: insertedCount,
+      skipped: skippedCount,
     });
   } catch (error: any) {
     console.error("Error creating general invoices:", error);

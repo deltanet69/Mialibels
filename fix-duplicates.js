@@ -5,57 +5,35 @@ global.WebSocket = require('ws');
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function run() {
-  // Get all July 2026 invoices
-  const { data, error } = await supabase
-    .from('spp_invoices')
-    .select('id, student_id, status, created_at, title')
-    .eq('month', 7)
-    .eq('year', 2026)
-    .order('created_at', { ascending: true }); // oldest first
-
-  if (error) { console.error(error); return; }
-
-  console.log('Total July 2026 invoices:', data.length);
-
-  // Group by student_id + title to find duplicates
-  const groups = {};
-  for (const inv of data) {
-    const key = `${inv.student_id}_${inv.title}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(inv);
+  console.log('Testing direct SQL via Supabase...');
+  
+  // Try adding column via REST/PostgREST - this won't work directly
+  // Instead let's try inserting without student_class to confirm the issue
+  const { data: sample, error: sampleErr } = await supabase
+    .from('general_invoices')
+    .select('id, title, student_id')
+    .limit(1);
+  
+  if (sampleErr) {
+    console.error('Error fetching sample:', sampleErr.message);
+    return;
   }
-
-  const toDelete = [];
-  let studentsAffected = 0;
-
-  for (const key in groups) {
-    const group = groups[key];
-    if (group.length > 1) {
-      studentsAffected++;
-      // Keep the FIRST (oldest), delete the rest — but only UNPAID ones
-      for (let i = 1; i < group.length; i++) {
-        if (group[i].status !== 'PAID') {
-          toDelete.push(group[i].id);
-        } else {
-          console.log(`Skipping PAID duplicate: ${group[i].id}`);
-        }
-      }
-    }
-  }
-
-  console.log(`Found ${toDelete.length} duplicate UNPAID invoices across ${studentsAffected} students.`);
-
-  if (toDelete.length > 0) {
-    const { error: delError } = await supabase
-      .from('spp_invoices')
-      .delete()
-      .in('id', toDelete);
-
-    if (delError) { console.error('Delete error:', delError); return; }
-    console.log(`Berhasil menghapus ${toDelete.length} tagihan ganda.`);
-  } else {
-    console.log('Tidak ada tagihan ganda yang perlu dihapus.');
-  }
+  
+  console.log('Sample invoice columns visible:', Object.keys(sample[0] || {}));
+  
+  // Try to add the column using raw SQL (only works with service role)
+  // Supabase JS doesn't support DDL directly, but we can try via the pg schema
+  console.log('');
+  console.log('NOTE: student_class column does not exist in general_invoices.');
+  console.log('You need to add it manually via Supabase Dashboard > SQL Editor:');
+  console.log('');
+  console.log('ALTER TABLE general_invoices ADD COLUMN IF NOT EXISTS student_class VARCHAR(50);');
+  console.log('');
+  console.log('UPDATE general_invoices gi SET student_class = s.class FROM students s WHERE gi.student_id = s.id AND gi.student_class IS NULL;');
+  console.log('');
+  console.log('Also for spp_invoices if needed:');
+  console.log('ALTER TABLE spp_invoices ADD COLUMN IF NOT EXISTS student_class VARCHAR(50);');
+  console.log('UPDATE spp_invoices si SET student_class = s.class FROM students s WHERE si.student_id = s.id AND si.student_class IS NULL;');
 }
 
 run();
