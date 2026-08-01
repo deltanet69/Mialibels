@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from "@/lib/session";
 import { getAdminSupabase } from "@/lib/supabase";
 
@@ -7,6 +7,9 @@ export const fetchCache = 'force-no-store';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const filterMonth = searchParams.get('month');
     const filterYear = searchParams.get('year');
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: infaqItems });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
 
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
 
@@ -160,6 +163,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true, message: "Tagihan infaq berhasil dihapus." });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
+

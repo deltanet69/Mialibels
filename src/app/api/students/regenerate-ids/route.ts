@@ -1,8 +1,8 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 /**
  * API Endpoint untuk migrasi ID Siswa ke format baru.
  * Format baru: {2-digit nomor kelas}{huruf kelas}{4-digit tahun}{3-digit nomor urut}
- * Contoh: Kelas 1A → 01A2026001, Kelas 5B → 05B2026024
+ * Contoh: Kelas 1A â†’ 01A2026001, Kelas 5B â†’ 05B2026024
  * 
  * PATCH /api/students/regenerate-ids
  * Akan me-regenerate student_number untuk SEMUA siswa sesuai format baru.
@@ -28,7 +28,7 @@ function parseClassCode(rawClass: string): string | null {
   // Regex: ambil angka di awal, lalu huruf (opsional) di akhir
   const match = clean.match(/^(\d+)([A-Z]?)$/)
   if (!match) return null
-  const num = match[1].padStart(2, '0')  // "1" → "01", "6" → "06"
+  const num = match[1].padStart(2, '0')  // "1" â†’ "01", "6" â†’ "06"
   const letter = match[2] || ''           // "A", "B", etc.
   return `${num}${letter}`                // "01A", "06B"
 }
@@ -94,6 +94,7 @@ export async function PATCH(request: NextRequest) {
     })
   } catch (err: any) {
     console.error('Regenerate IDs error:', err)
-    return NextResponse.json({ error: err.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

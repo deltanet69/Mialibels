@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error in RFID scan:', error)
-    return NextResponse.json({ success: false, error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

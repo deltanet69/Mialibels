@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from "@supabase/supabase-js";
 import { sendWhatsAppMessage, OPENWA_URL } from '@/lib/openwa';
 import { getSession } from "@/lib/session";
@@ -141,6 +141,7 @@ Terima kasih`;
       }
     } catch (e) { }
 
-    return NextResponse.json({ error: (error.message || 'Server Error') + ` (URL: ${OPENWA_URL})` }, { status: 500 });
+    return NextResponse.json({ error: ('Terjadi kesalahan internal pada server.') + ` (URL: ${OPENWA_URL})` }, { status: 500 });
   }
 }
+

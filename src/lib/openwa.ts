@@ -1,7 +1,7 @@
-export const OPENWA_URL = process.env.NODE_ENV === 'production' ? 'https://wasap.miattaqwa15.com' : (process.env.WA_GATEWAY_URL || 'http://localhost:2785');
-export const OPENWA_SESSION_ID = process.env.NODE_ENV === 'production' ? 'wa-pribadi' : (process.env.WA_SESSION_ID || process.env.OPENWA_SESSION || '');
-export const OPENWA_SESSION_NAME = 'test-mi'; // Nama session default
-export const OPENWA_API_KEY = process.env.NODE_ENV === 'production' ? 'owa_k1_2f15a8d45e2c375ebaaadd6f4b3a3f24ee08890cf6ab03b6d57a072174f3e0a8' : (process.env.WA_API_KEY || 'owa_k1_ba60e8764c8951dbacaa610dbbf62ab50b101ad3239d34f7bc190b6cb5ff180f');
+export const OPENWA_URL = process.env.WA_GATEWAY_URL || 'http://localhost:2785';
+export const OPENWA_SESSION_ID = process.env.WA_SESSION_ID || process.env.OPENWA_SESSION || '';
+export const OPENWA_SESSION_NAME = process.env.WA_SESSION_NAME || 'test-mi';
+export const OPENWA_API_KEY = process.env.WA_API_KEY || '';
 
 /**
  * Resolve session identifier:

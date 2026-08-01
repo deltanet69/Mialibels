@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
+import { getSession } from "@/lib/session"
 
 export const runtime = 'nodejs'
 
@@ -15,12 +16,12 @@ const MAX_OUTPUT_BYTES = 250 * 1024
 /**
  * Compress an image buffer using sharp.
  * Strategy:
- *  1. Convert to WebP at quality=85 (lossless off) — already very efficient.
+ *  1. Convert to WebP at quality=85 (lossless off) â€” already very efficient.
  *  2. If result > MAX_OUTPUT_BYTES, iteratively lower quality until it fits.
  *  3. Always keep resolution at original (never downscale pixels).
  */
 async function compressToWebP(input: Buffer): Promise<{ buffer: Buffer; contentType: string }> {
-  // Determine initial quality — start at 85 for great balance
+  // Determine initial quality â€” start at 85 for great balance
   let quality = 85
   let outputBuffer: Buffer
 
@@ -40,6 +41,11 @@ async function compressToWebP(input: Buffer): Promise<{ buffer: Buffer; contentT
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
 
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Compress to WebP
     const { buffer: compressedBuffer, contentType } = await compressToWebP(inputBuffer)
 
-    // Create unique filename — always .webp after compression
+    // Create unique filename â€” always .webp after compression
     const uniqueId = Date.now().toString() + '-' + Math.round(Math.random() * 1e9)
     const fileName = `bukti-transfer-${uniqueId}.webp`
 
@@ -86,11 +92,12 @@ export async function POST(request: NextRequest) {
       .from('uploads')
       .getPublicUrl(fileName)
 
-    console.log(`[Upload] Original: ${(file.size / 1024).toFixed(1)}KB → Compressed: ${(compressedBuffer.length / 1024).toFixed(1)}KB (WebP)`)
+    console.log(`[Upload] Original: ${(file.size / 1024).toFixed(1)}KB â†’ Compressed: ${(compressedBuffer.length / 1024).toFixed(1)}KB (WebP)`)
 
     return NextResponse.json({ success: true, url: publicUrl })
   } catch (error: any) {
     console.error('Upload API Error:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from "@supabase/supabase-js";
 
 function getAdminSupabase() {
@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
+

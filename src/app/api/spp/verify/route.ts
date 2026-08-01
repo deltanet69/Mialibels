@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
@@ -72,8 +72,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error verifying SPP:", error);
     return NextResponse.json(
-      { error: error.message || "Server Error" },
+      { error: 'Terjadi kesalahan internal pada server.' },
       { status: 500 }
     );
   }
 }
+

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Auto-save attendance error:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

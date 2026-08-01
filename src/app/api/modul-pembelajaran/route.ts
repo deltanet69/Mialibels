@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getSession } from '@/lib/session'
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     return res
   } catch (error: any) {
     console.error('Error fetching learning modules:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
 
@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error('Error creating learning module:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

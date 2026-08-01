@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

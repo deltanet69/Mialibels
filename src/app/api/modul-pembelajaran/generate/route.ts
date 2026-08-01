@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error generating AI:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

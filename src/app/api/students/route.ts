@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return res
   } catch (error: any) {
     console.error('Error fetching students:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { isBulk, students } = body
 
-    // Build class map (name → id)
+    // Build class map (name â†’ id)
     const { data: classroomsData } = await supabase.from('classrooms').select('id, name').order('name', { ascending: true })
     const classMap: Record<string, string> = {}
     if (classroomsData) {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     // Helper to generate unique student IDs
     // Format: {2-digit class number}{class letter}{4-digit year}{3-digit sequence}
-    // Example: Kelas 1A → 01A2026001, Kelas 5B → 05B2026024
+    // Example: Kelas 1A â†’ 01A2026001, Kelas 5B â†’ 05B2026024
     const sequenceMap: Record<string, number> = {}
     const getNextStudentId = async (rawClass: string) => {
       if (!rawClass) return `TMP${Date.now()}${Math.floor(Math.random() * 1000)}`
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       const matchResult = cleanClass.match(/^(\d+)([A-Z]?)$/)
       if (!matchResult) return `TMP${Date.now()}`
       
-      const classNum  = matchResult[1].padStart(2, '0')  // e.g. "1" → "01"
+      const classNum  = matchResult[1].padStart(2, '0')  // e.g. "1" â†’ "01"
       const classLetter = matchResult[2] || ''            // e.g. "A"
       const classCode = `${classNum}${classLetter}`       // e.g. "01A"
       const year = new Date().getFullYear().toString()    // e.g. "2026"
@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error creating student(s):', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

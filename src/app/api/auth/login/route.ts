@@ -2,6 +2,7 @@ import { compare } from 'bcryptjs'
 import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getIp } from '@/lib/rate-limit'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 
@@ -13,6 +14,16 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getIp(request)
+    const { success } = checkRateLimit(ip, 5, 60 * 1000) // 5x per menit
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Terlalu banyak percobaan login. Silakan coba lagi nanti.' },
+        { status: 429 }
+      )
+    }
+
     const { email, password } = await request.json()
 
     if (!email || !password) {

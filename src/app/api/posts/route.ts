@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error('Error fetching posts:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
 
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
     console.error('Error creating post:', error)
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+

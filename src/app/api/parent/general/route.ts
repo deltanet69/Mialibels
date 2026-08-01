@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { jwtVerify } from "jose";
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching parent general invoices:", error);
     return NextResponse.json(
-      { error: error.message || "Server Error" },
+      { error: 'Terjadi kesalahan internal pada server.' },
       { status: 500 }
     );
   }
@@ -166,8 +166,9 @@ export async function PUT(request: NextRequest) {
   } catch (error: any) {
     console.error("Error submitting general invoice proof:", error);
     return NextResponse.json(
-      { error: error.message || "Server Error" },
+      { error: 'Terjadi kesalahan internal pada server.' },
       { status: 500 }
     );
   }
 }
+

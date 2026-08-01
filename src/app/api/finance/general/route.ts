@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getAdminSupabase } from "@/lib/supabase";
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching general invoices:", error);
     return NextResponse.json(
-      { error: error.message || "Server Error" },
+      { error: 'Terjadi kesalahan internal pada server.' },
       { status: 500 }
     );
   }
@@ -232,6 +232,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Error creating general invoices:", error);
-    return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
+

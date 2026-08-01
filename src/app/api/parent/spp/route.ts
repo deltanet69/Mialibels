@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { jwtVerify } from 'jose';
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: invoices });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
 
@@ -88,6 +88,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Bukti transfer berhasil diunggah' });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
+

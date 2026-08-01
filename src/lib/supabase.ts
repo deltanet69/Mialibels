@@ -37,4 +37,5 @@ export function getAdminSupabase() {
 }
 
 // Named export agar tetap kompatibel dengan destructuring lama
-export const supabase = getSupabase()
+// MENGGUNAKAN ADMIN SUPABASE AGAR BISA MEMBACA DATA WALAUPUN RLS AKTIF
+export const supabase = getAdminSupabase()
