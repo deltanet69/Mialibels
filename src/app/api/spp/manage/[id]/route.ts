@@ -55,22 +55,7 @@ export async function GET(
       .neq('id', id)
       .order('due_date', { ascending: true });
 
-    // Filter: past months UNPAID/PARTIAL + any month that is PAID (pre-paid future or lunas past)
-    const otherUnpaidInvoices = (allOtherInvoices || []).filter((inv: any) => {
-      const invYear = inv.year || 0;
-      const invMonth = inv.month || 0;
-      const isPast = (invYear < currentYear) || (invYear === currentYear && invMonth < currentMonth);
-      const isFuture = (invYear > currentYear) || (invYear === currentYear && invMonth > currentMonth);
-      const isUnpaid = inv.status === 'UNPAID' || inv.status === 'PARTIAL';
-      const isPaid = inv.status === 'PAID';
-
-      // Include past months that still have outstanding balance
-      if (isPast && isUnpaid) return true;
-      // Include future months ONLY if already paid (pre-paid)
-      if (isFuture && isPaid) return true;
-      // Exclude future months that are UNPAID
-      return false;
-    });
+    const otherUnpaidInvoices = allOtherInvoices || [];
 
     // 3. Fetch transaction notes for ALL invoices of this student (for history)
     const allInvoiceIds = [id, ...(otherUnpaidInvoices || []).map((i: any) => i.id)];
@@ -96,7 +81,7 @@ export async function GET(
         student_class: invoice.students?.class,
         parent_name: invoice.students?.parent_name,
         parent_phone: invoice.students?.parent_phone,
-        has_active_invoices: (otherUnpaidInvoices && otherUnpaidInvoices.length > 0),
+        has_active_invoices: (otherUnpaidInvoices && otherUnpaidInvoices.some((inv: any) => (Number(inv.amount) - (Number(inv.paid_amount) || 0)) > 0)),
         other_unpaid_invoices: otherUnpaidInvoices || [],
       }
     });

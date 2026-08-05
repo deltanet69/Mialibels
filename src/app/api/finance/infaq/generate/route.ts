@@ -29,8 +29,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Bulan dan Tahun wajib diisi" }, { status: 400 });
     }
 
-    const monthName = MONTHS[parseInt(month) - 1];
-    const itemName = `Infaq Sekolah - ${monthName} ${year}`;
+    const targetMonth = parseInt(month);
+    const targetYear = parseInt(year);
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    let startM = currentMonth, startY = currentYear;
+    let endM = targetMonth, endY = targetYear;
+
+    // If target is in the past, swap them so we always generate a valid range
+    if (targetYear < currentYear || (targetYear === currentYear && targetMonth < currentMonth)) {
+      startM = targetMonth;
+      startY = targetYear;
+      endM = currentMonth;
+      endY = currentYear;
+    }
+
+    const periodsToGenerate = [];
+    let curY = startY;
+    let curM = startM;
+    while (curY < endY || (curY === endY && curM <= endM)) {
+      periodsToGenerate.push({ month: curM, year: curY });
+      curM++;
+      if (curM > 12) {
+        curM = 1;
+        curY++;
+      }
+    }
 
     const supabase = getAdminSupabase();
 
@@ -55,55 +80,60 @@ export async function POST(request: NextRequest) {
 
     const studentIds = students.map(s => s.id);
 
-    // 2. Ambil tagihan Infaq yang sudah ada (bulan & tahun ini) KHUSUS untuk siswa yang ditarget
-    // Selalu skip yang sudah ada - respek unique constraint (student_id, month, year)
+    // 2. Ambil tagihan Infaq yang sudah ada untuk semua periode KHUSUS untuk siswa yang ditarget
+    // We will fetch all invoices for these students within the period range
     const { data: existingInfaq, error: existingErr } = await supabase
       .from('spp_invoices')
-      .select('student_id')
-      .in('student_id', studentIds)
-      .eq('month', parseInt(month))
-      .eq('year', parseInt(year));
+      .select('student_id, month, year')
+      .in('student_id', studentIds);
 
     if (existingErr) throw existingErr;
 
-    const studentsWithInfaq = new Set(existingInfaq?.map(inv => inv.student_id) || []);
+    // Set of "studentId-month-year" for quick lookup
+    const existingSet = new Set(existingInfaq?.map(inv => `${inv.student_id}-${inv.month}-${inv.year}`) || []);
 
     const newInvoicesToInsert: any[] = [];
+    let skippedCount = 0;
 
     for (const student of students) {
-      // Selalu skip siswa yang sudah punya tagihan bulan ini (respek unique constraint DB)
-      if (studentsWithInfaq.has(student.id)) continue;
+      for (const period of periodsToGenerate) {
+        const periodKey = `${student.id}-${period.month}-${period.year}`;
+        if (existingSet.has(periodKey)) {
+          skippedCount++;
+          continue;
+        }
 
-      let nominal = student.class.endsWith('A') ? 160000 : 60000;
-      let status = "UNPAID";
-      let paid_amount = 0;
-      let finalItemName = itemName;
-      let payment_method = null;
+        let nominal = student.class.endsWith('A') ? 160000 : 60000;
+        let status = "UNPAID";
+        let paid_amount = 0;
+        let finalItemName = `Infaq Sekolah - ${MONTHS[period.month - 1]} ${period.year}`;
+        let payment_method = null;
 
-      // Logika Keringanan Infaq
-      if (student.fee_waiver_type === 'ANAK_YATIM') {
-        nominal = 0;
-        status = "PAID";
-        finalItemName = `${itemName} (Gratis - Anak Yatim)`;
-        payment_method = "BEASISWA";
-      } else if (student.fee_waiver_type === 'Keluarga Guru') {
-        nominal = 0;
-        status = "PAID";
-        finalItemName = `${itemName} (Gratis - Keluarga Guru)`;
-        payment_method = "BEASISWA";
+        // Logika Keringanan Infaq
+        if (student.fee_waiver_type === 'ANAK_YATIM') {
+          nominal = 0;
+          status = "PAID";
+          finalItemName = `${finalItemName} (Gratis - Anak Yatim)`;
+          payment_method = "BEASISWA";
+        } else if (student.fee_waiver_type === 'Keluarga Guru') {
+          nominal = 0;
+          status = "PAID";
+          finalItemName = `${finalItemName} (Gratis - Keluarga Guru)`;
+          payment_method = "BEASISWA";
+        }
+
+        newInvoicesToInsert.push({
+          student_id: student.id,
+          title: finalItemName,
+          amount: nominal,
+          month: period.month,
+          year: period.year,
+          due_date: new Date(period.year, period.month - 1, 10).toISOString(),
+          paid_amount,
+          status,
+          payment_method,
+        });
       }
-
-      newInvoicesToInsert.push({
-        student_id: student.id,
-        title: finalItemName,
-        amount: nominal,
-        month: parseInt(month),
-        year: parseInt(year),
-        due_date: new Date(parseInt(year), parseInt(month) - 1, 10).toISOString(),
-        paid_amount,
-        status,
-        payment_method,
-      });
     }
 
     let createdCount = 0;
@@ -116,7 +146,7 @@ export async function POST(request: NextRequest) {
       createdCount = newInvoicesToInsert.length;
     }
 
-    const skippedCount = studentsWithInfaq.size;
+
 
     return NextResponse.json({
       success: true,

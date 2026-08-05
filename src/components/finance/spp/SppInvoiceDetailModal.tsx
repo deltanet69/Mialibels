@@ -822,8 +822,8 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
                     </div>
                   )}
 
-                  {/* CASH PAYMENT — untuk status UNPAID / PARTIAL */}
-                  {['UNPAID', 'PARTIAL'].includes(invoice.status) && (
+                  {/* CASH PAYMENT — untuk semua tagihan yang belum lunas */}
+                  {allInvoices.some((inv: any) => (Number(inv.amount) - (Number(inv.paid_amount) || 0)) > 0) && (
                     <div className="bg-slate-50 border border-slate-200 p-4 sm:p-5 rounded-xl space-y-4">
                       <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                         <Banknote size={16} className="text-green-600" /> Input Bayar Tunai (TU) per Item
@@ -901,9 +901,9 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
                     </div>
                   )}
 
-                  {invoice.status === 'PAID' && (
+                  {!allInvoices.some((inv: any) => (Number(inv.amount) - (Number(inv.paid_amount) || 0)) > 0) && (
                     <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 p-4 rounded-xl flex items-center justify-center gap-2 font-bold shadow-sm">
-                      <CheckCircle2 size={18} /> Tagihan Infaq Ini Sudah Lunas
+                      <CheckCircle2 size={18} /> Semua Tagihan Infaq Sudah Lunas
                     </div>
                   )}
 
