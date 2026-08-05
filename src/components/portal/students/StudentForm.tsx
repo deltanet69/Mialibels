@@ -23,6 +23,7 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
     parent_phone: initialData?.parent_phone || '',
     parent_email: initialData?.parent_email || '',
     rfid_number: initialData?.rfid_number || '',
+    fee_waiver_type: initialData?.fee_waiver_type || '',
     is_active: initialData?.is_active ?? true,
   })
 
@@ -45,10 +46,15 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
       const url = isEditing ? `/api/students/${initialData.id}` : '/api/students'
       const method = isEditing ? 'PUT' : 'POST'
 
+      const submitData = {
+        ...formData,
+        fee_waiver_type: formData.fee_waiver_type || null
+      }
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       })
 
       const data = await res.json()
@@ -218,6 +224,20 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
                   placeholder="Tempelkan atau ketik ID Kartu RFID"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Keringanan Infaq (Opsional)</label>
+                <select 
+                  name="fee_waiver_type"
+                  value={formData.fee_waiver_type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+                >
+                  <option value="">Tidak Ada</option>
+                  <option value="ANAK_YATIM">Anak Yatim</option> 
+                  <option value="Keluarga Guru">Keluarga Guru/yayasan</option>
+                </select>
               </div>
 
               <div className="col-span-full pt-2">

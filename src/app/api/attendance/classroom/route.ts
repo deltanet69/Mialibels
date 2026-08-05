@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
@@ -20,10 +20,49 @@ export async function GET(request: NextRequest) {
       query = query.eq('date', date)
     }
 
-    const { data, error } = await query
+    const { data: classroomData, error: classroomError } = await query
+    if (classroomError) throw classroomError
 
-    if (error) throw error
-    return NextResponse.json({ success: true, data })
+    // Also fetch RFID scans (student_attendances) for this date
+    let rfidData: any[] = []
+    if (date) {
+      // Get all students in this class
+      const { data: students } = await supabase
+        .from('students')
+        .select('id')
+        .eq('class_id', classroomId)
+        
+      if (students && students.length > 0) {
+        const studentIds = students.map(s => s.id)
+        const { data: studentAtts } = await supabase
+          .from('student_attendances')
+          .select('*')
+          .in('student_id', studentIds)
+          .eq('date', date)
+          
+        if (studentAtts) rfidData = studentAtts
+      }
+    }
+
+    // Merge data: classroom_attendances (manual override) takes precedence for status/reason
+    // student_attendances provides entry_time, exit_time, and fallback status
+    const mergedData = []
+    const studentIds = new Set([...classroomData.map(r => r.student_id), ...rfidData.map(r => r.student_id)])
+    
+    for (const sId of studentIds) {
+      const cRec = classroomData.find(r => r.student_id === sId)
+      const rRec = rfidData.find(r => r.student_id === sId)
+      
+      mergedData.push({
+        student_id: sId,
+        status: cRec?.status || rRec?.status || '',
+        reason: cRec?.reason || '',
+        entry_time: rRec?.entry_time || null,
+        exit_time: rRec?.exit_time || null
+      })
+    }
+
+    return NextResponse.json({ success: true, data: mergedData })
   } catch (error: any) {
     return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }

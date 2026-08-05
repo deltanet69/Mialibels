@@ -10,6 +10,8 @@ type StudentAttendance = {
   student_id: string;
   status: AttendanceStatus;
   reason: string;
+  entry_time?: string;
+  exit_time?: string;
 };
 
 export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
@@ -60,7 +62,9 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
                 currentAtt[record.student_id] = {
                   student_id: record.student_id,
                   status: record.status as AttendanceStatus,
-                  reason: record.reason || ''
+                  reason: record.reason || '',
+                  entry_time: record.entry_time,
+                  exit_time: record.exit_time
                 };
               }
             });
@@ -197,13 +201,15 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
             <tr className="bg-slate-50 border-b border-slate-100">
               <th className="p-4 font-semibold text-slate-600 text-sm w-40">ID Pelajar / NIS</th>
               <th className="p-4 font-semibold text-slate-600 text-sm">Nama Siswa</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm text-center">Status Kehadiran</th>
+              <th className="p-4 font-semibold text-slate-600 text-sm text-center">Jam Masuk</th>
+              <th className="p-4 font-semibold text-slate-600 text-sm text-center">Jam Keluar</th>
+              <th className="p-4 font-semibold text-slate-600 text-sm text-center w-80">Status Kehadiran</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {students.length === 0 ? (
               <tr>
-                <td colSpan={3} className="p-8 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
+                <td colSpan={5} className="p-8 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
               </tr>
             ) : students.map((student) => {
               const record = attendance[student.id];
@@ -227,6 +233,26 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
                           className="w-full sm:w-64 px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400"
                         />
                       </div>
+                    )}
+                  </td>
+                  <td className="p-4 align-top pt-5 text-center">
+                    {record?.entry_time ? (
+                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-100">
+                        <Clock className="w-3.5 h-3.5" />
+                        {record.entry_time}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-sm">-</span>
+                    )}
+                  </td>
+                  <td className="p-4 align-top pt-5 text-center">
+                    {record?.exit_time ? (
+                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium border border-slate-200">
+                        <Clock className="w-3.5 h-3.5" />
+                        {record.exit_time}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-sm">-</span>
                     )}
                   </td>
                   <td className="p-4 align-top pt-4">

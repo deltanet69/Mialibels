@@ -52,6 +52,33 @@ export async function PUT(
 
     if (error) throw error
 
+    // Sinkronisasi otomatis tagihan infaq yang masih UNPAID
+    if (updateData.fee_waiver_type === 'ANAK_YATIM' || updateData.fee_waiver_type === 'Keluarga Guru') {
+      const titleSuffix = updateData.fee_waiver_type === 'ANAK_YATIM' ? '(Gratis - Anak Yatim)' : '(Gratis - Keluarga Guru)'
+      
+      const { data: unpaidInvoices } = await supabase
+        .from('spp_invoices')
+        .select('id, title')
+        .eq('student_id', id)
+        .eq('status', 'UNPAID')
+
+      if (unpaidInvoices && unpaidInvoices.length > 0) {
+        for (const inv of unpaidInvoices) {
+          let newTitle = inv.title
+          if (!newTitle.includes('(Gratis - ')) {
+            newTitle = `${newTitle} ${titleSuffix}`
+          }
+          await supabase.from('spp_invoices').update({
+            amount: 0,
+            status: 'PAID',
+            paid_amount: 0,
+            payment_method: 'BEASISWA',
+            title: newTitle
+          }).eq('id', inv.id)
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, data: student })
   } catch (error: any) {
     console.error('Error updating student:', error)
