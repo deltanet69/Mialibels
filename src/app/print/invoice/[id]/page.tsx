@@ -60,7 +60,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
           min-height: 13cm;
           background-color: white;
           position: relative;
-          padding: 0.4cm;
+          padding: 0.25cm 0.4cm;
           color: black;
           box-sizing: border-box;
           border: 1px dashed #ccc;
@@ -87,29 +87,29 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             width: 19.5cm !important;
             height: 13cm !important;
             border: none !important;
-            padding: 0.5cm;
+            padding: 0.25cm 0.4cm !important;
           }
           .print-hide {
             display: none !important;
           }
         }
       `}} />
-      <div className="ncr-container flex flex-col justify-between">
+      <div className="ncr-container flex flex-col justify-between leading-tight">
           <div>
             {/* Header Section */}
-            <div className="flex justify-between items-center border-b-[1.5px] tracking-wide border-black pb-3 mb-2">
+            <div className="flex justify-between items-center border-b-[1.5px] tracking-wide border-black pb-1.5 mb-1">
               <div>
-                <h2 className="text-[12px] font-bold uppercase tracking-wide">MI ATTAQWA 15 BABELAN</h2>
-                <p className="text-[10px]">Jl. Raya Ps. Babelan No.1, Babelan Kota, Kec. Babelan, Kabupaten Bekasi, Jawa Barat 17610</p>
+                <h2 className="text-[11px] font-bold uppercase tracking-wide">MI ATTAQWA 15 BABELAN</h2>
+                <p className="text-[9px]">Jl. Raya Ps. Babelan No.1, Babelan Kota, Kec. Babelan, Kabupaten Bekasi, Jawa Barat 17610</p>
               </div>
               <div className="text-right">
-                <h2 className="text-[12px] font-bold tracking-wide">BUKTI BAYAR</h2>
-                <p className="text-[10px] tracking-wide">No: {invoice.id.split('-')[0].toUpperCase()}</p>
+                <h2 className="text-[11px] font-bold tracking-wide">BUKTI BAYAR</h2>
+                <p className="text-[9px] tracking-wide">No: {invoice.id.split('-')[0].toUpperCase()}</p>
               </div>
             </div>
 
             {/* Info Section */}
-            <div className="flex justify-between text-[10px] tracking-wide pb-1 mb-1.5 mt-1 font-semibold">
+            <div className="flex justify-between text-[9px] tracking-wide pb-1 mb-1 mt-0.5 font-semibold">
               <div className="space-y-0.5">
                 <p>Nama &nbsp;&nbsp;&nbsp;&nbsp;: {invoice.students?.name || '-'}</p>
                 <p>Kls/NISN : {invoice.students?.class || '-'} / {invoice.students?.nisn || '-'}</p>
@@ -121,8 +121,8 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             </div>
 
             {/* Table Section */}
-            <div className="border-t-[1.5px] border-b-[1.5px] border-black py-0.5 mb-1.5">
-              <table className="w-full text-left text-[10px] tracking-wide">
+            <div className="border-t-[1px] border-b-[1px] border-black py-0.5 mb-1">
+              <table className="w-full text-left text-[9px] tracking-wide">
                 <thead>
                   <tr className="border-b border-black font-semibold">
                     <th className="py-0.5 w-6">No</th>
@@ -138,15 +138,15 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                     
                     return (
                       <tr key={idx} className="border-b border-gray-300 border-dashed last:border-0 tracking-wide">
-                        <td className="py-1 align-top">{idx + 1}</td>
-                        <td className="py-1">
+                        <td className="py-0.5 align-top">{idx + 1}</td>
+                        <td className="py-0.5">
                           {item.name}
                           <span className="ml-1 text-[7px] italic border border-black px-0.5 rounded">
                             {paid >= itemAmount ? '*lunas' : '*belum lunas'}
                           </span>
                         </td>
-                        <td className="py-1 text-right align-top">{formatRp(itemAmount)}</td>
-                        <td className="py-1 text-right align-top">{formatRp(paid)}</td>
+                        <td className="py-0.5 text-right align-top">{formatRp(itemAmount)}</td>
+                        <td className="py-0.5 text-right align-top">{formatRp(paid)}</td>
                       </tr>
                     );
                   })}
@@ -155,7 +155,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             </div>
 
             {/* Calculations */}
-            <div className="flex justify-end text-[10px] mb-2 font-semibold tracking-wide">
+            <div className="flex justify-end text-[9px] mb-1 font-semibold tracking-wide">
               <div className="w-1/2 space-y-0.5">
                 <div className="flex justify-between">
                   <span>Sub Total:</span>
@@ -165,7 +165,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                   <span>Tunggakan:</span>
                   <span>{formatRp(sisa > 0 ? sisa : 0)}</span>
                 </div>
-                <div className="flex justify-between text-[10px] mt-0.5 border-t-[1.5px] border-black pt-0.5">
+                <div className="flex justify-between text-[10px] mt-0.5 border-t-[1px] border-black pt-0.5">
                   <span>TOTAL DIBAYAR:</span>
                   <span>{formatRp(invoice.paid_amount)}</span>
                 </div>
@@ -174,25 +174,26 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
           </div>
 
           
-
-          {/* Footer Signature */}
-          <div className="flex justify-between text-[10px] font-bold tracking-wide mt-auto">
-            <div className="text-center w-32">
-              <p className="mb-12">Penyetor,</p>
-              <div className="border-b border-black mb-0.5"></div>
-              <p className="break-words leading-tight">{invoice.students?.name || '-'}</p>
+          <div className="mt-auto">
+            {/* Footer Signature */}
+            <div className="flex justify-between text-[9px] font-bold tracking-wide">
+              <div className="text-center w-28">
+                <p className="mb-8">Penyetor,</p>
+                <div className="border-b border-black mb-0.5"></div>
+                <p className="break-words leading-tight">{invoice.students?.name || '-'}</p>
+              </div>
+              <div className="text-center w-28">
+                <p className="mb-8">Petugas TU,</p>
+                <div className="border-b border-black mb-0.5"></div>
+                <p className="break-words leading-tight">{session?.name || 'Admin'}</p>
+              </div>
             </div>
-            <div className="text-center w-32">
-              <p className="mb-12">Petugas TU,</p>
-              <div className="border-b border-black mb-0.5"></div>
-              <p className="break-words leading-tight">{session?.name || 'Admin'}</p>
+
+            <div>
+              <p className="text-[8px] text-gray-500 mt-2 italic">*Bukti ini asli dan sah sebagai tanda bukti pembayaran yang sah, harap disimpan dengan baik.</p>
             </div>
           </div>
 
-          <div>
-                <p className="text-[10px] text-gray-400 mt-3">*Bukti ini asli dan sah sebagai tanda bukti pembayaran yang sah, harap disimpan dengan baik jangan sampai hilang.</p>
-              </div>
- 
           <div className="absolute top-2 -right-16 print-hide">
             <PrintButton />
           </div>
