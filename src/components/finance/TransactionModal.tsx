@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 
 type TransactionModalProps = {
@@ -9,14 +9,32 @@ type TransactionModalProps = {
   onSuccess: () => void;
   studentId: string | null;
   studentName: string | null;
+  initialData?: {
+    id: string;
+    type: 'DEPOSIT' | 'WITHDRAWAL';
+    amount: number;
+    description: string;
+  } | null;
 };
 
-export function TransactionModal({ isOpen, onClose, onSuccess, studentId, studentName }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSuccess, studentId, studentName, initialData }: TransactionModalProps) {
   const [type, setType] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setType(initialData.type);
+      setAmount(new Intl.NumberFormat('id-ID').format(initialData.amount));
+      setDescription(initialData.description || '');
+    } else if (isOpen) {
+      setType('DEPOSIT');
+      setAmount('');
+      setDescription('');
+    }
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -31,8 +49,14 @@ export function TransactionModal({ isOpen, onClose, onSuccess, studentId, studen
     setError('');
 
     try {
-      const res = await fetch('/api/savings/transaction', {
-        method: 'POST',
+      const url = initialData 
+        ? `/api/savings/transaction/${initialData.id}` 
+        : '/api/savings/transaction';
+      
+      const method = initialData ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentId,
@@ -49,8 +73,6 @@ export function TransactionModal({ isOpen, onClose, onSuccess, studentId, studen
       }
 
       onSuccess(); // Refresh data
-      setAmount('');
-      setDescription('');
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -60,7 +82,6 @@ export function TransactionModal({ isOpen, onClose, onSuccess, studentId, studen
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Format to Rupiah
     const value = e.target.value.replace(/[^0-9]/g, '');
     if (value) {
       setAmount(new Intl.NumberFormat('id-ID').format(parseInt(value, 10)));

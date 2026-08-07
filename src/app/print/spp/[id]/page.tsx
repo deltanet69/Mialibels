@@ -34,16 +34,32 @@ export default async function PrintSppReceipt(props: { params: Promise<{ id: str
     return <div className="p-4 text-center font-bold">Data tagihan tidak ditemukan.</div>;
   }
 
-  const { data: otherUnpaidInvoices } = await supabase
+  // Fetch all invoices for this student to find co-paid and unpaid invoices
+  const { data: allStudentInvoices } = await supabase
     .from('spp_invoices')
     .select('*')
-    .eq('student_id', invoice.student_id)
-    .in('status', ['UNPAID', 'PARTIAL'])
-    .neq('id', id)
-    .order('due_date', { ascending: true });
+    .eq('student_id', invoice.student_id);
 
-  const allInvoices = [invoice, ...(otherUnpaidInvoices || [])].sort(
-    (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+  const ONE_MINUTE = 60 * 1000;
+
+  const relevantInvoices = (allStudentInvoices || []).filter((inv: any) => {
+    // 1. Include the main invoice
+    if (inv.id === invoice.id) return true;
+    
+    // 2. Include all unpaid or partially paid invoices (tunggakan / tagihan aktif)
+    if (inv.status === 'UNPAID' || inv.status === 'PARTIAL') return true;
+    
+    // 3. Include invoices that were paid together with the main invoice
+    if (invoice.verified_at && inv.verified_at) {
+      const diff = Math.abs(new Date(invoice.verified_at).getTime() - new Date(inv.verified_at).getTime());
+      if (diff < ONE_MINUTE) return true;
+    }
+    
+    return false;
+  });
+
+  const allInvoices = relevantInvoices.sort(
+    (a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
   );
 
   const formatRp = (n: number) =>

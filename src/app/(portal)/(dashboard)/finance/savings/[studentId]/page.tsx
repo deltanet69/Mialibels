@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, ArrowDownToLine, ArrowUpFromLine, Calendar, Download } from 'lucide-react';
+import { ArrowLeft, Wallet, ArrowDownToLine, ArrowUpFromLine, Calendar, Download, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { TransactionModal } from '@/components/finance/TransactionModal';
 
@@ -14,6 +14,7 @@ export default function StudentSavingsDetail() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
   const fetchDetails = async () => {
     setLoading(true);
@@ -38,6 +39,30 @@ export default function StudentSavingsDetail() {
       fetchDetails();
     }
   }, [studentId]);
+
+  const handleDelete = async (transactionId: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus transaksi ini? Saldo tabungan akan disesuaikan secara otomatis.')) {
+      try {
+        const res = await fetch(`/api/savings/transaction/${transactionId}`, {
+          method: 'DELETE',
+        });
+        const result = await res.json();
+        if (result.success) {
+          fetchDetails();
+        } else {
+          alert(result.error || 'Gagal menghapus transaksi');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Terjadi kesalahan pada sistem.');
+      }
+    }
+  };
+
+  const handleEdit = (transaction: any) => {
+    setEditingTransaction(transaction);
+    setIsModalOpen(true);
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Memuat data buku tabungan...</div>;
@@ -78,7 +103,10 @@ export default function StudentSavingsDetail() {
             </p>
           </div>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingTransaction(null);
+              setIsModalOpen(true);
+            }}
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-2"
           >
             <Wallet size={18} />
@@ -107,12 +135,13 @@ export default function StudentSavingsDetail() {
                 <th className="font-semibold p-4 text-right">Kredit (Keluar)</th>
                 <th className="font-semibold p-4 text-right">Saldo Akhir</th>
                 <th className="font-semibold p-4 text-center">Admin</th>
+                <th className="font-semibold p-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400">Belum ada transaksi</td>
+                  <td colSpan={7} className="p-8 text-center text-slate-400">Belum ada transaksi</td>
                 </tr>
               ) : (
                 transactions.map((t: any) => (
@@ -147,6 +176,24 @@ export default function StudentSavingsDetail() {
                     <td className="p-4 text-xs text-slate-500 font-medium text-center">
                       {t.adminName}
                     </td>
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => handleEdit(t)}
+                          className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                          title="Edit Transaksi"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(t.id)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                          title="Hapus Transaksi"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -157,10 +204,14 @@ export default function StudentSavingsDetail() {
 
       <TransactionModal 
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingTransaction(null);
+        }}
         onSuccess={fetchDetails}
         studentId={student.id}
         studentName={student.name}
+        initialData={editingTransaction}
       />
     </div>
   );
