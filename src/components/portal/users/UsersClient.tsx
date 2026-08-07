@@ -531,8 +531,12 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
     }
   }
 
-  const formatDate = (dateStr: string) =>
-    new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateStr))
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return '-'
+    return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+  }
 
   return (
     <div className="space-y-6">

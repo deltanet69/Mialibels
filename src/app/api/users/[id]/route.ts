@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('admins')
     .update(updates)
     .eq('id', id)
-    .select('id, name, email, role, is_active, updated_at')
+    .select('id, name, email, role, is_active, created_at, updated_at')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
