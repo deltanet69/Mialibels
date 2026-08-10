@@ -5,15 +5,32 @@ import { DashboardCards } from '@/components/portal/dashboard/DashboardCards';
 import { AttendanceChart } from '@/components/portal/dashboard/AttendanceChart';
 import { TransactionsTable } from '@/components/portal/dashboard/TransactionsTable';
 
-export default async function AdminDashboardPage() {
-  const user = await getSession();
+export const dynamic = 'force-dynamic';
 
-  // Get today's date string (local timezone approximation)
-  // To avoid UTC offset issues, we format based on Indonesia timezone if possible
-  // For simplicity on edge/server, we just use ISO string prefix.
+// Timeout wrapper — prevents any single slow Supabase query from hanging the page forever
+function withTimeout<T>(promise: Promise<T>, ms = 5000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Query timeout')), ms))
+  ])
+}
+
+// Safe fetch — returns fallback if query fails or times out
+async function safeQuery<T>(promise: Promise<{ data: T | null; count: number | null }>, fallback: T): Promise<{ data: T; count: number }> {
+  try {
+    const result = await withTimeout(promise)
+    return { data: result.data ?? fallback, count: result.count ?? 0 }
+  } catch {
+    return { data: fallback, count: 0 }
+  }
+}
+
+export default async function AdminDashboardPage() {
+  const user = await getSession().catch(() => null);
+
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-  // Parallel data fetching for performance
+  // All 8 queries run in parallel — each has a 5s timeout so page never hangs
   const [
     { count: totalStudents },
     { count: activeStudents },
@@ -24,14 +41,14 @@ export default async function AdminDashboardPage() {
     { count: studentHadir },
     { count: staffHadir }
   ] = await Promise.all([
-    supabase.from('students').select('*', { count: 'exact', head: true }),
-    supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', false),
-    supabase.from('staffs').select('*', { count: 'exact', head: true }),
-    supabase.from('staffs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    supabase.from('spp_transactions').select('*, admins(name)').order('created_at', { ascending: false }).limit(5),
-    supabase.from('classroom_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'),
-    supabase.from('staff_attendance').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%')
+    safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }), null),
+    safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', true), null),
+    safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', false), null),
+    safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }), null),
+    safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }).eq('is_active', true), null),
+    safeQuery(supabase.from('spp_transactions').select('*, admins(name)').order('created_at', { ascending: false }).limit(5), [] as any[]),
+    safeQuery(supabase.from('classroom_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
+    safeQuery(supabase.from('staff_attendance').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
   ]);
 
   const stats = {

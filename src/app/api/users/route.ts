@@ -27,6 +27,27 @@ export async function GET() {
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Fetch staff images
+  const emails = data.map((u: any) => u.email).filter(Boolean)
+  const { data: staffs } = await supabase
+    .from('staffs')
+    .select('email, image')
+    .in('email', emails)
+
+  if (staffs) {
+    const staffMap = staffs.reduce((acc: any, curr: any) => {
+      acc[curr.email] = curr.image
+      return acc
+    }, {})
+
+    data.forEach((u: any) => {
+      if (staffMap[u.email]) {
+        u.image = staffMap[u.email]
+      }
+    })
+  }
+
   return NextResponse.json({ success: true, data })
 }
 

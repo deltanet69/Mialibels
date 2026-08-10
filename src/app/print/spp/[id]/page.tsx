@@ -12,9 +12,11 @@ function getAdminSupabase() {
   );
 }
 
-export default async function PrintSppReceipt(props: { params: Promise<{ id: string }> }) {
+export default async function PrintSppReceipt(props: { params: Promise<{ id: string }>, searchParams: Promise<{ mode?: string }> }) {
   const params = await props.params;
   const { id } = params;
+  const searchParams = await props.searchParams;
+  const mode = searchParams.mode || 'default'; // 'current', 'all', or 'default'
 
   const session = await getSession();
   const supabase = getAdminSupabase();
@@ -43,6 +45,20 @@ export default async function PrintSppReceipt(props: { params: Promise<{ id: str
   const ONE_MINUTE = 60 * 1000;
 
   const relevantInvoices = (allStudentInvoices || []).filter((inv: any) => {
+    // Mode 'all': include EVERYTHING
+    if (mode === 'all') return true;
+
+    // Mode 'current': only include invoices paid exactly at the same time as this one, or this invoice itself if unpaid
+    if (mode === 'current') {
+      if (inv.id === invoice.id) return true;
+      if (invoice.verified_at && inv.verified_at) {
+        const diff = Math.abs(new Date(invoice.verified_at).getTime() - new Date(inv.verified_at).getTime());
+        if (diff < ONE_MINUTE) return true;
+      }
+      return false;
+    }
+
+    // Default mode (legacy behavior)
     // 1. Include the main invoice
     if (inv.id === invoice.id) return true;
     
@@ -129,8 +145,10 @@ export default async function PrintSppReceipt(props: { params: Promise<{ id: str
                 <p className="text-[9px]">Jl. Raya Ps. Babelan No.1, Babelan Kota, Kec. Babelan, Kabupaten Bekasi, Jawa Barat 17610</p>
               </div>
               <div className="text-right">
-                <h2 className="text-[11px] font-bold tracking-wide">BUKTI BAYAR INFAQ</h2>
-                <p className="text-[9px] tracking-wide">No: {invoice.id.split('-')[0].toUpperCase()}</p>
+                <h2 className="text-[11px] font-bold tracking-wide">{mode === 'all' ? 'RINCIAN SELURUH INFAQ' : 'BUKTI BAYAR INFAQ'}</h2>
+                <p className="text-[9px] tracking-wide">
+                  {mode === 'all' ? `Dicetak: ${new Date().toLocaleDateString('id-ID')}` : `No: ${invoice.id.split('-')[0].toUpperCase()}`}
+                </p>
               </div>
             </div>
 
@@ -155,22 +173,27 @@ export default async function PrintSppReceipt(props: { params: Promise<{ id: str
                     <th className="py-0.5">Deskripsi</th>
                     <th className="py-0.5 text-right">Tagihan</th>
                     <th className="py-0.5 text-right">Dibayar</th>
+                    {mode === 'all' && <th className="py-0.5 text-right">Tunggakan</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {allInvoices.map((inv: any, idx: number) => (
-                    <tr key={inv.id} className="border-b border-gray-300 border-dashed last:border-0 tracking-wide">
-                      <td className="py-0.5 align-top">{idx + 1}</td>
-                      <td className="py-0.5">
-                        {inv.title}
-                        <span className="ml-1 text-[7px] italic border border-black px-0.5 rounded">
-                          {Number(inv.paid_amount) >= Number(inv.amount) ? '*lunas' : '*belum lunas'}
-                        </span>
-                      </td>
-                      <td className="py-0.5 text-right align-top">{formatRp(Number(inv.amount))}</td>
-                      <td className="py-0.5 text-right align-top">{formatRp(Number(inv.paid_amount))}</td>
-                    </tr>
-                  ))}
+                  {allInvoices.map((inv: any, idx: number) => {
+                    const tunggakan = Number(inv.amount) - Number(inv.paid_amount || 0);
+                    return (
+                      <tr key={inv.id} className="border-b border-gray-300 border-dashed last:border-0 tracking-wide">
+                        <td className="py-0.5 align-top">{idx + 1}</td>
+                        <td className="py-0.5">
+                          {inv.title}
+                          <span className="ml-1 text-[7px] italic border border-black px-0.5 rounded">
+                            {inv.status === 'PAID' ? '*lunas' : '*belum lunas'}
+                          </span>
+                        </td>
+                        <td className="py-0.5 text-right align-top">{formatRp(Number(inv.amount))}</td>
+                        <td className="py-0.5 text-right align-top">{formatRp(Number(inv.paid_amount || 0))}</td>
+                        {mode === 'all' && <td className="py-0.5 text-right align-top">{formatRp(tunggakan > 0 ? tunggakan : 0)}</td>}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

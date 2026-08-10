@@ -99,9 +99,13 @@ export default function ProfilePage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-3xl -mt-20 -mr-20 opacity-60" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
-          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg shadow-blue-500/30 shrink-0">
-            {initials}
-          </div>
+          {profile.image ? (
+            <img src={profile.image} alt={profile.name} className="w-24 h-24 rounded-2xl object-cover shadow-lg shadow-blue-500/30 shrink-0 border-4 border-white" />
+          ) : (
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-4xl shadow-lg shadow-blue-500/30 shrink-0">
+              {initials}
+            </div>
+          )}
           <div>
             <h1 className="text-3xl font-bold text-slate-800 mb-2">{profile.name}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-500">

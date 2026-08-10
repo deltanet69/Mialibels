@@ -145,9 +145,13 @@ export function NavbarClient({ user }: { user: any }) {
               <p className="text-sm font-semibold text-slate-800 leading-tight">{user?.name || 'Admin'}</p>
               <p className="text-xs text-slate-500 capitalize">{user?.role?.toLowerCase() || 'Administrator'}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center overflow-hidden shadow-sm text-white font-bold text-sm">
-              {initials}
-            </div>
+            {user?.image ? (
+              <img src={user.image} alt={user?.name || 'Admin'} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center overflow-hidden shadow-sm text-white font-bold text-sm">
+                {initials}
+              </div>
+            )}
           </div>
 
           {showProfileMenu && (

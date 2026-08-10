@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send, ChevronUp, ChevronDown } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react'
 import { CreateBillModal } from '@/components/portal/finance/general/CreateBillModal'
 import { GeneralInvoiceDetailModal } from '@/components/portal/finance/general/GeneralInvoiceDetailModal'
 
@@ -127,50 +126,44 @@ export default function GeneralFinancePage() {
     alert(`Berhasil mengirim ${successCount} dari ${unpaidInvoices.length} notifikasi.`)
   }
 
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
   useEffect(() => {
-    fetchData()
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
-    // Realtime Listener for auto-refresh
-    const channel = supabase
-      .channel('general_invoices_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'general_invoices' },
-        (payload) => {
-          // You could optionally check if the updated row matches current filters,
-          // but calling fetchData() ensures data integrity.
-          fetchData()
-        }
-      )
-      .subscribe()
+  // Fetch classes once on mount
+  useEffect(() => {
+    fetch('/api/classrooms')
+      .then(r => r.json())
+      .then(d => { if (d.success) setClasses(d.data) })
+      .catch(console.error)
+  }, [])
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [filterStatus, filterClass])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       let url = '/api/finance/general?'
       if (filterStatus !== 'ALL') url += `status=${filterStatus}&`
-      if (filterClass !== 'ALL') url += `classId=${filterClass}`
+      if (filterClass !== 'ALL') url += `classId=${filterClass}&`
+      if (debouncedSearch) url += `search=${encodeURIComponent(debouncedSearch)}&`
 
       const res = await fetch(url)
       const data = await res.json()
       if (data.success) setInvoices(data.data)
-
-      if (classes.length === 0) {
-        const classRes = await fetch('/api/classrooms')
-        const classData = await classRes.json()
-        if (classData.success) setClasses(classData.data)
-      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterStatus, filterClass, debouncedSearch])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Summary calculations
   const { totalIncome, totalUnpaid, transferIncome, cashIncome } = useMemo(() => {
@@ -254,13 +247,14 @@ export default function GeneralFinancePage() {
           <p className="text-sm text-slate-500 mt-1">Kelola tagihan administrasi sekolah, buku, seragam, dll.</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* <button
-            onClick={handleBulkSendWA}
-            disabled={isSendingWA}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-emerald-500/20 transition flex items-center gap-2 text-sm sm:text-base"
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            title="Refresh data"
+            className="p-2.5 border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition disabled:opacity-40"
           >
-            <Send size={20} /> {isSendingWA ? `Mengirim... (${sendingProgress.current}/${sendingProgress.total})` : 'Kirim Notifikasi'}
-          </button> */}
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
           <button
             onClick={() => setIsCreateOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/20 transition flex items-center gap-2 text-sm sm:text-base"

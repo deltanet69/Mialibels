@@ -15,9 +15,11 @@ function getAdminSupabase() {
   );
 }
 
-export default async function PrintInvoiceReceipt(props: { params: Promise<{ id: string }> }) {
+export default async function PrintInvoiceReceipt(props: { params: Promise<{ id: string }>, searchParams: Promise<{ mode?: string }> }) {
   const params = await props.params;
   const { id } = params;
+  const searchParams = await props.searchParams;
+  const mode = searchParams.mode || 'default'; // 'current' or 'all'
 
   const session = await getSession();
   const supabase = getAdminSupabase();
@@ -37,10 +39,28 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
     return <div className="p-4 text-center font-bold">Data tagihan tidak ditemukan.</div>;
   }
 
+  let itemsToPrint = invoice.items || [];
+  if (mode === 'all') {
+    const { data: allStudentInvoices } = await supabase
+      .from('general_invoices')
+      .select('items')
+      .eq('student_id', invoice.student_id);
+      
+    if (allStudentInvoices && allStudentInvoices.length > 0) {
+      itemsToPrint = allStudentInvoices.flatMap((inv: any) => inv.items || []);
+    }
+  } else if (mode === 'current') {
+    // Only print items that have been paid (partially or fully) in this invoice
+    itemsToPrint = itemsToPrint.filter((item: any) => Number(item.paid_amount) > 0);
+  }
+
   const formatRp = (n: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
-  const sisa = Number(invoice.total_amount) - Number(invoice.paid_amount);
+  // Calculate totals based on printed items
+  const subTotal = itemsToPrint.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+  const totalPaid = itemsToPrint.reduce((acc: number, curr: any) => acc + Number(curr.paid_amount || 0), 0);
+  const sisa = subTotal - totalPaid;
 
   return (
     <div className="bg-gray-100 min-h-screen text-black flex justify-center items-start pt-8">
@@ -103,8 +123,10 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                 <p className="text-[9px]">Jl. Raya Ps. Babelan No.1, Babelan Kota, Kec. Babelan, Kabupaten Bekasi, Jawa Barat 17610</p>
               </div>
               <div className="text-right">
-                <h2 className="text-[11px] font-bold tracking-wide">BUKTI BAYAR</h2>
-                <p className="text-[9px] tracking-wide">No: {invoice.id.split('-')[0].toUpperCase()}</p>
+                <h2 className="text-[11px] font-bold tracking-wide">{mode === 'all' ? 'RINCIAN SELURUH TAGIHAN' : 'BUKTI BAYAR'}</h2>
+                <p className="text-[9px] tracking-wide">
+                  {mode === 'all' ? `Dicetak: ${new Date().toLocaleDateString('id-ID')}` : `No: ${invoice.id.split('-')[0].toUpperCase()}`}
+                </p>
               </div>
             </div>
 
@@ -129,12 +151,14 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                     <th className="py-0.5">Deskripsi</th>
                     <th className="py-0.5 text-right">Tagihan</th>
                     <th className="py-0.5 text-right">Dibayar</th>
+                    {mode === 'all' && <th className="py-0.5 text-right">Tunggakan</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {(invoice.items || []).map((item: any, idx: number) => {
+                  {(itemsToPrint).map((item: any, idx: number) => {
                     const paid = Number(item.paid_amount) || 0;
                     const itemAmount = Number(item.amount) || 0;
+                    const tunggakan = itemAmount - paid;
                     
                     return (
                       <tr key={idx} className="border-b border-gray-300 border-dashed last:border-0 tracking-wide">
@@ -147,6 +171,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                         </td>
                         <td className="py-0.5 text-right align-top">{formatRp(itemAmount)}</td>
                         <td className="py-0.5 text-right align-top">{formatRp(paid)}</td>
+                        {mode === 'all' && <td className="py-0.5 text-right align-top">{formatRp(tunggakan > 0 ? tunggakan : 0)}</td>}
                       </tr>
                     );
                   })}
@@ -159,7 +184,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
               <div className="w-1/2 space-y-0.5">
                 <div className="flex justify-between">
                   <span>Sub Total:</span>
-                  <span>{formatRp(invoice.total_amount)}</span>
+                  <span>{formatRp(subTotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tunggakan:</span>
@@ -167,7 +192,7 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                 </div>
                 <div className="flex justify-between text-[10px] mt-0.5 border-t-[1px] border-black pt-0.5">
                   <span>TOTAL DIBAYAR:</span>
-                  <span>{formatRp(invoice.paid_amount)}</span>
+                  <span>{formatRp(totalPaid)}</span>
                 </div>
               </div>
             </div>

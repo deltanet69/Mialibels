@@ -30,7 +30,86 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING_VERIFICATION: 'Menunggu Verifikasi',
 }
 
+// Inline confirmation dialog — avoids blocking native browser confirm/alert/prompt
+function ConfirmDialog({
+  title, message, onConfirm, onCancel, confirmLabel = 'Ya, Lanjutkan', confirmColor = 'bg-blue-600 hover:bg-blue-700'
+}: {
+  title: string
+  message: string
+  onConfirm: () => void
+  onCancel: () => void
+  confirmLabel?: string
+  confirmColor?: string
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4 animate-in fade-in zoom-in-95">
+        <h3 className="font-bold text-slate-800 text-base">{title}</h3>
+        <p className="text-sm text-slate-600 leading-relaxed">{message}</p>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 px-4 py-2.5 text-sm font-bold text-white rounded-xl transition ${confirmColor}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
+// Inline prompt/input dialog
+function InputDialog({
+  title, placeholder, onConfirm, onCancel
+}: {
+  title: string
+  placeholder: string
+  onConfirm: (value: string) => void
+  onCancel: () => void
+}) {
+  const [value, setValue] = React.useState('')
+  const [inputError, setInputError] = React.useState('')
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4 animate-in fade-in zoom-in-95">
+        <h3 className="font-bold text-slate-800 text-base">{title}</h3>
+        <textarea
+          autoFocus
+          rows={3}
+          value={value}
+          onChange={e => { setValue(e.target.value); setInputError('') }}
+          placeholder={placeholder}
+          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm resize-none"
+        />
+        {inputError && <p className="text-xs text-red-500">{inputError}</p>}
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+          >
+            Batal
+          </button>
+          <button
+            onClick={() => {
+              if (!value.trim()) { setInputError('Wajib diisi'); return }
+              onConfirm(value.trim())
+            }}
+            className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition"
+          >
+            Konfirmasi
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) {
   const [invoice, setInvoice] = useState<any>(null)
@@ -49,6 +128,14 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   
   // Show Print Option
   const [showPrintOption, setShowPrintOption] = useState(false)
+
+  // Inline dialog states (replaces alert/confirm/prompt)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string; message: string; onConfirm: () => void; confirmLabel?: string; confirmColor?: string
+  } | null>(null)
+  const [inputDialog, setInputDialog] = useState<{
+    title: string; placeholder: string; onConfirm: (value: string) => void
+  } | null>(null)
 
   useEffect(() => {
     if (invoiceId) {
@@ -126,36 +213,60 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   }
 
   const handleVerify = async (action: 'APPROVE_TRANSFER' | 'REJECT_TRANSFER') => {
-    let rejectReason = '';
     if (action === 'REJECT_TRANSFER') {
-      const reason = prompt('Masukkan alasan penolakan (misal: Bukti transfer buram, Nominal kurang, dll):');
-      if (reason === null) return; // Cancelled by user
-      if (!reason.trim()) {
-        alert('Alasan penolakan wajib diisi agar orang tua tahu kesalahannya.');
-        return;
-      }
-      rejectReason = reason.trim();
-    } else {
-      if (!confirm('Setujui pembayaran transfer ini secara penuh?')) return;
-    }
-    
-    setActionLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/finance/general/${invoice.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, rejectReason }),
+      setInputDialog({
+        title: 'Alasan Penolakan',
+        placeholder: 'Contoh: Bukti transfer buram, Nominal kurang, dll.',
+        onConfirm: async (reason: string) => {
+          setInputDialog(null)
+          setActionLoading(true)
+          setError(null)
+          try {
+            const res = await fetch(`/api/finance/general/${invoice.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action, rejectReason: reason }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error)
+            setSuccessMsg('Bukti transfer ditolak.')
+            setInvoice(data.data)
+            onUpdated()
+          } catch (err: any) {
+            setError(err.message)
+          } finally {
+            setActionLoading(false)
+          }
+        }
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setSuccessMsg(action === 'APPROVE_TRANSFER' ? 'Transfer berhasil disetujui. Tagihan lunas!' : 'Bukti transfer ditolak.')
-      setInvoice(data.data)
-      onUpdated()
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setActionLoading(false)
+    } else {
+      setConfirmDialog({
+        title: 'Setujui Transfer',
+        message: 'Setujui pembayaran transfer ini secara penuh?',
+        confirmLabel: 'Ya, Setujui',
+        confirmColor: 'bg-emerald-600 hover:bg-emerald-700',
+        onConfirm: async () => {
+          setConfirmDialog(null)
+          setActionLoading(true)
+          setError(null)
+          try {
+            const res = await fetch(`/api/finance/general/${invoice.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error)
+            setSuccessMsg('Transfer berhasil disetujui. Tagihan lunas!')
+            setInvoice(data.data)
+            onUpdated()
+          } catch (err: any) {
+            setError(err.message)
+          } finally {
+            setActionLoading(false)
+          }
+        }
+      })
     }
   }
 
@@ -167,36 +278,43 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
       return
     }
 
-    if (!confirm('Apakah nominal verifikasi yang Anda masukkan sudah sesuai dengan dana transfer yang masuk?')) return
-
     const totalVerifiedAmount = validPayments.reduce((acc, curr) => acc + curr.paid_amount, 0)
-    
-    setActionLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/finance/general/${invoice.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'VERIFY_TRANSFER',
-          items_paid: validPayments,
-          note: `Transfer Diverifikasi (Rp ${Number(totalVerifiedAmount).toLocaleString('id-ID')})`,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      
-      setSuccessMsg('Transfer berhasil diverifikasi dan dicatat.')
-      setInvoice(data.data)
-      if (data.data.items) {
-        setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
+
+    setConfirmDialog({
+      title: 'Konfirmasi Verifikasi',
+      message: `Nominal yang Anda masukkan (Rp ${totalVerifiedAmount.toLocaleString('id-ID')}) sudah sesuai dengan dana transfer yang masuk ke rekening sekolah?`,
+      confirmLabel: 'Ya, Verifikasi',
+      confirmColor: 'bg-emerald-600 hover:bg-emerald-700',
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        setActionLoading(true)
+        setError(null)
+        try {
+          const res = await fetch(`/api/finance/general/${invoice.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'VERIFY_TRANSFER',
+              items_paid: validPayments,
+              note: `Transfer Diverifikasi (Rp ${Number(totalVerifiedAmount).toLocaleString('id-ID')})`,
+            }),
+          })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error)
+          
+          setSuccessMsg('Transfer berhasil diverifikasi dan dicatat.')
+          setInvoice(data.data)
+          if (data.data.items) {
+            setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
+          }
+          onUpdated()
+        } catch (err: any) {
+          setError(err.message)
+        } finally {
+          setActionLoading(false)
+        }
       }
-      onUpdated()
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setActionLoading(false)
-    }
+    })
   }
 
   const handleEditItemsSave = async () => {
@@ -275,9 +393,9 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
     setIsEditMode(!isEditMode)
   }
 
-  const openPrintReceipt = () => {
+  const openPrintReceipt = (mode: 'current' | 'all' = 'default') => {
     if (invoiceId) {
-      window.open(`/print/invoice/${invoiceId}?t=${Date.now()}`, '_blank')
+      window.open(`/print/invoice/${invoiceId}?mode=${mode}&t=${Date.now()}`, '_blank')
     }
   }
 
@@ -291,6 +409,26 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   const totalPaymentPreview = paymentItems.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0)
 
   return (
+    <>
+    {/* Inline Dialogs */}
+    {confirmDialog && (
+      <ConfirmDialog
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        confirmColor={confirmDialog.confirmColor}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(null)}
+      />
+    )}
+    {inputDialog && (
+      <InputDialog
+        title={inputDialog.title}
+        placeholder={inputDialog.placeholder}
+        onConfirm={inputDialog.onConfirm}
+        onCancel={() => setInputDialog(null)}
+      />
+    )}
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
 
@@ -328,12 +466,20 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                 <CheckCircle2 size={16} className="shrink-0" /> {successMsg}
               </div>
               {showPrintOption && (
-                <button
-                  onClick={openPrintReceipt}
-                  className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 hover:bg-emerald-700 transition"
-                >
-                  <Printer size={14} /> Cetak Struk
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openPrintReceipt('current')}
+                    className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 hover:bg-emerald-700 transition"
+                  >
+                    <Printer size={14} /> Saat Ini
+                  </button>
+                  <button
+                    onClick={() => openPrintReceipt('all')}
+                    className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 hover:bg-emerald-700 transition"
+                  >
+                    <Printer size={14} /> Seluruh
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -663,12 +809,20 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                       )}
                       
                       {invoice.status !== 'UNPAID' && (
-                        <button
-                          onClick={openPrintReceipt}
-                          className="w-full bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
-                        >
-                          <Printer size={15} /> Cetak Bukti Pembayaran
-                        </button>
+                        <div className="flex flex-col gap-2 w-full mt-2">
+                          <button
+                            onClick={() => openPrintReceipt('current')}
+                            className="w-full bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                          >
+                            <Printer size={15} /> Cetak Pembayaran Saat Ini
+                          </button>
+                          <button
+                            onClick={() => openPrintReceipt('all')}
+                            className="w-full bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                          >
+                            <Printer size={15} /> Cetak Seluruh Tagihan
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -900,5 +1054,6 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
         </div>
       </div>
     </div>
+    </>
   )
 }

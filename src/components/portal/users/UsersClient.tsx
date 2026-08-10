@@ -671,13 +671,17 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                     <tr key={user.id} className="border-b border-slate-50 hover:bg-slate-50/60 transition group">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
-                              user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
-                                user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-blue-100 text-blue-700'
-                            }`}>
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
+                          {user.image ? (
+                            <img src={user.image} alt={user.name} className="w-9 h-9 rounded-full object-cover shrink-0 shadow-sm" />
+                          ) : (
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
+                                user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
+                                  user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-blue-100 text-blue-700'
+                              }`}>
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div>
                             <div className="font-semibold text-slate-800 text-sm flex items-center gap-1.5">
                               {user.name}
@@ -771,15 +775,19 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                 return (
                   <div key={user.id} className="bg-white border border-slate-100 p-4 rounded-xl shadow-sm flex flex-col gap-3 relative">
                     <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
-                            user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
-                              user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
-                                'bg-blue-100 text-blue-700'
-                          }`}>
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
+                        <div className="flex items-center gap-3">
+                          {user.image ? (
+                            <img src={user.image} alt={user.name} className="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm" />
+                          ) : (
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
+                                user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
+                                  user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-blue-100 text-blue-700'
+                              }`}>
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
                           <div className="font-semibold text-slate-800 text-base flex items-center gap-1.5">
                             {user.name}
                             {isSelf && (

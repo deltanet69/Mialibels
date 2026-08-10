@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getAdminSupabase } from "@/lib/supabase";
@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const status = url.searchParams.get("status");
     const classId = url.searchParams.get("classId");
     const studentId = url.searchParams.get("studentId");
+    const search = url.searchParams.get("search") || "";
 
     const supabase = getAdminSupabase();
 
@@ -34,8 +35,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .neq("type", "Infaq") // EXCLUDE Infaq from General Finance list
-      .order("created_at", { ascending: false })
-      .limit(2000);
+      .order("created_at", { ascending: false });
 
     if (status && status !== "ALL") {
       query = query.eq("status", status);
@@ -48,6 +48,14 @@ export async function GET(request: NextRequest) {
     if (studentId) {
       query = query.eq("student_id", studentId);
     }
+
+    if (search) {
+      // Use ilike on students.name or title
+      query = query.or(`title.ilike.%${search}%,students.name.ilike.%${search}%`);
+    }
+
+    // Limit to 300 to improve load time instead of 2000
+    query = query.limit(300);
 
     const { data, error } = await query;
 
