@@ -50,12 +50,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      // Use ilike on students.name or title
-      query = query.or(`title.ilike.%${search}%,students.name.ilike.%${search}%`);
+      query = query.ilike('title', `%${search}%`);
     }
 
-    // Limit to 300 to improve load time instead of 2000
-    query = query.limit(300);
+    query = query.limit(2000);
 
     const { data, error } = await query;
 
