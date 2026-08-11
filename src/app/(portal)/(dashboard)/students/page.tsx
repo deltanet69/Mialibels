@@ -41,15 +41,23 @@ export default function StudentsPage() {
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
   const [regenerating, setRegenerating] = useState(false)
   const [regenerateResult, setRegenerateResult] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   // Fetch ALL students once on mount — no search param needed
   const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/students?_t=' + Date.now())
-      const data = await res.json()
+      const [resStudents, resMe] = await Promise.all([
+        fetch('/api/students?_t=' + Date.now()),
+        fetch('/api/auth/me')
+      ])
+      const data = await resStudents.json()
+      const dataMe = await resMe.json()
       if (data.success) {
         setAllStudents(data.data)
+      }
+      if (dataMe.success) {
+        setCurrentUser(dataMe.user)
       }
     } catch (err) {
       console.error(err)
@@ -61,6 +69,8 @@ export default function StudentsPage() {
   useEffect(() => {
     fetchStudents()
   }, [fetchStudents])
+
+  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff'
 
   // Unique classes for filter
   const classes = useMemo(() => {
@@ -166,31 +176,24 @@ export default function StudentsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Data Siswa</h1>
           <p className="text-slate-500">Kelola data siswa, absensi, dan profil.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-          {/* <button 
-            onClick={handleRegenerateIds}
-            disabled={regenerating || loading}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-amber-300 text-amber-700 px-4 py-2.5 rounded-xl hover:bg-amber-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Update semua ID siswa ke format baru (01A2026001)"
-          >
-            <RefreshCw size={18} className={regenerating ? 'animate-spin' : ''} />
-            {regenerating ? 'Memperbarui...' : 'Perbarui ID Siswa'}
-          </button> */}
-          <button 
-            onClick={() => setShowImport(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
-          >
-            <UploadCloud size={18} />
-            Import CSV
-          </button>
-          <button 
-            onClick={() => { setEditingStudent(null); setShowForm(true); }}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-sm font-medium"
-          >
-            <Plus size={18} />
-            Tambah Siswa
-          </button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+            <button 
+              onClick={() => setShowImport(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
+            >
+              <UploadCloud size={18} />
+              Import CSV
+            </button>
+            <button 
+              onClick={() => { setEditingStudent(null); setShowForm(true); }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-sm font-medium"
+            >
+              <Plus size={18} />
+              Tambah Siswa
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Result notification */}
@@ -303,20 +306,24 @@ export default function StudentsPage() {
                         >
                           <Eye size={18} />
                         </Link>
-                        <button 
-                          onClick={() => { setEditingStudent(student); setShowForm(true); }}
-                          className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
-                          title="Edit"
-                        >
-                          <Edit3 size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(student.id, student.name)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                          title="Hapus"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {canEdit && (
+                          <>
+                            <button 
+                              onClick={() => { setEditingStudent(student); setShowForm(true); }}
+                              className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                              title="Edit"
+                            >
+                              <Edit3 size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(student.id, student.name)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                              title="Hapus"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -382,18 +389,22 @@ export default function StudentsPage() {
                   >
                     <Eye size={14} /> Detail
                   </Link>
-                  <button 
-                    onClick={() => { setEditingStudent(student); setShowForm(true); }}
-                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition"
-                  >
-                    <Edit3 size={14} /> Edit
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(student.id, student.name)}
-                    className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canEdit && (
+                    <>
+                      <button 
+                        onClick={() => { setEditingStudent(student); setShowForm(true); }}
+                        className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition"
+                      >
+                        <Edit3 size={14} /> Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(student.id, student.name)}
+                        className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))

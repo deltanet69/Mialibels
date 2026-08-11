@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.ilike('title', `%${search}%`);
+      // Search by title OR student name/NISN — use Supabase OR filter
+      query = query.or(`title.ilike.%${search}%,students.name.ilike.%${search}%,students.student_number.ilike.%${search}%,students.nisn.ilike.%${search}%`);
     }
 
     query = query.limit(2000);

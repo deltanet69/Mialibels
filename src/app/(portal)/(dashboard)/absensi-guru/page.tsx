@@ -45,6 +45,8 @@ export default function AbsensiGuruPage() {
   const [showLog, setShowLog] = useState(false)
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [viewPersonalOnly, setViewPersonalOnly] = useState<boolean>(true)
   const formatTime = (isoString?: string | null) => {
     if (!isoString) return '-'
     const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
@@ -78,9 +80,15 @@ export default function AbsensiGuruPage() {
   const fetchAttendance = async (selectedDate: string, currentFilter: FilterType) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`)
-      const data = await res.json()
+      const [resAtt, resMe] = await Promise.all([
+        fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`),
+        fetch('/api/auth/me')
+      ])
+      const data = await resAtt.json()
+      const dataMe = await resMe.json()
+      
       if (data.success) setStaffs(data.data)
+      if (dataMe.success) setCurrentUser(dataMe.user)
     } catch (err) {
       console.error(err)
       addLog('Gagal memuat data absensi.', 'error')
@@ -197,6 +205,35 @@ export default function AbsensiGuruPage() {
     })
   }
 
+  const isGuru = currentUser?.role?.toLowerCase().includes('guru') || currentUser?.role === 'staff';
+  const myStaffRecord = isGuru && currentUser?.staffId ? staffs.find(s => s.id === currentUser.staffId) : null;
+  
+  const personalSummary = {
+    HADIR: 0,
+    TIDAK_MASUK: 0,
+    IZIN: 0,
+    SAKIT: 0,
+  }
+
+  if (myStaffRecord) {
+    if (filterType === 'hari') {
+      const status = getAttendanceStatus(myStaffRecord.attendance)
+      if (status === 'HADIR') personalSummary.HADIR++
+      else if (status === 'IZIN') personalSummary.IZIN++
+      else if (status === 'SAKIT') personalSummary.SAKIT++
+      else if (status === 'TIDAK MASUK') personalSummary.TIDAK_MASUK++
+    } else {
+      myStaffRecord.attendances?.forEach(att => {
+        if (att.status === 'HADIR') personalSummary.HADIR++
+        else if (att.status === 'IZIN') personalSummary.IZIN++
+        else if (att.status === 'SAKIT') personalSummary.SAKIT++
+      })
+    }
+  }
+
+  const activeSummary = (isGuru && viewPersonalOnly) ? personalSummary : globalSummary;
+  const activeStaffs = (isGuru && viewPersonalOnly) ? (myStaffRecord ? [myStaffRecord] : []) : staffs;
+
   return (
     <div className="w-full flex flex-col font-sans relative">
       
@@ -297,42 +334,45 @@ export default function AbsensiGuruPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <CheckCircle2 size={20} />
-              </div>
-              <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Hadir</p>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 mb-1">Hadir</p>
+              <h3 className="text-3xl font-bold text-emerald-600">{activeSummary.HADIR}</h3>
             </div>
-            <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.HADIR}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                <Clock size={20} />
-              </div>
-              <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Izin</p>
+            <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="text-emerald-500" size={24} />
             </div>
-            <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.IZIN}</p>
           </div>
-          <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
-                <AlertCircle size={20} />
-              </div>
-              <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Sakit</p>
+          
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 mb-1">Izin</p>
+              <h3 className="text-3xl font-bold text-blue-600">{activeSummary.IZIN}</h3>
             </div>
-            <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.SAKIT}</p>
+            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
+              <Activity className="text-blue-500" size={24} />
+            </div>
           </div>
+          
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500 mb-1">Sakit</p>
+              <h3 className="text-3xl font-bold text-amber-500">{activeSummary.SAKIT}</h3>
+            </div>
+            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
+              <AlertCircle className="text-amber-500" size={24} />
+            </div>
+          </div>
+          
           {filterType === 'hari' && (
-            <div className="bg-white rounded-2xl p-5 flex flex-col gap-2 shadow-sm border border-slate-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
-                  <XCircle size={20} />
-                </div>
-                <p className="text-[16px] font-bold text-slate-400 uppercase tracking-wider">Tidak Masuk</p>
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">Tidak Masuk</p>
+                <h3 className="text-3xl font-bold text-rose-500">{activeSummary.TIDAK_MASUK}</h3>
               </div>
-              <p className="text-3xl font-black text-slate-800 ml-1">{globalSummary.TIDAK_MASUK}</p>
+              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center">
+                <XCircle className="text-rose-500" size={24} />
+              </div>
             </div>
           )}
         </div>
@@ -343,12 +383,12 @@ export default function AbsensiGuruPage() {
             <div className="col-span-full p-10 text-center text-slate-500 bg-white rounded-2xl border border-slate-100">
               Memuat data absensi...
             </div>
-          ) : staffs.length === 0 ? (
+          ) : activeStaffs.length === 0 ? (
             <div className="col-span-full p-10 text-center text-slate-500 bg-white rounded-2xl border border-slate-100">
-              Belum ada data guru/staff yang aktif.
+              {viewPersonalOnly && isGuru ? 'Data absensi pribadi belum tersedia.' : 'Belum ada data guru/staff yang aktif.'}
             </div>
           ) : (
-            [...staffs]
+            [...activeStaffs]
               .sort((a, b) => sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))
               .map((staff) => {
               

@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session';
 import { DashboardCards } from '@/components/portal/dashboard/DashboardCards';
 import { AttendanceChart } from '@/components/portal/dashboard/AttendanceChart';
 import { TransactionsTable } from '@/components/portal/dashboard/TransactionsTable';
+import { GuruDashboard } from '@/components/portal/dashboard/GuruDashboard';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,11 @@ async function safeQuery<T>(promise: Promise<{ data: T | null; count: number | n
 
 export default async function AdminDashboardPage() {
   const user = await getSession().catch(() => null);
+
+  const isGuru = user?.role?.toLowerCase().includes('guru');
+  if (isGuru) {
+    return <GuruDashboard user={user} />;
+  }
 
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 

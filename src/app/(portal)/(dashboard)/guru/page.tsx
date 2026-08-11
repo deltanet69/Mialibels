@@ -42,15 +42,23 @@ export default function GuruPage() {
   const [showForm, setShowForm] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editingGuru, setEditingGuru] = useState<any | null>(null)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
-  // Fetch ALL guru once on mount — no search param
   const fetchGuru = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/guru?_t=' + Date.now())
-      const data = await res.json()
+      const [resGuru, resMe] = await Promise.all([
+        fetch('/api/guru?_t=' + Date.now()),
+        fetch('/api/auth/me')
+      ])
+      const data = await resGuru.json()
+      const dataMe = await resMe.json()
+      
       if (data.success) {
         setAllGuru(data.data)
+      }
+      if (dataMe.success) {
+        setCurrentUser(dataMe.user)
       }
     } catch (err) {
       console.error(err)
@@ -62,6 +70,8 @@ export default function GuruPage() {
   useEffect(() => {
     fetchGuru()
   }, [fetchGuru])
+
+  const canEdit = currentUser?.role === 'superadmin'
 
   // Unique positions for filter
   const positions = useMemo(() => {
@@ -153,22 +163,24 @@ export default function GuruPage() {
           <h1 className="text-2xl font-bold text-slate-800">Data Guru &amp; Staff</h1>
           <p className="text-slate-500">Kelola informasi guru, staff, dan riwayat absensinya.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
-            onClick={() => setShowImport(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
-          >
-            <UploadCloud size={18} />
-            Import CSV
-          </button>
-          <button
-            onClick={() => { setEditingGuru(null); setShowForm(true); }}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-sm font-medium"
-          >
-            <Plus size={18} />
-            Tambah Guru/Staff
-          </button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
+            >
+              <UploadCloud size={18} />
+              Import CSV
+            </button>
+            <button
+              onClick={() => { setEditingGuru(null); setShowForm(true); }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition shadow-sm font-medium"
+            >
+              <Plus size={18} />
+              Tambah Guru/Staff
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -301,20 +313,24 @@ export default function GuruPage() {
                         >
                           <Eye size={18} />
                         </Link>
-                        <button
-                          onClick={() => { setEditingGuru(guru); setShowForm(true); }}
-                          className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
-                          title="Edit"
-                        >
-                          <Edit3 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(guru.id, guru.name)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                          title="Hapus"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {canEdit && (
+                          <>
+                            <button
+                              onClick={() => { setEditingGuru(guru); setShowForm(true); }}
+                              className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                              title="Edit"
+                            >
+                              <Edit3 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(guru.id, guru.name)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                              title="Hapus"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -408,18 +424,22 @@ export default function GuruPage() {
                   >
                     <Eye size={14} /> Detail
                   </Link>
-                  <button
-                    onClick={() => { setEditingGuru(guru); setShowForm(true); }}
-                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition"
-                  >
-                    <Edit3 size={14} /> Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(guru.id, guru.name)}
-                    className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canEdit && (
+                    <>
+                      <button
+                        onClick={() => { setEditingGuru(guru); setShowForm(true); }}
+                        className="flex-1 flex justify-center items-center gap-1.5 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition"
+                      >
+                        <Edit3 size={14} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(guru.id, guru.name)}
+                        className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))

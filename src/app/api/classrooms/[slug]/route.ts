@@ -29,6 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       id: classroom.id,
       name: classroom.name,
       homeroomTeacher: classroom.homeroom_teacher ? classroom.homeroom_teacher.name : 'Belum Ditugaskan',
+      homeroomTeacherId: classroom.homeroom_teacher_id,
       enrolledStudents: classroom.students[0]?.count || 0
     }
 

@@ -575,19 +575,41 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-bold text-slate-800 text-sm">Rincian Item Tagihan</h4>
-                    {invoice.status !== 'PAID' && (
-                      <button
-                        onClick={toggleEditMode}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
-                      >
-                        {isEditMode ? <><X size={14} /> Batal Edit</> : <><Edit3 size={14} /> Edit Rincian Manual</>}
-                      </button>
-                    )}
+                    {/* Edit button always visible for all statuses — admin can correct wrongly-paid invoices */}
+                    <button
+                      onClick={toggleEditMode}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                        isEditMode
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          : invoice.status === 'PAID'
+                          ? 'bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {isEditMode
+                        ? <><X size={14} /> Batal Edit</>
+                        : invoice.status === 'PAID'
+                        ? <><Edit3 size={14} /> Edit Rincian (Sudah Lunas)</>
+                        : <><Edit3 size={14} /> Edit Rincian Manual</>
+                      }
+                    </button>
                   </div>
 
                   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                     {isEditMode ? (
                       <div className="p-4 space-y-4 bg-slate-50">
+                        {/* Warning banner when editing a PAID invoice */}
+                        {invoice.status === 'PAID' && (
+                          <div className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                            <AlertTriangle size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-xs font-bold text-orange-700">Tagihan Ini Berstatus LUNAS</p>
+                              <p className="text-xs text-orange-600 mt-0.5">
+                                Anda sedang mengedit rincian tagihan yang sudah terbayar lunas. Perubahan ini akan menyesuaikan ulang total tagihan dan status pembayaran secara otomatis.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-3">
                           {editItems.map((item, idx) => (
                             <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-white p-3 rounded-lg border border-slate-200">
@@ -634,7 +656,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                   )}
                                 </div>
                               </div>
-                              <div className="w-full sm:w-1/3">
+                              <div className="w-full sm:w-1/4">
                                 <label className="text-[10px] font-semibold text-slate-500 uppercase">Nominal</label>
                                 <input
                                   type="number"
@@ -651,6 +673,29 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                                   }}
                                   className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
                                 />
+                              </div>
+
+                              <div className="w-full sm:w-1/4">
+                                <label className="text-[10px] font-semibold text-emerald-600 uppercase">Telah Dibayar</label>
+                                <input
+                                  type="number"
+                                  value={item.paid_amount}
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
+                                  onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    const newPaid = val === '' ? '' : Number(val);
+                                    const maxPaid = Number(item.amount) || 0;
+                                    if (typeof newPaid === 'number' && newPaid > maxPaid) {
+                                      handleEditItemChange(idx, 'paid_amount', maxPaid);
+                                    } else {
+                                      handleEditItemChange(idx, 'paid_amount', newPaid);
+                                    }
+                                  }}
+                                  className="w-full px-3 py-1.5 text-sm border border-emerald-300 rounded-md outline-none focus:border-emerald-500"
+                                  placeholder="0"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-0.5">Maks: {Number(item.amount || 0).toLocaleString('id-ID')}</p>
                               </div>
 
                               <div className="pt-4">

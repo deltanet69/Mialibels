@@ -270,18 +270,24 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
     try {
       const allInvs = getAllInvoices(invoice)
 
-      // 1. Save edits to existing invoices
+      // 1. Save edits to existing invoices (amount AND paid_amount)
       await Promise.all(
         editItems.map(async (item) => {
           const amountToSave = Number(item.amount)
+          const paidToSave = Math.min(Number(item.paid_amount) || 0, amountToSave)
           if (isNaN(amountToSave) || amountToSave < 0) return
           const original = allInvs.find((inv: any) => inv.id === item.id)
-          if (original && Number(original.amount) === amountToSave) return // skip unchanged
+          // skip if nothing changed
+          if (
+            original &&
+            Number(original.amount) === amountToSave &&
+            (Number(original.paid_amount) || 0) === paidToSave
+          ) return
 
           const res = await fetch(`/api/spp/manage/${item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'EDIT_AMOUNT', amount: amountToSave }),
+            body: JSON.stringify({ action: 'EDIT_AMOUNT', amount: amountToSave, paid_amount: paidToSave }),
           })
           const data = await res.json()
           if (!res.ok) throw new Error(data.error)
@@ -326,7 +332,8 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
   const toggleEditMode = () => {
     if (!isEditMode) {
       const allInvs = getAllInvoices(invoice)
-      setEditItems(allInvs.map((inv: any) => ({ id: inv.id, amount: inv.amount })))
+      // Include paid_amount so admin can also correct the paid amount
+      setEditItems(allInvs.map((inv: any) => ({ id: inv.id, amount: inv.amount, paid_amount: inv.paid_amount || 0 })))
       setNewInvoiceRows([])
     } else {
       setNewInvoiceRows([])
@@ -519,20 +526,42 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-bold text-slate-800 text-sm">Rincian Item Tagihan</h4>
-                    {invoice.status !== 'PAID' && (
-                      <button
-                        onClick={toggleEditMode}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
-                      >
-                        {isEditMode ? <><X size={14} /> Batal Edit</> : <><Edit3 size={14} /> Edit Rincian Manual</>}
-                      </button>
-                    )}
+                    {/* Edit button always visible for all statuses — admin can correct wrongly-paid invoices */}
+                    <button
+                      onClick={toggleEditMode}
+                      className={`text-xs font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                        isEditMode
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          : invoice.status === 'PAID'
+                          ? 'bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {isEditMode
+                        ? <><X size={14} /> Batal Edit</>
+                        : invoice.status === 'PAID'
+                        ? <><Edit3 size={14} /> Edit Rincian (Sudah Lunas)</>
+                        : <><Edit3 size={14} /> Edit Rincian Manual</>
+                      }
+                    </button>
                   </div>
 
                   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                     {isEditMode ? (
                       /* Edit mode: inline rows exactly like GeneralInvoiceDetailModal */
                       <div className="p-4 space-y-4 bg-slate-50 min-w-[600px]">
+                        {/* Warning banner when editing a PAID invoice */}
+                        {invoice.status === 'PAID' && (
+                          <div className="flex items-start gap-3 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+                            <AlertTriangle size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-xs font-bold text-orange-700">Tagihan Ini Berstatus LUNAS</p>
+                              <p className="text-xs text-orange-600 mt-0.5">
+                                Anda sedang mengedit rincian tagihan yang sudah terbayar lunas. Perubahan nominal akan menyesuaikan ulang status pembayaran secara otomatis.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-3">
                           {/* Existing invoice rows */}
                           {editItems.map((item, idx) => {
@@ -546,7 +575,7 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
                                     <p className="text-sm font-semibold text-slate-700">{inv?.title || '-'}</p>
                                   </div>
                                 </div>
-                                <div className="w-full sm:w-1/3">
+                                <div className="w-full sm:w-1/4">
                                   <label className="text-[10px] font-semibold text-slate-500 uppercase">Nominal</label>
                                   <input
                                     type="number"
@@ -554,12 +583,37 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
                                     onWheel={(e) => (e.target as HTMLElement).blur()}
                                     onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
                                     onChange={(e) => {
+                                      const newAmt = e.target.value === '' ? '' : Number(e.target.value)
                                       const newItems = [...editItems]
-                                      newItems[idx] = { ...newItems[idx], amount: e.target.value }
+                                      newItems[idx] = { ...newItems[idx], amount: newAmt }
+                                      // Cap paid_amount if amount decreases below it
+                                      if (typeof newAmt === 'number' && (Number(newItems[idx].paid_amount) || 0) > newAmt) {
+                                        newItems[idx] = { ...newItems[idx], paid_amount: newAmt }
+                                      }
                                       setEditItems(newItems)
                                     }}
                                     className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md outline-none focus:border-blue-500"
                                   />
+                                </div>
+
+                                <div className="w-full sm:w-1/4">
+                                  <label className="text-[10px] font-semibold text-emerald-600 uppercase">Telah Dibayar</label>
+                                  <input
+                                    type="number"
+                                    value={item.paid_amount ?? 0}
+                                    onWheel={(e) => (e.target as HTMLElement).blur()}
+                                    onKeyDown={(e) => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
+                                    onChange={(e) => {
+                                      const newPaid = e.target.value === '' ? 0 : Number(e.target.value)
+                                      const maxPaid = Number(item.amount) || 0
+                                      const newItems = [...editItems]
+                                      newItems[idx] = { ...newItems[idx], paid_amount: Math.min(newPaid, maxPaid) }
+                                      setEditItems(newItems)
+                                    }}
+                                    className="w-full px-3 py-1.5 text-sm border border-emerald-300 rounded-md outline-none focus:border-emerald-500"
+                                    placeholder="0"
+                                  />
+                                  <p className="text-[10px] text-slate-400 mt-0.5">Maks: {Number(item.amount || 0).toLocaleString('id-ID')}</p>
                                 </div>
                               </div>
                             )

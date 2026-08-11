@@ -1,11 +1,34 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
+    
+    const session = await getSession()
+    const role = session?.role?.toLowerCase() || ''
+    const isGuru = role.includes('guru')
+
+    let allowedClassroomIds: string[] | null = null
+
+    if (isGuru && session?.email) {
+      // Find staff ID
+      const { data: staff } = await supabase.from('staffs').select('id').eq('email', session.email).single()
+      if (staff) {
+        const { data: schedules } = await supabase.from('classroom_schedules').select('classroom_id').eq('teacher_id', staff.id)
+        const scheduleIds = schedules ? schedules.map(s => s.classroom_id) : []
+        
+        const { data: homeroom } = await supabase.from('classrooms').select('id').eq('homeroom_teacher_id', staff.id)
+        const homeroomIds = homeroom ? homeroom.map(h => h.id) : []
+        
+        allowedClassroomIds = [...new Set([...scheduleIds, ...homeroomIds])]
+      } else {
+        allowedClassroomIds = [] // Guru but no staff record, sees nothing
+      }
+    }
 
     let query = supabase
       .from('classrooms')
@@ -15,6 +38,13 @@ export async function GET(request: NextRequest) {
         students(count)
       `)
       .order('name', { ascending: true })
+
+    if (allowedClassroomIds !== null) {
+      if (allowedClassroomIds.length === 0) {
+        return NextResponse.json({ success: true, data: [] })
+      }
+      query = query.in('id', allowedClassroomIds)
+    }
 
     if (search) {
       query = query.ilike('name', `%${search}%`)

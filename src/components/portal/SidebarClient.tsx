@@ -135,9 +135,15 @@ export function SidebarClient({ role, userName }: Props) {
                   <Link href="/absensi-guru" className={linkClass('/absensi-guru')} onClick={() => setIsOpen(false)}>
                     <ClipboardCheck size={20} /> <span className="font-medium">Absensi Guru</span>
                   </Link>
-                  <Link href="/rekap-mengajar" className={linkClass('/rekap-mengajar')} onClick={() => setIsOpen(false)}>
-                    <BookOpen size={20} /> <span className="font-medium">Rekap Mengajar</span>
-                  </Link>
+                  {role?.toLowerCase().includes('guru') ? (
+                    <Link href="/jadwal-mengajar" className={linkClass('/jadwal-mengajar')} onClick={() => setIsOpen(false)}>
+                      <BookOpen size={20} /> <span className="font-medium">Jadwal Mengajar</span>
+                    </Link>
+                  ) : (
+                    <Link href="/rekap-mengajar" className={linkClass('/rekap-mengajar')} onClick={() => setIsOpen(false)}>
+                      <BookOpen size={20} /> <span className="font-medium">Rekap Mengajar</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             )}

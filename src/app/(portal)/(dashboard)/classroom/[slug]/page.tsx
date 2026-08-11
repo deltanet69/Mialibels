@@ -11,6 +11,7 @@ import { LayoutDashboard, CalendarDays, ClipboardCheck, Megaphone, Loader2 } fro
 export default function ClassroomDetailPage(props: { params: Promise<{ slug: string }> }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [classroom, setClassroom] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   
@@ -18,14 +19,23 @@ export default function ClassroomDetailPage(props: { params: Promise<{ slug: str
   const slug = params.slug;
   
   useEffect(() => {
-    const fetchClassroom = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/api/classrooms/${slug}`);
-        const data = await res.json();
-        if (data.success && data.data) {
-          setClassroom(data.data);
+        const [classRes, userRes] = await Promise.all([
+          fetch(`/api/classrooms/${slug}`),
+          fetch('/api/auth/me')
+        ]);
+        const classData = await classRes.json();
+        const userData = await userRes.json();
+        
+        if (classData.success && classData.data) {
+          setClassroom(classData.data);
         } else {
           setError(true);
+        }
+
+        if (userData.success && userData.user) {
+          setUser(userData.user);
         }
       } catch (err) {
         setError(true);
@@ -34,7 +44,7 @@ export default function ClassroomDetailPage(props: { params: Promise<{ slug: str
       }
     };
     
-    fetchClassroom();
+    fetchData();
   }, [slug]);
   
   if (loading) {
@@ -61,7 +71,7 @@ export default function ClassroomDetailPage(props: { params: Promise<{ slug: str
       case 'overview':
         return <ClassroomOverview totalStudents={classroom.enrolledStudents} classroomId={classroom.id} classroomSlug={slug} />;
       case 'schedule':
-        return <ClassroomSchedule classroomId={classroom.id} />;
+        return <ClassroomSchedule classroomId={classroom.id} user={user} homeroomTeacherId={classroom.homeroomTeacherId} />;
       case 'attendance':
         return <ClassroomAttendance classroomId={classroom.id} />;
       case 'info':

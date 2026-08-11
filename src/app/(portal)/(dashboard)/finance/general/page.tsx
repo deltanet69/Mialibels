@@ -149,7 +149,9 @@ export default function GeneralFinancePage() {
       let url = '/api/finance/general?'
       if (filterStatus !== 'ALL') url += `status=${filterStatus}&`
       if (filterClass !== 'ALL') url += `classId=${filterClass}&`
-      if (debouncedSearch) url += `search=${encodeURIComponent(debouncedSearch)}&`
+      // NOTE: Search is handled PURELY client-side in filteredInvoices useMemo below.
+      // Do NOT pass search to the API — the API only filters by title, not student name,
+      // which would cause 0 results when searching by name and break the summary totals.
 
       const res = await fetch(url)
       const data = await res.json()
@@ -159,7 +161,7 @@ export default function GeneralFinancePage() {
     } finally {
       setLoading(false)
     }
-  }, [filterStatus, filterClass, debouncedSearch])
+  }, [filterStatus, filterClass])
 
   useEffect(() => {
     fetchData()

@@ -207,21 +207,23 @@ export async function PUT(
 
     // ─── EDIT_AMOUNT ─────────────────────────────────────────────────────────
     if (action === 'EDIT_AMOUNT') {
-      const { amount } = body;
+      const { amount, paid_amount } = body;
       const newAmount = Number(amount);
       if (isNaN(newAmount) || newAmount < 0) {
         return NextResponse.json({ error: "Nominal tagihan tidak valid." }, { status: 400 });
       }
 
-      const currentPaid = Number(invoice.paid_amount) || 0;
+      const newPaidAmount = paid_amount !== undefined ? Number(paid_amount) : (Number(invoice.paid_amount) || 0);
+      const safePaidAmount = Math.min(newPaidAmount, newAmount); // Capping paid_amount to amount just in case
+
       let newStatus = invoice.status;
-      if (currentPaid === 0) newStatus = 'UNPAID';
-      else if (currentPaid < newAmount) newStatus = 'PARTIAL';
-      else if (currentPaid >= newAmount && newAmount > 0) newStatus = 'PAID';
+      if (safePaidAmount === 0) newStatus = 'UNPAID';
+      else if (safePaidAmount < newAmount) newStatus = 'PARTIAL';
+      else if (safePaidAmount >= newAmount && newAmount > 0) newStatus = 'PAID';
 
       const { data: _updatedInvoice, error: updErr } = await (adminSupabase
         .from('spp_invoices') as any)
-        .update({ amount: newAmount, status: newStatus })
+        .update({ amount: newAmount, paid_amount: safePaidAmount, status: newStatus })
         .eq('id', id)
         .select('*, students(name, student_number, nisn, class, parent_name, parent_phone)')
         .single();

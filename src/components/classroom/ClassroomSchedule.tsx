@@ -5,7 +5,7 @@ import { Clock, Plus, Trash2, Edit2, X, PlayCircle, Loader2, UserCircle2, CheckC
 
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
-export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
+export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { classroomId: string, user?: any, homeroomTeacherId?: string }) {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   
@@ -23,7 +23,14 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
   const [saving, setSaving] = useState(false);
   const [teachingLogs, setTeachingLogs] = useState<Record<string, any>>({});
   const [loadingTeaching, setLoadingTeaching] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const role = user?.role?.toLowerCase();
+  const isSuperAdmin = role === 'superadmin';
+  const isStaff = role === 'staff';
+  const isKepsek = role === 'kepsek';
+  // Guru can edit only if they are the homeroom teacher for this specific class
+  const isHomeroom = role?.includes('guru') && user?.staffId === homeroomTeacherId;
+  const canEdit = isSuperAdmin || isStaff || isKepsek || isHomeroom;
 
   const SUBJECTS = [
     "Al-Qur'an Hadis", "Akidah Akhlak", "Fikih", "Sejarah Kebudayaan Islam",
@@ -53,18 +60,13 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
         setSchedules(dataSchedules.data);
       }
       
-      // Fetch current user
-      const resMe = await fetch('/api/auth/me');
-      const dataMe = await resMe.json();
-      if (dataMe.success) {
-        setCurrentUser(dataMe.user);
-      }
-      
-      // Fetch teachers for dropdown
-      const resTeachers = await fetch('/api/guru');
-      const dataTeachers = await resTeachers.json();
-      if (dataTeachers.success) {
-        setTeachers(dataTeachers.data);
+      // Fetch teachers for dropdown if allowed to edit
+      if (canEdit) {
+        const resTeachers = await fetch('/api/guru');
+        const dataTeachers = await resTeachers.json();
+        if (dataTeachers.success) {
+          setTeachers(dataTeachers.data);
+        }
       }
       
       // Fetch teaching logs for today
@@ -252,13 +254,15 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
             <h3 className="text-lg font-bold text-slate-800">Jadwal Pelajaran</h3>
             <p className="text-sm text-slate-500">Atur jadwal mingguan untuk kelas ini.</p>
           </div>
-          <button 
-            onClick={handleOpenAdd}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah Jadwal
-          </button>
+          {canEdit && (
+            <button 
+              onClick={handleOpenAdd}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah Jadwal
+            </button>
+          )}
         </div>
 
         {/* Days Tabs */}
@@ -347,14 +351,16 @@ export function ClassroomSchedule({ classroomId }: { classroomId: string }) {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleOpenEdit(schedule)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Edit">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(schedule.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors" title="Hapus">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {canEdit && (
+                  <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleOpenEdit(schedule)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Edit">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(schedule.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors" title="Hapus">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })

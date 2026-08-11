@@ -65,10 +65,16 @@ const ADMIN_API_PREFIXES: string[] = [
   '/api/guru',
   '/api/attendance',
   '/api/finance',
+  '/api/spp',
+  '/api/savings',
   '/api/content',
   '/api/reports',
   '/api/users',
   '/api/profile',
+  '/api/schedules',
+  '/api/logs',
+  '/api/notifications',
+  '/api/infos',
 ];
 
 /** Parent portal — requires valid parent_session */
