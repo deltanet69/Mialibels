@@ -125,7 +125,10 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   // Cash payment form (Itemized)
   const [cashNote, setCashNote] = useState('')
   const [paymentItems, setPaymentItems] = useState<{name: string, paid_amount: number}[]>([])
-  
+
+  // Tracks ONLY items paid in the last transaction (for "Cetak Pembayaran Saat Ini")
+  const [lastPaymentItems, setLastPaymentItems] = useState<{name: string, paid_amount: number, amount: number}[]>([])
+
   // Show Print Option
   const [showPrintOption, setShowPrintOption] = useState(false)
 
@@ -136,6 +139,14 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
   const [inputDialog, setInputDialog] = useState<{
     title: string; placeholder: string; onConfirm: (value: string) => void
   } | null>(null)
+
+  // Lock body scroll when modal is open — prevents dashboard freeze
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   useEffect(() => {
     if (invoiceId) {
@@ -197,13 +208,22 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       
+      // Save ONLY the items paid in THIS transaction for "Cetak Pembayaran Saat Ini"
+      const currentItems = invoice.items || []
+      setLastPaymentItems(
+        validPayments.map(p => {
+          const itemDetail = currentItems.find((i: any) => i.name === p.name)
+          return { name: p.name, paid_amount: p.paid_amount, amount: Number(itemDetail?.amount) || 0 }
+        })
+      )
+
       setSuccessMsg('Pembayaran tunai berhasil dicatat.')
       setCashNote('')
       setInvoice(data.data)
       if (data.data.items) {
         setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
       }
-      setShowPrintOption(true) // Show print button after successful payment
+      setShowPrintOption(true)
       onUpdated()
     } catch (err: any) {
       setError(err.message)
@@ -301,9 +321,19 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
           })
           const data = await res.json()
           if (!res.ok) throw new Error(data.error)
-          
+
+          // Save ONLY the items paid in THIS transfer for "Cetak Pembayaran Saat Ini"
+          const currentItems = invoice.items || []
+          setLastPaymentItems(
+            validPayments.map(p => {
+              const itemDetail = currentItems.find((i: any) => i.name === p.name)
+              return { name: p.name, paid_amount: p.paid_amount, amount: Number(itemDetail?.amount) || 0 }
+            })
+          )
+
           setSuccessMsg('Transfer berhasil diverifikasi dan dicatat.')
           setInvoice(data.data)
+          setShowPrintOption(true)
           if (data.data.items) {
             setPaymentItems(data.data.items.map((i: any) => ({ name: i.name, paid_amount: 0 })))
           }
@@ -395,7 +425,13 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
 
   const openPrintReceipt = (mode: 'current' | 'all' = 'default') => {
     if (invoiceId) {
-      window.open(`/print/invoice/${invoiceId}?mode=${mode}&t=${Date.now()}`, '_blank')
+      if (mode === 'current' && lastPaymentItems.length > 0) {
+        // Encode the exact items paid in THIS transaction so the print page only shows those
+        const itemsParam = encodeURIComponent(JSON.stringify(lastPaymentItems))
+        window.open(`/print/invoice/${invoiceId}?mode=current&items=${itemsParam}&t=${Date.now()}`, '_blank')
+      } else {
+        window.open(`/print/invoice/${invoiceId}?mode=${mode}&t=${Date.now()}`, '_blank')
+      }
     }
   }
 
@@ -429,7 +465,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
         onCancel={() => setInputDialog(null)}
       />
     )}
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-sm overflow-y-auto overscroll-contain">
       <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
 
         {/* Header */}

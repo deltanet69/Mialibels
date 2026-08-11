@@ -15,13 +15,15 @@ function getAdminSupabase() {
   );
 }
 
-export default async function PrintInvoiceReceipt(props: { params: Promise<{ id: string }>, searchParams: Promise<{ mode?: string }> }) {
+export default async function PrintInvoiceReceipt(props: { params: Promise<{ id: string }>, searchParams: Promise<{ mode?: string, items?: string }> }) {
   const params = await props.params;
   const { id } = params;
   const searchParams = await props.searchParams;
   const mode = searchParams.mode || 'default'; // 'current' or 'all'
+  // Items paid in THIS specific transaction (passed from the modal as JSON)
+  const itemsParam = searchParams.items || null;
 
-  const session = await getSession();
+  const session = await getSession()
   const supabase = getAdminSupabase();
 
   const { data: invoice, error } = await supabase
@@ -39,8 +41,17 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
     return <div className="p-4 text-center font-bold">Data tagihan tidak ditemukan.</div>;
   }
 
-  let itemsToPrint = invoice.items || [];
+  // Full invoice items (all of them, for totals calculation)
+  const allItems = invoice.items || [];
+  const invoiceTotalAmount = allItems.reduce((acc: number, i: any) => acc + Number(i.amount || 0), 0);
+  const invoiceTotalPaid = allItems.reduce((acc: number, i: any) => acc + Number(i.paid_amount || 0), 0);
+  const invoiceTotalSisa = invoiceTotalAmount - invoiceTotalPaid;
+
+  // Determine which items to show in the table
+  let itemsToPrint = allItems;
+
   if (mode === 'all') {
+    // Cetak Seluruh Tagihan — all items from all student invoices of this type
     const { data: allStudentInvoices } = await supabase
       .from('general_invoices')
       .select('items')
@@ -50,17 +61,28 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
       itemsToPrint = allStudentInvoices.flatMap((inv: any) => inv.items || []);
     }
   } else if (mode === 'current') {
-    // Only print items that have been paid (partially or fully) in this invoice
-    itemsToPrint = itemsToPrint.filter((item: any) => Number(item.paid_amount) > 0);
+    // Cetak Pembayaran Saat Ini — ONLY the items paid in THIS specific transaction
+    if (itemsParam) {
+      try {
+        // Use the exact items passed from the modal (items paid just now)
+        const parsedItems = JSON.parse(decodeURIComponent(itemsParam));
+        itemsToPrint = parsedItems.filter((i: any) => Number(i.paid_amount) > 0);
+      } catch {
+        // Fallback: show items with paid_amount > 0
+        itemsToPrint = allItems.filter((item: any) => Number(item.paid_amount) > 0);
+      }
+    } else {
+      // Fallback if items param missing
+      itemsToPrint = allItems.filter((item: any) => Number(item.paid_amount) > 0);
+    }
   }
+
+  // Totals for the printed items (transaction totals for mode=current)
+  const transactionTotal = itemsToPrint.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
+  const transactionPaid = itemsToPrint.reduce((acc: number, curr: any) => acc + Number(curr.paid_amount || 0), 0);
 
   const formatRp = (n: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
-  // Calculate totals based on printed items
-  const subTotal = itemsToPrint.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0);
-  const totalPaid = itemsToPrint.reduce((acc: number, curr: any) => acc + Number(curr.paid_amount || 0), 0);
-  const sisa = subTotal - totalPaid;
 
   return (
     <div className="bg-gray-100 min-h-screen text-black flex justify-center items-start pt-8">
@@ -165,9 +187,11 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
                         <td className="py-0.5 align-top">{idx + 1}</td>
                         <td className="py-0.5">
                           {item.name}
-                          <span className="ml-1 text-[7px] italic border border-black px-0.5 rounded">
-                            {paid >= itemAmount ? '*lunas' : '*belum lunas'}
-                          </span>
+                          {mode === 'all' && (
+                            <span className="ml-1 text-[7px] italic border border-black px-0.5 rounded">
+                              {paid >= itemAmount ? '*lunas' : '*belum lunas'}
+                            </span>
+                          )}
                         </td>
                         <td className="py-0.5 text-right align-top">{formatRp(itemAmount)}</td>
                         <td className="py-0.5 text-right align-top">{formatRp(paid)}</td>
@@ -182,18 +206,46 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
             {/* Calculations */}
             <div className="flex justify-end text-[9px] mb-1 font-semibold tracking-wide">
               <div className="w-1/2 space-y-0.5">
-                <div className="flex justify-between">
-                  <span>Sub Total:</span>
-                  <span>{formatRp(subTotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tunggakan:</span>
-                  <span>{formatRp(sisa > 0 ? sisa : 0)}</span>
-                </div>
-                <div className="flex justify-between text-[10px] mt-0.5 border-t-[1px] border-black pt-0.5">
-                  <span>TOTAL DIBAYAR:</span>
-                  <span>{formatRp(totalPaid)}</span>
-                </div>
+                {mode === 'current' ? (
+                  <>
+                    {/* Transaction summary — only THIS payment */}
+                    <div className="flex justify-between text-[10px] border-t-[1px] border-black pt-0.5">
+                      <span>DIBAYAR SAAT INI:</span>
+                      <span>{formatRp(transactionPaid)}</span>
+                    </div>
+                    {/* Separator then full invoice totals */}
+                    <div className="border-t border-dashed border-gray-400 mt-1 pt-1 space-y-0.5">
+                      <p className="text-[7px] uppercase tracking-wide text-gray-500 font-bold mb-0.5">Rekap Total Tagihan:</p>
+                      <div className="flex justify-between">
+                        <span>Total Tagihan:</span>
+                        <span>{formatRp(invoiceTotalAmount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Dibayarkan:</span>
+                        <span>{formatRp(invoiceTotalPaid)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Sisa Tunggakan:</span>
+                        <span>{formatRp(invoiceTotalSisa > 0 ? invoiceTotalSisa : 0)}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Sub Total:</span>
+                      <span>{formatRp(transactionTotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tunggakan:</span>
+                      <span>{formatRp((transactionTotal - transactionPaid) > 0 ? (transactionTotal - transactionPaid) : 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] mt-0.5 border-t-[1px] border-black pt-0.5">
+                      <span>TOTAL DIBAYAR:</span>
+                      <span>{formatRp(transactionPaid)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -226,3 +278,4 @@ export default async function PrintInvoiceReceipt(props: { params: Promise<{ id:
     </div>
   );
 }
+

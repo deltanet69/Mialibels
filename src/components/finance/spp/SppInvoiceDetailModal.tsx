@@ -109,6 +109,14 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
 
   const d = new Date()
 
+  // Lock body scroll when modal is open — prevents dashboard freeze
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
   useEffect(() => {
     if (invoiceId) {
       fetchDetail(invoiceId)
