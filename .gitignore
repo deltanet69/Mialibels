@@ -44,3 +44,4 @@ next-env.d.ts
 
 # Project docs and specs
 /projectMI/
+public/_next

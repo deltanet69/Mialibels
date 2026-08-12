@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node copy-static.js",
+    "build": "node build-hostinger.js",
     "start": "next start",
     "lint": "eslint"
   },
