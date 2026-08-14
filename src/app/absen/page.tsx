@@ -63,7 +63,7 @@ export default function AbsenPage() {
     if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
     popupTimeoutRef.current = setTimeout(() => {
       setPopup({ type: 'idle', message: '' })
-    }, 5000)
+    }, 1000)
   }
   const closePopup = () => setPopup({ type: 'idle', message: '' })
 

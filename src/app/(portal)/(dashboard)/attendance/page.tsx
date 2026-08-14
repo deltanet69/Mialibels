@@ -159,7 +159,7 @@ export default function AttendancePage() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-center bg-slate-100 rounded-xl p-1 gap-1">
-                          {['HADIR', 'IZIN', 'SAKIT', 'ALPA'].map((status) => (
+                          {['HADIR', 'IZIN', 'SAKIT', 'ALPA', 'DELETE'].map((status) => (
                             <button
                               key={status}
                               onClick={() => handleStatusChange(staff.id, status)}
@@ -168,11 +168,12 @@ export default function AttendancePage() {
                                   ? status === 'HADIR' ? 'bg-green-500 text-white shadow-sm'
                                     : status === 'IZIN' ? 'bg-blue-500 text-white shadow-sm'
                                     : status === 'SAKIT' ? 'bg-orange-500 text-white shadow-sm'
-                                    : 'bg-red-500 text-white shadow-sm'
+                                    : status === 'ALPA' ? 'bg-red-500 text-white shadow-sm'
+                                    : 'bg-slate-800 text-white shadow-sm'
                                   : 'text-slate-500 hover:bg-slate-200'
                               }`}
                             >
-                              {status}
+                              {status === 'DELETE' ? 'HAPUS' : status}
                             </button>
                           ))}
                         </div>

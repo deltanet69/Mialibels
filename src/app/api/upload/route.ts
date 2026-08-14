@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { getSession } from "@/lib/session"
@@ -68,16 +68,28 @@ export async function POST(request: NextRequest) {
     const inputBuffer = Buffer.from(bytes)
 
     // Compress to WebP
-    const { buffer: compressedBuffer, contentType } = await compressToWebP(inputBuffer)
+    let finalBuffer: Buffer = inputBuffer
+    let contentType = file.type
+    let isCompressed = false
 
-    // Create unique filename â€” always .webp after compression
+    try {
+      const result = await compressToWebP(inputBuffer)
+      finalBuffer = result.buffer
+      contentType = result.contentType
+      isCompressed = true
+    } catch (compressError) {
+      console.warn('Sharp compression failed, using original buffer', compressError)
+    }
+
+    // Create unique filename
     const uniqueId = Date.now().toString() + '-' + Math.round(Math.random() * 1e9)
-    const fileName = `bukti-transfer-${uniqueId}.webp`
+    const fileExt = isCompressed ? 'webp' : file.name.split('.').pop() || 'jpg'
+    const fileName = `upload-${uniqueId}.${fileExt}`
 
     // Upload to Supabase storage
     const { error } = await supabase.storage
       .from('uploads')
-      .upload(fileName, compressedBuffer, {
+      .upload(fileName, finalBuffer, {
         contentType,
         upsert: false,
       })
@@ -92,7 +104,7 @@ export async function POST(request: NextRequest) {
       .from('uploads')
       .getPublicUrl(fileName)
 
-    console.log(`[Upload] Original: ${(file.size / 1024).toFixed(1)}KB â†’ Compressed: ${(compressedBuffer.length / 1024).toFixed(1)}KB (WebP)`)
+    console.log(`[Upload] Original: ${(file.size / 1024).toFixed(1)}KB -> Result: ${(finalBuffer.length / 1024).toFixed(1)}KB (${fileExt})`)
 
     return NextResponse.json({ success: true, url: publicUrl })
   } catch (error: any) {

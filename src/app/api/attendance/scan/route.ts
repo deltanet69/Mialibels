@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -85,6 +85,18 @@ export async function POST(request: NextRequest) {
           error: `${staff.name} sudah melakukan Absen Pulang hari ini.` 
         }, { status: 400 })
       } else {
+        // Minimal jam 12:30 WIB untuk absen pulang
+        const currentHour = localDate.getUTCHours()
+        const currentMinute = localDate.getUTCMinutes()
+        
+        if (currentHour < 12 || (currentHour === 12 && currentMinute < 30)) {
+          return NextResponse.json({
+            success: false,
+            action: 'too-early-checkout',
+            error: `${staff.name} ${staff.position || ''} Anda sudah absen masuk hari ini`
+          }, { status: 400 })
+        }
+
         // Do Check OUT
         const { data: updateRecord, error: updateError } = await supabase
           .from('staff_attendance')
