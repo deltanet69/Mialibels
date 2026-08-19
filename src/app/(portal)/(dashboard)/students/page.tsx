@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, RefreshCw } from 'lucide-react'
+import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, RefreshCw, Key, Loader2 } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import Link from 'next/link'
@@ -42,6 +42,11 @@ export default function StudentsPage() {
   const [regenerating, setRegenerating] = useState(false)
   const [regenerateResult, setRegenerateResult] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
+
+  // Parent Access Generation State
+  const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [generateTarget, setGenerateTarget] = useState('all')
+  const [generatingAccess, setGeneratingAccess] = useState(false)
 
   // Fetch ALL students once on mount — no search param needed
   const fetchStudents = useCallback(async () => {
@@ -164,6 +169,55 @@ export default function StudentsPage() {
     }
   }
 
+  const handleGenerateAccess = async () => {
+    setGeneratingAccess(true)
+    try {
+      const res = await fetch('/api/students/generate-parent-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetClass: generateTarget })
+      })
+      const data = await res.json()
+      
+      if (res.ok) {
+        // Build CSV string
+        // Headers: Nama siswa, NISN, Password akses, Nama orang tua, No hp orang tua
+        let csvContent = "Nama siswa,NISN,Password akses,Nama orang tua,No hp orang tua\n";
+        
+        data.data.forEach((row: any) => {
+          // Quote strings to avoid comma issues
+          const cleanName = `"${(row.name || '').replace(/"/g, '""')}"`;
+          const cleanNisn = `"${(row.nisn || '').replace(/"/g, '""')}"`;
+          const cleanPass = `"${(row.password || '').replace(/"/g, '""')}"`;
+          const cleanParent = `"${(row.parent_name || '').replace(/"/g, '""')}"`;
+          const cleanPhone = `"${(row.parent_phone || '').replace(/"/g, '""')}"`;
+          
+          csvContent += `${cleanName},${cleanNisn},${cleanPass},${cleanParent},${cleanPhone}\n`;
+        });
+
+        // Add BOM so Excel opens it with UTF-8 correctly
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `Akses_Orang_Tua_${generateTarget === 'all' ? 'Semua' : 'Kelas_'+generateTarget}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        setRegenerateResult(`✅ Berhasil generate password untuk ${data.data.length} siswa dan file CSV telah diunduh.`)
+        setShowGenerateModal(false)
+      } else {
+        setRegenerateResult(`❌ Error: ${data.error}`)
+      }
+    } catch (err: any) {
+      setRegenerateResult(`❌ Koneksi gagal: ${err.message}`)
+    } finally {
+      setGeneratingAccess(false)
+    }
+  }
+
   const isOldFormat = (sn: string | null) => {
     if (!sn) return true
     return /^\d+$/.test(sn) || sn.length < 10
@@ -178,6 +232,13 @@ export default function StudentsPage() {
         </div>
         {canEdit && (
           <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+            <button 
+              onClick={() => setShowGenerateModal(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl hover:bg-indigo-100 transition font-medium"
+            >
+              <Key size={18} />
+              Generate Akses Orang Tua
+            </button>
             <button 
               onClick={() => setShowImport(true)}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition font-medium"
@@ -497,6 +558,61 @@ export default function StudentsPage() {
           onClose={() => { setShowForm(false); setEditingStudent(null); }}
         />
       )}
+      {/* Modal Generate Akses */}
+      {showGenerateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <Key className="text-indigo-600" /> Generate Akses Orang Tua
+            </h3>
+            <p className="text-sm text-slate-500 mb-6">
+              Sistem akan membuat password unik secara acak dan mengunduh file CSV yang berisi data akses untuk dibagikan ke orang tua.
+            </p>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Target Generate</label>
+              <select
+                value={generateTarget}
+                onChange={(e) => setGenerateTarget(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+              >
+                <option value="all">Semua Siswa</option>
+                {classes.map((c: any) => (
+                  <option key={c} value={c}>Kelas {c}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-3 justify-end mt-4">
+              <button 
+                onClick={() => setShowGenerateModal(false)}
+                disabled={generatingAccess}
+                className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleGenerateAccess}
+                disabled={generatingAccess}
+                className="px-5 py-2.5 bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-xl transition flex items-center gap-2 disabled:opacity-70"
+              >
+                {generatingAccess ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    <Key size={18} />
+                    Generate & Download CSV
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

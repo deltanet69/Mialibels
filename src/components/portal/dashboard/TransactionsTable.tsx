@@ -26,7 +26,7 @@ export function TransactionsTable({ transactions }: { transactions: any[] }) {
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-full">
       <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-50">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Transaksi SPP Terbaru</h3>
+          <h3 className="text-lg font-bold text-slate-800">Infaq Sekolah Terupdate</h3>
           <p className="text-sm text-slate-500">Daftar pembayaran terakhir</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -51,9 +51,9 @@ export function TransactionsTable({ transactions }: { transactions: any[] }) {
           <thead>
             <tr className="bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider">
               <th className="font-semibold p-4">Invoice ID</th>
-              <th className="font-semibold p-4">Tanggal</th>
-              <th className="font-semibold p-4">Nominal</th>
-              <th className="font-semibold p-4">Admin</th>
+              <th className="font-semibold p-4">Nama Siswa</th>
+              <th className="font-semibold p-4">Kelas</th>
+              <th className="font-semibold p-4">Pembayaran</th>
               <th className="font-semibold p-4 text-right">Aksi</th>
             </tr>
           </thead>
@@ -75,25 +75,23 @@ export function TransactionsTable({ transactions }: { transactions: any[] }) {
                       <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
                         <FileText size={14} />
                       </div>
-                      <span className="text-sm font-semibold text-slate-700">{t.invoice_id}</span>
+                      <span className="text-sm font-semibold text-slate-700">{t.invoice_id?.split('-')[0]?.toUpperCase() || '-'}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-500 text-sm">
-                    {new Date(t.created_at).toLocaleDateString('id-ID', {
-                      day: 'numeric', month: 'short', year: 'numeric'
-                    })}
+                  <td className="p-4 text-slate-800 text-sm font-medium">
+                    {t.students?.name || '-'}
                   </td>
-                  <td className="p-4">
-                    <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-                      {formatRupiah(t.amount || 0)}
+                  <td className="p-4 text-slate-600 text-sm">
+                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-semibold">
+                      {t.students?.class || '-'}
                     </span>
                   </td>
                   <td className="p-4 text-slate-600 text-sm">
-                    {t.admins?.name || '-'}
+                    {t.spp_invoices?.title || (t.spp_invoices?.month ? `Bulan ${t.spp_invoices.month} ${t.spp_invoices.year || ''}` : '-')}
                   </td>
                   <td className="p-4 text-right">
                     <Link 
-                      href={`/finance/spp/transactions?id=${t.id}`}
+                      href={`/students/${t.student_id}`}
                       className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 transition opacity-0 group-hover:opacity-100"
                     >
                       Detail <ArrowRight size={14} className="ml-1" />

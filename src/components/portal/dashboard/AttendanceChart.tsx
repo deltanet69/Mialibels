@@ -5,10 +5,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Calendar, Users, Briefcase } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-export function AttendanceChart() {
-  const [view, setView] = useState<'siswa' | 'guru'>('siswa');
+export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
+  const [view, setView] = useState<'siswa' | 'guru'>(guruClassId ? 'siswa' : 'siswa');
   const [timeFilter, setTimeFilter] = useState('minggu');
-  const [classFilter, setClassFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState(guruClassId || 'all');
   
   const [rawData, setRawData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,19 +55,10 @@ export function AttendanceChart() {
         const dateStr = getLocalDateString(startDate);
         const todayStr = getLocalDateString(today);
 
-        let query = supabase
-          .from(table)
-          .select('*')
-          .gte('date', dateStr)
-          .lte('date', todayStr);
-
-        if (view === 'siswa' && classFilter !== 'all') {
-          query = query.eq('classroom_id', classFilter);
-        }
-
-        const { data, error } = await query;
-        if (!error && data) {
-          setRawData(data);
+        const res = await fetch(`/api/dashboard/attendance-chart?view=${view}&classFilter=${classFilter}&startDate=${dateStr}&endDate=${todayStr}`);
+        const json = await res.json();
+        if (res.ok && json.data) {
+          setRawData(json.data);
         } else {
           setRawData([]);
         }
@@ -134,31 +125,35 @@ export function AttendanceChart() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          {/* Toggle Siswa/Guru */}
-          <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-auto">
-            <button 
-              onClick={() => setView('siswa')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                view === 'siswa' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Users size={16} /> Siswa
-            </button>
-            <button 
-              onClick={() => setView('guru')}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                view === 'guru' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Briefcase size={16} /> Guru
-            </button>
-          </div>
+          {!guruClassId && (
+            <>
+              {/* Toggle Siswa/Guru */}
+              <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-auto">
+                <button 
+                  onClick={() => setView('siswa')}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    view === 'siswa' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Users size={16} /> Siswa
+                </button>
+                <button 
+                  onClick={() => setView('guru')}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    view === 'guru' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Briefcase size={16} /> Guru
+                </button>
+              </div>
 
-          <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
+              <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
+            </>
+          )}
 
           {/* Filters */}
           <div className="flex gap-2 w-full sm:w-auto">
-            {view === 'siswa' && (
+            {view === 'siswa' && !guruClassId && (
               <select 
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}

@@ -1,5 +1,8 @@
 // @ts-nocheck
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { hash } from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(
@@ -38,9 +41,13 @@ export async function PUT(
     const body = await request.json()
 
     // Add updated_at manually just in case
-    const updateData = {
+    const updateData: any = {
       ...body,
       updated_at: new Date().toISOString()
+    }
+
+    if (body.parent_password) {
+      updateData.parent_password = await hash(body.parent_password, 10)
     }
 
     const { data: student, error } = await supabase

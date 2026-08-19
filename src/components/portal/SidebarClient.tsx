@@ -102,10 +102,10 @@ export function SidebarClient({ role, userName }: Props) {
           <div className="flex items-center justify-between mb-2 px-2 sticky top-0 bg-white py-2 z-10">
             <Link href="/dashboard" className="flex items-center gap-2">
               <Image 
-                src="/logomi.png" 
+                src="/logosmart/smartlogover.png" 
                 alt="Logo MI Attaqwa 15" 
                 width={140} 
-                height={140} 
+                height={80} 
                 className="object-contain"
                 priority
               />

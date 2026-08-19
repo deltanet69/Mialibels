@@ -281,7 +281,7 @@ export default function AbsenSiswaPage() {
           {/* Logo */}
           <div className="mb-6 lg:mb-10 flex flex-col items-center animate-in slide-in-from-top-10 duration-700 fade-in">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logoputih.png" alt="Logo MI Attaqwa 15" className="h-12 lg:h-16 object-contain" />
+            <img src="/logosmart/smartputihver.png" alt="Logo MI Attaqwa 15" className="h-30 lg:h-30 object-contain" />
           </div>
 
           {/* Titles */}

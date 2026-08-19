@@ -64,14 +64,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // For guru/staff roles, lookup staffId to embed in JWT for profile resolution
+    let staffId: string | null = null;
+    const roleLower = (admin.role || '').toLowerCase();
+    if (roleLower === 'guru' || roleLower === 'staff' || roleLower.includes('guru')) {
+      // Try email match (case-insensitive)
+      const { data: staffByEmail } = await supabase
+        .from('staffs')
+        .select('id')
+        .ilike('email', admin.email)
+        .maybeSingle();
+      
+      if (staffByEmail) {
+        staffId = (staffByEmail as any).id;
+      } else {
+        // Fallback: match by name
+        const { data: staffByName } = await supabase
+          .from('staffs')
+          .select('id')
+          .ilike('name', admin.name)
+          .maybeSingle();
+        if (staffByName) staffId = (staffByName as any).id;
+      }
+    }
+
     // Create JWT session token (7 days expiry)
     const secret = new TextEncoder().encode(JWT_SECRET)
-    const token = await new SignJWT({
+    const jwtPayload: Record<string, any> = {
       sub: admin.id,
       email: admin.email,
       name: admin.name,
       role: admin.role,
-    })
+    }
+    if (staffId) jwtPayload.staffId = staffId;
+
+    const token = await new SignJWT(jwtPayload)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')

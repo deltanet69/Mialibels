@@ -80,11 +80,10 @@ export default function LoginPage() {
           <div className="text-center">
             <div className="flex justify-center mb-24">
               <Image 
-                src="/logomi.png" 
+                src="/logosmart/smartlogo.png" 
                 alt="Logo Sekolah" 
-                width={200} 
-                height={200} 
-                className="drop-shadow-md"
+                width={250} 
+                height={250} 
               />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight whitespace-nowrap">Welcome To SMART</h1>

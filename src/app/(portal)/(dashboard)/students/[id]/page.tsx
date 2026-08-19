@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, User, Phone, Mail, MapPin, Edit3, ShieldCheck, Wallet, PiggyBank, Calendar, Clock } from 'lucide-react'
+import { ArrowLeft, User, Phone, Mail, MapPin, Edit3, ShieldCheck, Wallet, PiggyBank, Calendar, Clock, Key, Loader2, CheckCircle2 } from 'lucide-react'
 import { StudentForm } from '@/components/portal/students/StudentForm'
+import { CardDownloader } from '@/components/portal/students/CardDownloader'
 
 export default function StudentDetailPage() {
   const params = useParams()
@@ -15,6 +16,11 @@ export default function StudentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
   const [activeTab, setActiveTab] = useState<'profil' | 'spp' | 'tabungan'>('profil')
+
+  // Password Parent State
+  const [newParentPassword, setNewParentPassword] = useState('')
+  const [updatingPassword, setUpdatingPassword] = useState(false)
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   const fetchStudent = async () => {
     setLoading(true)
@@ -36,6 +42,36 @@ export default function StudentDetailPage() {
   useEffect(() => {
     fetchStudent()
   }, [id])
+
+  const handleUpdateParentPassword = async () => {
+    if (!newParentPassword || newParentPassword.length < 6) {
+      alert('Password harus minimal 6 karakter.');
+      return;
+    }
+    
+    setUpdatingPassword(true);
+    setPasswordSuccess('');
+    
+    try {
+      const res = await fetch(`/api/students/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parent_password: newParentPassword })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setPasswordSuccess('Password akses orang tua berhasil diubah!');
+        setNewParentPassword('');
+      } else {
+        alert(data.error || 'Gagal mengubah password');
+      }
+    } catch (err: any) {
+      alert('Terjadi kesalahan jaringan: ' + err.message);
+    } finally {
+      setUpdatingPassword(false);
+    }
+  }
 
   if (loading) {
     return <div className="p-6 text-slate-500">Memuat data siswa...</div>
@@ -123,18 +159,16 @@ export default function StudentDetailPage() {
             )}
           </div>
 
-          <button 
-            onClick={() => setShowEdit(true)}
-            className="mt-6 w-full flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-100 transition font-medium"
-          >
-            <Edit3 size={18} /> Edit Profil
-          </button>
+          <div className="w-full mt-6 pt-6 border-t border-slate-100">
+            <p className="text-sm font-semibold text-slate-700 mb-3 text-left">Unduh Kartu Identitas</p>
+            <CardDownloader student={student} sppInvoices={sppPayments} />
+          </div>
 
           <button 
-            onClick={() => alert('Fitur Cetak Kartu Siswa sedang dalam pengembangan.')}
-            className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2.5 rounded-xl hover:bg-blue-100 transition font-medium"
+            onClick={() => setShowEdit(true)}
+            className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition font-medium"
           >
-            <ShieldCheck size={18} /> Download Kartu Siswa
+            <Edit3 size={18} /> Edit Profil
           </button>
         </div>
 
@@ -199,6 +233,47 @@ export default function StudentDetailPage() {
                     <p className="text-slate-800">{student.description || 'Tidak ada catatan.'}</p>
                   </div>
                 </div>
+                
+                {/* Akses Orang Tua Section */}
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                    <Key size={20} className="text-indigo-600" />
+                    Akses Portal Orang Tua
+                  </h3>
+                  <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-5">
+                    <p className="text-sm text-slate-600 mb-4">
+                      Update password di sini jika orang tua lupa password akses portal mereka. Password harus diinformasikan kembali ke orang tua bersangkutan.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-end gap-3 max-w-lg">
+                      <div className="flex-1 w-full">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+                          Password Baru
+                        </label>
+                        <input
+                          type="text"
+                          value={newParentPassword}
+                          onChange={(e) => setNewParentPassword(e.target.value)}
+                          placeholder="Minimal 6 karakter"
+                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition outline-none text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={handleUpdateParentPassword}
+                        disabled={updatingPassword || newParentPassword.length < 6}
+                        className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {updatingPassword ? <Loader2 size={16} className="animate-spin" /> : <Key size={16} />}
+                        Update Password
+                      </button>
+                    </div>
+                    {passwordSuccess && (
+                      <div className="mt-3 p-2.5 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg border border-emerald-100 flex items-center gap-2">
+                        <CheckCircle2 size={16} /> {passwordSuccess}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
             )}
 

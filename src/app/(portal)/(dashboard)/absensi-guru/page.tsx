@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell } from 'lucide-react'
+import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '../../../../lib/supabase/client'
 
@@ -52,6 +52,36 @@ export default function AbsensiGuruPage() {
     const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
     const d = new Date(validIso)
     return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const handleSoftDelete = async (e: React.MouseEvent, staffId: string, type: 'in' | 'out') => {
+    e.preventDefault();
+    if (!confirm(`Yakin ingin menghapus jam ${type === 'in' ? 'masuk' : 'pulang'} untuk guru ini?`)) return;
+
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: date,
+          records: [
+            {
+              staff_id: staffId,
+              status: type === 'in' ? 'DELETE_IN' : 'DELETE_OUT'
+            }
+          ]
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addLog(`Berhasil menghapus jam ${type === 'in' ? 'masuk' : 'pulang'}`, 'success');
+        fetchSilentRef.current(dateRef.current, filterTypeRef.current);
+      } else {
+        addLog(`Gagal: ${data.error}`, 'error');
+      }
+    } catch (err: any) {
+      addLog(`Error: ${err.message}`, 'error');
+    }
   }
 
   const getInitials = (name: string) => {
@@ -311,6 +341,25 @@ export default function AbsensiGuruPage() {
               </button>
             </div>
 
+            {isGuru && (
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  onClick={() => setViewPersonalOnly(true)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${viewPersonalOnly ? 'bg-white shadow-sm text-blue-700 border border-blue-100' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+                  Kehadiran Saya
+                </button>
+                <button
+                  onClick={() => setViewPersonalOnly(false)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${!viewPersonalOnly ? 'bg-white shadow-sm text-slate-800 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+                  Semua Guru
+                </button>
+              </div>
+            )}
+
             <button 
               onClick={() => setShowLog(true)}
               className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-sm transition"
@@ -417,13 +466,27 @@ export default function AbsensiGuruPage() {
                       </div>
                       
                       <div className="flex items-center gap-6 md:gap-24 ml-4">
-                        <div className="flex flex-col items-end hidden sm:flex">
+                        <div className="flex flex-col items-end hidden sm:flex relative group pr-6">
                           <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wider">Masuk</p>
-                          <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_in_time)}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_in_time)}</p>
+                            {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
+                              <button onClick={(e) => handleSoftDelete(e, staff.id, 'in')} className="absolute -right-2 top-1/2 p-1 bg-red-100 text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam masuk">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end hidden sm:flex">
+                        <div className="flex flex-col items-end hidden sm:flex relative group pr-6">
                           <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wider">Keluar</p>
-                          <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_out_time)}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_out_time)}</p>
+                            {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
+                              <button onClick={(e) => handleSoftDelete(e, staff.id, 'out')} className="absolute -right-2 top-1/2 p-1 bg-red-100 text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam pulang">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor} w-20 md:w-24 text-center flex-shrink-0`}>
                           {status}
@@ -454,21 +517,25 @@ export default function AbsensiGuruPage() {
                     {/* Bottom info: Check-in & Check-out Times */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        {/* <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500 flex-shrink-0">
-                          <LogIn size={14} />
-                        </div> */}
-                        <div className="overflow-hidden">
+                        <div className="overflow-hidden w-full relative group">
                           <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Masuk</p>
                           <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_in_time)}</p>
+                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
+                            <button onClick={(e) => handleSoftDelete(e, staff.id, 'in')} className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 bg-red-100 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam masuk">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        {/* <div className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-orange-500 flex-shrink-0">
-                          <LogOut size={14} />
-                        </div> */}
-                        <div className="overflow-hidden">
+                        <div className="overflow-hidden w-full relative group">
                           <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Keluar</p>
                           <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_out_time)}</p>
+                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
+                            <button onClick={(e) => handleSoftDelete(e, staff.id, 'out')} className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 bg-red-100 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam pulang">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

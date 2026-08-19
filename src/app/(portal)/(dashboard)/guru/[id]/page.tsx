@@ -26,14 +26,18 @@ export default function DetailGuruPage() {
   const [guru, setGuru] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   const fetchGuru = async () => {
     try {
-      const res = await fetch(`/api/guru/${params.id}`)
-      const data = await res.json()
-      if (data.success) {
-        setGuru(data.data)
-      }
+      const [resGuru, resMe] = await Promise.all([
+        fetch(`/api/guru/${params.id}`),
+        fetch('/api/auth/me')
+      ])
+      const data = await resGuru.json()
+      const dataMe = await resMe.json()
+      if (data.success) setGuru(data.data)
+      if (dataMe.success) setCurrentUser(dataMe.user)
     } catch (error) {
       console.error('Error fetching guru detail:', error)
     } finally {
@@ -44,6 +48,8 @@ export default function DetailGuruPage() {
   useEffect(() => {
     fetchGuru()
   }, [params.id])
+
+  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek'
 
   if (loading) {
     return (
@@ -177,12 +183,14 @@ export default function DetailGuruPage() {
                 </div>
               </div>
 
-              <button 
-                onClick={() => setShowForm(true)}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium rounded-xl border border-slate-200 transition"
-              >
-                <Edit3 size={16} /> Edit Profil
-              </button>
+              {canEdit && (
+                <button 
+                  onClick={() => setShowForm(true)}
+                  className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 font-medium rounded-xl border border-slate-200 transition"
+                >
+                  <Edit3 size={16} /> Edit Profil
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -265,7 +273,7 @@ export default function DetailGuruPage() {
         </div>
       </div>
 
-      {showForm && (
+      {showForm && canEdit && (
         <GuruForm 
           initialData={guru} 
           onSuccess={fetchGuru} 

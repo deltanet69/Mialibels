@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { createClient } from '@supabase/supabase-js';
+import { CardDownloader } from '@/components/portal/students/CardDownloader';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -257,6 +258,19 @@ export default async function ParentDashboardHome() {
                   <div className="bg-teal-400 h-2 rounded-full shadow-[0_0_10px_rgba(45,212,191,0.6)]" style={{ width: `${dashboardData.persentaseHadir}%` }}></div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Row for Card Download */}
+        <div className="lg:col-span-2 flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex-1 w-full flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Unduh Kartu Identitas</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Dapatkan Kartu Pelajar dan Kartu Peserta Ujian</p>
+            </div>
+            <div className="w-full md:w-auto">
+              <CardDownloader studentId={studentData.studentId} />
             </div>
           </div>
         </div>

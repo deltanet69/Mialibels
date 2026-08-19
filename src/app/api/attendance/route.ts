@@ -42,15 +42,36 @@ export async function POST(request: NextRequest) {
       if (record.status === 'DELETE') {
         deleteRecords.push(record)
       } else {
-        upsertRecords.push({
+        // Build the update payload based on what's provided, handling partial deletes like DELETE_IN or DELETE_OUT
+        const payload: any = {
           staff_id: record.staff_id,
           date: date,
           status: record.status,
-          check_in_time: record.check_in_time || null,
-          check_out_time: record.check_out_time || null,
           notes: record.notes || null,
           updated_at: new Date().toISOString()
-        })
+        }
+        
+        // If it's a specific delete command, update accordingly
+        if (record.status === 'DELETE_IN') {
+           payload.status = 'HADIR' // Revert to a valid status, you might want to keep the old status if it's passed
+           payload.check_in_time = null
+           // Only update check_in_time to null, do not overwrite check_out_time unless it's explicitly passed
+           if (record.check_out_time !== undefined) {
+               payload.check_out_time = record.check_out_time
+           }
+        } else if (record.status === 'DELETE_OUT') {
+           payload.status = 'HADIR'
+           payload.check_out_time = null
+           if (record.check_in_time !== undefined) {
+               payload.check_in_time = record.check_in_time
+           }
+        } else {
+            // Standard update/insert
+            if (record.check_in_time !== undefined) payload.check_in_time = record.check_in_time || null
+            if (record.check_out_time !== undefined) payload.check_out_time = record.check_out_time || null
+        }
+        
+        upsertRecords.push(payload)
       }
     })
 

@@ -158,24 +158,44 @@ export default function AttendancePage() {
                         <p className="text-sm text-slate-500">{staff.position}</p>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center justify-center bg-slate-100 rounded-xl p-1 gap-1">
-                          {['HADIR', 'IZIN', 'SAKIT', 'ALPA', 'DELETE'].map((status) => (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-center bg-slate-100 rounded-xl p-1 gap-1">
+                            {['HADIR', 'IZIN', 'SAKIT', 'ALPA', 'DELETE'].map((status) => (
+                              <button
+                                key={status}
+                                onClick={() => handleStatusChange(staff.id, status)}
+                                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+                                  attendance[staff.id]?.status === status
+                                    ? status === 'HADIR' ? 'bg-green-500 text-white shadow-sm'
+                                      : status === 'IZIN' ? 'bg-blue-500 text-white shadow-sm'
+                                      : status === 'SAKIT' ? 'bg-orange-500 text-white shadow-sm'
+                                      : status === 'ALPA' ? 'bg-red-500 text-white shadow-sm'
+                                      : 'bg-slate-800 text-white shadow-sm'
+                                    : 'text-slate-500 hover:bg-slate-200'
+                                }`}
+                              >
+                                {status === 'DELETE' ? 'HAPUS' : status}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
                             <button
-                              key={status}
-                              onClick={() => handleStatusChange(staff.id, status)}
-                              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
-                                attendance[staff.id]?.status === status
-                                  ? status === 'HADIR' ? 'bg-green-500 text-white shadow-sm'
-                                    : status === 'IZIN' ? 'bg-blue-500 text-white shadow-sm'
-                                    : status === 'SAKIT' ? 'bg-orange-500 text-white shadow-sm'
-                                    : status === 'ALPA' ? 'bg-red-500 text-white shadow-sm'
-                                    : 'bg-slate-800 text-white shadow-sm'
-                                  : 'text-slate-500 hover:bg-slate-200'
+                              onClick={() => handleStatusChange(staff.id, 'DELETE_IN')}
+                              className={`flex-1 py-1 px-2 rounded border border-red-200 text-[10px] font-semibold transition ${
+                                attendance[staff.id]?.status === 'DELETE_IN' ? 'bg-red-100 text-red-700' : 'text-slate-500 hover:bg-red-50'
                               }`}
                             >
-                              {status === 'DELETE' ? 'HAPUS' : status}
+                              Hapus Jam Masuk
                             </button>
-                          ))}
+                            <button
+                              onClick={() => handleStatusChange(staff.id, 'DELETE_OUT')}
+                              className={`flex-1 py-1 px-2 rounded border border-orange-200 text-[10px] font-semibold transition ${
+                                attendance[staff.id]?.status === 'DELETE_OUT' ? 'bg-orange-100 text-orange-700' : 'text-slate-500 hover:bg-orange-50'
+                              }`}
+                            >
+                              Hapus Jam Pulang
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td className="p-4">

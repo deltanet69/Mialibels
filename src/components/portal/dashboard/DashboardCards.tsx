@@ -120,16 +120,16 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
           </div>
         </div>
         <div className="flex gap-4 border-t border-slate-50 pt-4">
-          <div className="flex items-center gap-1.5 flex-1">
-            <UserCheck size={20} className="text-emerald-500 mr-4" />
+          <div className="flex items-center gap-2 flex-1">
+            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
             <div className="flex flex-col">
               <span className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">Aktif</span>
               <span className="text-lg font-bold text-slate-700">{stats.students.active}</span>
             </div>
           </div>
           <div className="w-px bg-slate-100"></div>
-          <div className="flex items-center gap-1.5 flex-1">
-            <UserX size={20} className="text-rose-500 mr-4" />
+          <div className="flex items-center gap-2 flex-1">
+            <div className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
             <div className="flex flex-col">
               <span className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">Nonaktif</span>
               <span className="text-lg font-bold text-slate-700">{stats.students.inactive}</span>
@@ -150,15 +150,15 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
           </div>
         </div>
         <div className="flex gap-4 border-t border-slate-50 pt-4">
-          <div className="flex items-center gap-1.5 flex-1">
-            <UserCheck size={20} className="text-emerald-500 mr-4" />
+          <div className="flex items-center gap-2 flex-1">
+            <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
             <div className="flex flex-col">
               <span className="text-[12px] text-slate-400 uppercase tracking-wider font-semibold">Aktif</span>
               <span className="text-lg font-bold text-slate-700">{stats.staffs.active}</span>
             </div>
           </div>
           <div className="w-px bg-slate-100"></div>
-          <div className="flex items-center gap-1.5 flex-1 opacity-0 pointer-events-none">
+          <div className="flex items-center gap-2 flex-1 opacity-0 pointer-events-none">
             {/* Placeholder to keep layout symmetrical to Siswa card */}
           </div>
         </div>
