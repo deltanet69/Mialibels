@@ -69,16 +69,16 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
         try {
           const students = (res.data as any[])
             .map((row) => ({
-              nisn: row.nisn || row.NISN || null,
-              name: row.name || row.Nama || '',
-              student_number: row.student_number || row.NIS || '',
-              class: row.class || row.Kelas || '',
-              parent_name: row.parent_name || row['Nama Orang Tua'] || '',
-              parent_phone: row.parent_phone || row['No HP'] || '',
-              parent_email: row.parent_email || row.Email || null,
+              nisn: (row.nisn || row.NISN || '').toString().trim() || null,
+              name: (row.name || row.Nama || '').toString().trim(),
+              student_number: (row.student_number || row.NIS || '').toString().trim() || null,
+              class: (row.class || row.Kelas || '').toString().trim(),
+              parent_name: (row.parent_name || row['Nama Orang Tua'] || '').toString().trim(),
+              parent_phone: (row.parent_phone || row['No HP'] || '').toString().trim(),
+              parent_email: (row.parent_email || row.Email || '').toString().trim() || null,
               is_active: row.is_active !== 'false',
-              place_of_birth: row.tempat_lahir || row['Tempat Lahir'] || '',
-              date_of_birth: row.tanggal_lahir || row['Tanggal Lahir'] || '',
+              place_of_birth: (row.tempat_lahir || row['Tempat Lahir'] || '').toString().trim() || null,
+              date_of_birth: (row.tanggal_lahir || row['Tanggal Lahir'] || '').toString().trim() || null,
             }))
             .filter((s) => s.name && s.class)
 

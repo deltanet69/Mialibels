@@ -40,24 +40,57 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
 
-    // Add updated_at manually just in case
+    // Filter out relational/non-table properties
+    const { 
+      student_accounts, 
+      spp_invoices, 
+      spp_payments, 
+      saving_transactions, 
+      id: _bodyId, 
+      created_at: _createdAt, 
+      ...cleanBody 
+    } = body
+
+    // Add updated_at manually and sanitize empty strings to null for nullable/unique fields
     const updateData: any = {
-      ...body,
+      ...cleanBody,
       updated_at: new Date().toISOString()
     }
+
+    if (updateData.nisn !== undefined) updateData.nisn = updateData.nisn?.toString().trim() || null
+    if (updateData.rfid_number !== undefined) updateData.rfid_number = updateData.rfid_number?.toString().trim() || null
+    if (updateData.parent_email !== undefined) updateData.parent_email = updateData.parent_email?.toString().trim() || null
+    if (updateData.place_of_birth !== undefined) updateData.place_of_birth = updateData.place_of_birth?.toString().trim() || null
+    if (updateData.date_of_birth !== undefined) updateData.date_of_birth = updateData.date_of_birth || null
+    if (updateData.fee_waiver_type !== undefined) updateData.fee_waiver_type = updateData.fee_waiver_type || null
 
     if (body.parent_password) {
       updateData.parent_password = await hash(body.parent_password, 10)
     }
 
-    const { data: student, error } = await supabase
+    let { data: student, error } = await supabase
       .from('students')
       .update(updateData)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) throw error
+    // Graceful fallback if database schema does not yet have newly added optional columns
+    if (error && (error.message?.includes('column') || error.message?.includes('schema cache'))) {
+      console.warn('Supabase schema cache warning on student update, retrying without birth columns:', error.message)
+      const { date_of_birth, place_of_birth, ...strippedUpdate } = updateData
+      const retry = await supabase
+        .from('students')
+        .update(strippedUpdate)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (retry.error) throw retry.error
+      student = retry.data
+    } else if (error) {
+      throw error
+    }
 
     // Sinkronisasi otomatis tagihan infaq yang masih UNPAID
     if (updateData.fee_waiver_type === 'ANAK_YATIM' || updateData.fee_waiver_type === 'Keluarga Guru') {

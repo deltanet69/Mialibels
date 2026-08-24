@@ -50,6 +50,11 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
 
       const submitData = {
         ...formData,
+        nisn: formData.nisn?.trim() || null,
+        rfid_number: formData.rfid_number?.trim() || null,
+        parent_email: formData.parent_email?.trim() || null,
+        place_of_birth: formData.place_of_birth?.trim() || null,
+        date_of_birth: formData.date_of_birth || null,
         fee_waiver_type: formData.fee_waiver_type || null
       }
 

@@ -152,19 +152,37 @@ export async function POST(request: NextRequest) {
       // Bulk Upsert Mode (e.g. from CSV)
       const studentsToUpsert = []
       for (const s of students) {
+        const { student_accounts, spp_invoices, spp_payments, saving_transactions, ...cleanS } = s
         studentsToUpsert.push({
-          ...s,
+          ...cleanS,
+          nisn: cleanS.nisn?.toString().trim() || null,
+          rfid_number: cleanS.rfid_number?.toString().trim() || null,
+          parent_email: cleanS.parent_email?.toString().trim() || null,
+          place_of_birth: cleanS.place_of_birth?.toString().trim() || null,
+          date_of_birth: cleanS.date_of_birth || null,
+          fee_waiver_type: cleanS.fee_waiver_type || null,
           student_number: s.student_number || await getNextStudentId(s.class),
           class_id: getClassId(s.class)
         })
       }
 
-      const { data: upsertedStudents, error: upsertError } = await supabase
+      let { data: upsertedStudents, error: upsertError } = await supabase
         .from('students')
         .upsert(studentsToUpsert, { onConflict: 'student_number' })
         .select('id')
 
-      if (upsertError) throw upsertError
+      if (upsertError && (upsertError.message?.includes('column') || upsertError.message?.includes('schema cache'))) {
+        console.warn('Supabase schema cache warning on bulk upsert, retrying without birth columns:', upsertError.message)
+        const stripped = studentsToUpsert.map(({ date_of_birth, place_of_birth, ...rest }) => rest)
+        const retry = await supabase
+          .from('students')
+          .upsert(stripped, { onConflict: 'student_number' })
+          .select('id')
+        if (retry.error) throw retry.error
+        upsertedStudents = retry.data
+      } else if (upsertError) {
+        throw upsertError
+      }
 
       // Create accounts only if they don't exist
       if (upsertedStudents && upsertedStudents.length > 0) {
@@ -185,20 +203,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: upsertedStudents?.length || 0 })
     } else {
       // Single Insert Mode
+      const { student_accounts, spp_invoices, spp_payments, saving_transactions, id: _tempId, ...cleanBody } = body
       const generatedId = await getNextStudentId(body.class)
-      const payload = {
-        ...body,
+      const payload: any = {
+        ...cleanBody,
+        nisn: cleanBody.nisn?.toString().trim() || null,
+        rfid_number: cleanBody.rfid_number?.toString().trim() || null,
+        parent_email: cleanBody.parent_email?.toString().trim() || null,
+        place_of_birth: cleanBody.place_of_birth?.toString().trim() || null,
+        date_of_birth: cleanBody.date_of_birth || null,
+        fee_waiver_type: cleanBody.fee_waiver_type || null,
         student_number: generatedId,
         class_id: getClassId(body.class)
       }
 
-      const { data: student, error: insertError } = await supabase
+      let { data: student, error: insertError } = await supabase
         .from('students')
         .insert([payload])
         .select()
         .single()
 
-      if (insertError) throw insertError
+      if (insertError && (insertError.message?.includes('column') || insertError.message?.includes('schema cache'))) {
+        console.warn('Supabase schema cache warning on student insert, retrying without birth columns:', insertError.message)
+        const { date_of_birth, place_of_birth, ...strippedPayload } = payload
+        const retry = await supabase
+          .from('students')
+          .insert([strippedPayload])
+          .select()
+          .single()
+
+        if (retry.error) throw retry.error
+        student = retry.data
+      } else if (insertError) {
+        throw insertError
+      }
 
       // Automatically create a student_account with 0 balance
       const { error: accError } = await supabase

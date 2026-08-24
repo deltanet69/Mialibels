@@ -217,6 +217,14 @@ export default function StudentDetailPage() {
                     <p className="text-slate-800 font-medium">{student.class || '—'}</p>
                   </div>
                   <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">Tempat, Tanggal Lahir</p>
+                    <p className="text-slate-800 font-medium">
+                      {student.place_of_birth || student.date_of_birth ? (
+                        `${student.place_of_birth || ''}${student.place_of_birth && student.date_of_birth ? ', ' : ''}${student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}`
+                      ) : '—'}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">No RFID</p>
                     <p className="text-slate-800 font-medium">{student.rfid_number || '—'}</p>
                   </div>
