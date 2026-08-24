@@ -77,110 +77,208 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
       
+      const templateSrc = type === 'siswa' ? '/kartu/kartutemplate.png' : '/kartu/kartuujian_template.png';
+      
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
-        img.src = '/kartu/kartutemplate.png';
+        img.src = templateSrc;
       });
 
-      // Original template dimensions
-      canvas.width = 3150;
-      canvas.height = 1800;
+      if (type === 'siswa') {
+        // Original Kartu Siswa dimensions (3150 x 1800 px)
+        canvas.width = 3150;
+        canvas.height = 1800;
 
-      // Draw background template
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Draw background template
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      // Define fonts
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = '#000000'; // Black text
-
-      // Draw Title
-      ctx.font = 'bold 70px "Inter", "Segoe UI", sans-serif';
-      const title = type === 'siswa' ? 'KARTU PELAJAR SISWA' : 'KARTU PESERTA UJIAN';
-      ctx.fillText(title, 794, 650);
-
-      // Draw Labels
-      ctx.font = 'bold 50px "Inter", "Segoe UI", sans-serif';
-      const labels = ['Nama Lengkap', 'NIS / NISN', 'Kelas', 'Alamat'];
-      const startY = 794;
-      const spacing = 110;
-
-      labels.forEach((label, i) => {
-        const y = startY + (i * spacing);
-        ctx.fillText(label, 794, y);
-        ctx.fillText(':', 1386, y);
-      });
-
-      // Draw Values
-      ctx.font = 'normal 50px "Inter", "Segoe UI", sans-serif';
-      const values = [
-        studentData.name || '-',
-        `${studentData.student_number || '-'} / ${studentData.nisn || '-'}`,
-        studentData.class || '-',
-      ];
-
-      values.forEach((value, i) => {
-        const y = startY + (i * spacing);
-        ctx.fillText(value, 1493, y);
-      });
-
-      // Handle Address (might need wrapping)
-      const addressY = startY + (3 * spacing);
-      const address = studentData.address || '-';
-      
-      // Simple word wrap for address
-      const words = address.split(' ');
-      let line = '';
-      let currentY = addressY;
-      const maxWidth = 1500; // max width for text
-
-      for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-        
-        if (testWidth > maxWidth && n > 0) {
-          ctx.fillText(line, 1493, currentY);
-          line = words[n] + ' ';
-          currentY += 60; // line height
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line, 1493, currentY);
-
-      // Draw Photo Placeholder or Photo
-      const photoX = 208;
-      const photoY = 648;
-      const photoW = 441;
-      const photoH = 629;
-
-      if (studentData.image) {
-        const photo = new window.Image();
-        photo.crossOrigin = 'anonymous';
-        await new Promise((resolve, reject) => {
-          photo.onload = resolve;
-          photo.onerror = reject;
-          // Use a proxy or direct URL if it's external, we assume it's accessible or base64
-          photo.src = studentData.image!;
-        });
-        ctx.drawImage(photo, photoX, photoY, photoW, photoH);
-      } else {
-        // Draw Grey Box Placeholder
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(photoX, photoY, photoW, photoH);
-        
-        // Draw placeholder text
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'normal 40px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('FOTO', photoX + photoW / 2, photoY + photoH / 2);
-        ctx.fillText('3x4', photoX + photoW / 2, (photoY + photoH / 2) + 50);
-        
-        // Reset text alignment for other elements if any were added after
-        ctx.textAlign = 'left';
+        // Define fonts
         ctx.textBaseline = 'top';
+        ctx.fillStyle = '#000000'; // Black text
+
+        // Draw Title
+        ctx.font = 'bold 70px "Inter", "Segoe UI", sans-serif';
+        ctx.fillText('KARTU PELAJAR SISWA', 794, 650);
+
+        // Draw Labels
+        ctx.font = 'bold 50px "Inter", "Segoe UI", sans-serif';
+        const labels = ['Nama Lengkap', 'NIS / NISN', 'Kelas', 'Alamat'];
+        const startY = 794;
+        const spacing = 110;
+
+        labels.forEach((label, i) => {
+          const y = startY + (i * spacing);
+          ctx.fillText(label, 794, y);
+          ctx.fillText(':', 1386, y);
+        });
+
+        // Draw Values
+        ctx.font = 'normal 50px "Inter", "Segoe UI", sans-serif';
+        const values = [
+          studentData.name || '-',
+          `${studentData.student_number || '-'} / ${studentData.nisn || '-'}`,
+          studentData.class || '-',
+        ];
+
+        values.forEach((value, i) => {
+          const y = startY + (i * spacing);
+          ctx.fillText(value, 1493, y);
+        });
+
+        // Handle Address (might need wrapping)
+        const addressY = startY + (3 * spacing);
+        const address = studentData.address || '-';
+        
+        const words = address.split(' ');
+        let line = '';
+        let currentY = addressY;
+        const maxWidth = 1500;
+
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + ' ';
+          const metrics = ctx.measureText(testLine);
+          const testWidth = metrics.width;
+          
+          if (testWidth > maxWidth && n > 0) {
+            ctx.fillText(line, 1493, currentY);
+            line = words[n] + ' ';
+            currentY += 60;
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line, 1493, currentY);
+
+        // Draw Photo Placeholder or Photo
+        const photoX = 208;
+        const photoY = 648;
+        const photoW = 441;
+        const photoH = 629;
+
+        if (studentData.image) {
+          const photo = new window.Image();
+          photo.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => {
+            photo.onload = resolve;
+            photo.onerror = reject;
+            photo.src = studentData.image!;
+          });
+          ctx.drawImage(photo, photoX, photoY, photoW, photoH);
+        } else {
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(photoX, photoY, photoW, photoH);
+          
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = 'normal 40px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('FOTO', photoX + photoW / 2, photoY + photoH / 2);
+          ctx.fillText('3x4', photoX + photoW / 2, (photoY + photoH / 2) + 50);
+          
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+        }
+      } else {
+        // Kartu Peserta Ujian: Ukuran Khusus 12cm x 10cm (2400 x 2000 px, ratio 1.2 : 1)
+        canvas.width = 2400;
+        canvas.height = 2000;
+
+        // Draw background template
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        ctx.textBaseline = 'top';
+
+        // Draw Title
+        ctx.font = 'bold 64px "Inter", "Segoe UI", sans-serif';
+        ctx.fillStyle = '#172554';
+        ctx.fillText('KARTU PESERTA UJIAN', 680, 520);
+
+        // Draw Labels
+        ctx.font = 'bold 46px "Inter", "Segoe UI", sans-serif';
+        ctx.fillStyle = '#334155';
+        const labels = ['Nama Lengkap', 'NISN', 'Kelas', 'Ruang Kelas'];
+        const startY = 660;
+        const spacing = 130;
+
+        labels.forEach((label, i) => {
+          const y = startY + (i * spacing);
+          ctx.fillText(label, 680, y);
+          ctx.fillText(':', 1140, y);
+        });
+
+        // Draw Values
+        ctx.fillStyle = '#0f172a';
+        const rawClass = studentData.class || '-';
+        const ruangVal = rawClass !== '-' 
+          ? (rawClass.toLowerCase().includes('ruang') ? rawClass : `Ruang ${rawClass}`)
+          : '-';
+
+        const values = [
+          studentData.name || '-',
+          studentData.nisn || studentData.student_number || '-',
+          rawClass,
+          ruangVal,
+        ];
+
+        // Draw values with auto font scaling for long text
+        values.forEach((value, i) => {
+          const y = startY + (i * spacing);
+          let fontSize = 46;
+          ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", sans-serif`;
+          const maxValWidth = 1100;
+          while (ctx.measureText(value).width > maxValWidth && fontSize > 28) {
+            fontSize -= 2;
+            ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", sans-serif`;
+          }
+          ctx.fillText(value, 1200, y + (46 - fontSize) / 2);
+        });
+
+        // Draw Photo Placeholder or Photo (3x4 aspect ratio box)
+        const photoX = 150;
+        const photoY = 520;
+        const photoW = 460;
+        const photoH = 613;
+
+        if (studentData.image) {
+          const photo = new window.Image();
+          photo.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => {
+            photo.onload = resolve;
+            photo.onerror = reject;
+            photo.src = studentData.image!;
+          });
+          ctx.drawImage(photo, photoX, photoY, photoW, photoH);
+        } else {
+          ctx.fillStyle = '#e2e8f0';
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(photoX, photoY, photoW, photoH, 12);
+            ctx.fill();
+          } else {
+            ctx.fillRect(photoX, photoY, photoW, photoH);
+          }
+          
+          ctx.fillStyle = '#64748b';
+          ctx.font = 'bold 40px "Inter", "Segoe UI", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('FOTO', photoX + photoW / 2, photoY + photoH / 2 - 15);
+          
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = 'normal 34px "Inter", "Segoe UI", sans-serif';
+          ctx.fillText('3 x 4', photoX + photoW / 2, photoY + photoH / 2 + 35);
+          
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+        }
+
+        // Subtitle under photo
+        ctx.fillStyle = '#475569';
+        ctx.font = 'bold 24px "Inter", "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('MI ATTAQWA 15 BABELAN', photoX + photoW / 2, photoY + photoH + 20);
+        ctx.textAlign = 'left';
       }
 
       // Generate Download

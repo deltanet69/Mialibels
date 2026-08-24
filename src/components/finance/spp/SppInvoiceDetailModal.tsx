@@ -109,13 +109,17 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
 
   const d = new Date()
 
-  // Lock body scroll when modal is open — prevents dashboard freeze
+  // Lock body scroll only when modal is open
   useEffect(() => {
-    document.body.style.overflow = 'hidden'
+    if (invoiceId) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
     return () => {
       document.body.style.overflow = ''
     }
-  }, [])
+  }, [invoiceId])
 
   useEffect(() => {
     if (invoiceId) {
@@ -351,7 +355,7 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
 
 
 
-  const openPrintReceipt = (mode: 'current' | 'all' = 'default') => {
+  const openPrintReceipt = (mode: 'current' | 'all' | 'default' = 'default') => {
     if (invoiceId) {
       window.open(`/print/spp/${invoiceId}?mode=${mode}&t=${Date.now()}`, '_blank')
     }

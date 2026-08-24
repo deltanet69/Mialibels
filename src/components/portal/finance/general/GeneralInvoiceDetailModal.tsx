@@ -140,13 +140,17 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
     title: string; placeholder: string; onConfirm: (value: string) => void
   } | null>(null)
 
-  // Lock body scroll when modal is open — prevents dashboard freeze
+  // Lock body scroll only when modal is open
   useEffect(() => {
-    document.body.style.overflow = 'hidden'
+    if (invoiceId) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
     return () => {
       document.body.style.overflow = ''
     }
-  }, [])
+  }, [invoiceId])
 
   useEffect(() => {
     if (invoiceId) {
@@ -423,7 +427,7 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
     setIsEditMode(!isEditMode)
   }
 
-  const openPrintReceipt = (mode: 'current' | 'all' = 'default') => {
+  const openPrintReceipt = (mode: 'current' | 'all' | 'default' = 'default') => {
     if (invoiceId) {
       if (mode === 'current' && lastPaymentItems.length > 0) {
         // Encode the exact items paid in THIS transaction so the print page only shows those
