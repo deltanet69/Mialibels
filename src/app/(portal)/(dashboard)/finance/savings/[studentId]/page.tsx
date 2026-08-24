@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, ArrowDownToLine, ArrowUpFromLine, Calendar, Download, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Wallet, ArrowDownToLine, ArrowUpFromLine, Calendar, Download, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { TransactionModal } from '@/components/finance/TransactionModal';
 
@@ -15,6 +15,7 @@ export default function StudentSavingsDetail() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   const fetchDetails = async () => {
     setLoading(true);
@@ -62,6 +63,26 @@ export default function StudentSavingsDetail() {
   const handleEdit = (transaction: any) => {
     setEditingTransaction(transaction);
     setIsModalOpen(true);
+  };
+
+  const handleRecalculate = async () => {
+    if (!window.confirm('Rekonsiliasi saldo akan menghitung ulang seluruh riwayat mutasi dari awal. Lanjutkan?')) return;
+    setIsRecalculating(true);
+    try {
+      const res = await fetch(`/api/savings/${studentId}/recalculate`);
+      const result = await res.json();
+      if (result.success) {
+        alert(`✅ Rekonsiliasi selesai!\n${result.message}\nSaldo akhir: Rp ${Number(result.final_balance).toLocaleString('id-ID')}`);
+        fetchDetails();
+      } else {
+        alert('Gagal rekonsiliasi: ' + result.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat rekonsiliasi.');
+    } finally {
+      setIsRecalculating(false);
+    }
   };
 
   if (loading) {
@@ -119,10 +140,21 @@ export default function StudentSavingsDetail() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <h3 className="font-bold text-slate-800">Riwayat Mutasi</h3>
-          <button className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition px-3 py-1.5 bg-white border border-slate-200 rounded-lg">
-            <Download size={16} />
-            Cetak Rekening Koran
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRecalculate}
+              disabled={isRecalculating}
+              className="flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800 transition px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg disabled:opacity-60"
+              title="Hitung ulang seluruh saldo dari awal untuk memastikan konsistensi data"
+            >
+              <RefreshCw size={16} className={isRecalculating ? 'animate-spin' : ''} />
+              {isRecalculating ? 'Menghitung...' : 'Rekonsiliasi Saldo'}
+            </button>
+            <button className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition px-3 py-1.5 bg-white border border-slate-200 rounded-lg">
+              <Download size={16} />
+              Cetak Rekening Koran
+            </button>
+          </div>
         </div>
         
         <div className="overflow-x-auto">

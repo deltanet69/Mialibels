@@ -149,40 +149,40 @@ export async function POST(request: NextRequest) {
     }
 
     if (isBulk && Array.isArray(students)) {
-      // Bulk Insert Mode (e.g. from CSV)
-      const studentsToInsert = []
+      // Bulk Upsert Mode (e.g. from CSV)
+      const studentsToUpsert = []
       for (const s of students) {
-        studentsToInsert.push({
+        studentsToUpsert.push({
           ...s,
-          student_number: await getNextStudentId(s.class),
+          student_number: s.student_number || await getNextStudentId(s.class),
           class_id: getClassId(s.class)
         })
       }
 
-      const { data: newStudents, error: insertError } = await supabase
+      const { data: upsertedStudents, error: upsertError } = await supabase
         .from('students')
-        .insert(studentsToInsert)
+        .upsert(studentsToUpsert, { onConflict: 'student_number' })
         .select('id')
 
-      if (insertError) throw insertError
+      if (upsertError) throw upsertError
 
-      // Then create accounts for each of them
-      if (newStudents && newStudents.length > 0) {
-        const accounts = newStudents.map(s => ({
+      // Create accounts only if they don't exist
+      if (upsertedStudents && upsertedStudents.length > 0) {
+        const accounts = upsertedStudents.map(s => ({
           student_id: s.id,
           balance: 0
         }))
         
         const { error: accError } = await supabase
           .from('student_accounts')
-          .insert(accounts)
+          .upsert(accounts, { onConflict: 'student_id', ignoreDuplicates: true })
 
         if (accError) {
           console.error('Error creating bulk student accounts:', accError)
         }
       }
 
-      return NextResponse.json({ success: true, count: newStudents?.length || 0 })
+      return NextResponse.json({ success: true, count: upsertedStudents?.length || 0 })
     } else {
       // Single Insert Mode
       const generatedId = await getNextStudentId(body.class)

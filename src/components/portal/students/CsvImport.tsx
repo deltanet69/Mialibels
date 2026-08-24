@@ -21,11 +21,13 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
       'parent_phone',
       'parent_email',
       'is_active',
+      'tempat_lahir',
+      'tanggal_lahir'
     ]
     const rows = [
-      ['0123456789', 'Budi Santoso', '2023001', '1A', 'Joko Santoso', '081234567890', 'joko@email.com', 'true'],
-      ['0234567891', 'Siti Aminah', '2023002', '1B', 'Ahmad Syarif', '082298765432', 'ahmad@email.com', 'true'],
-      ['0345678912', 'Dani Pratama', '2023003', '2A', 'Bapak Dani', '083312345678', '', 'true'],
+      ['0123456789', 'Budi Santoso', '2023001', '1A', 'Joko Santoso', '081234567890', 'joko@email.com', 'true', 'Jakarta', '2015-08-17'],
+      ['0234567891', 'Siti Aminah', '2023002', '1B', 'Ahmad Syarif', '082298765432', 'ahmad@email.com', 'true', 'Bandung', '2015-09-10'],
+      ['0345678912', 'Dani Pratama', '2023003', '2A', 'Bapak Dani', '083312345678', '', 'true', 'Surabaya', '2014-01-05'],
     ]
 
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
@@ -75,6 +77,8 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
               parent_phone: row.parent_phone || row['No HP'] || '',
               parent_email: row.parent_email || row.Email || null,
               is_active: row.is_active !== 'false',
+              place_of_birth: row.tempat_lahir || row['Tempat Lahir'] || '',
+              date_of_birth: row.tanggal_lahir || row['Tanggal Lahir'] || '',
             }))
             .filter((s) => s.name && s.class)
 

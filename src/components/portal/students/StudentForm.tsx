@@ -22,6 +22,8 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
     parent_name: initialData?.parent_name || '',
     parent_phone: initialData?.parent_phone || '',
     parent_email: initialData?.parent_email || '',
+    place_of_birth: initialData?.place_of_birth || '',
+    date_of_birth: initialData?.date_of_birth || '',
     rfid_number: initialData?.rfid_number || '',
     fee_waiver_type: initialData?.fee_waiver_type || '',
     is_active: initialData?.is_active ?? true,
@@ -186,6 +188,29 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
                   onChange={handleChange}
                   placeholder="Nama Orang Tua"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Tempat Lahir (Opsional)</label>
+                <input 
+                  type="text" 
+                  name="place_of_birth"
+                  value={formData.place_of_birth}
+                  onChange={handleChange}
+                  placeholder="Contoh: Jakarta"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Tanggal Lahir (Opsional)</label>
+                <input 
+                  type="date" 
+                  name="date_of_birth"
+                  value={formData.date_of_birth}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700"
                 />
               </div>
 

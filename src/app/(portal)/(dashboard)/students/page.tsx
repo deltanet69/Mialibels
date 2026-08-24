@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, RefreshCw, Key, Loader2 } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
+import { BulkPhotoUpload } from '@/components/portal/students/BulkPhotoUpload'
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import Link from 'next/link'
 
@@ -37,6 +38,7 @@ export default function StudentsPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
   const [showImport, setShowImport] = useState(false)
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingStudent, setEditingStudent] = useState<any | null>(null)
   const [regenerating, setRegenerating] = useState(false)
@@ -245,6 +247,13 @@ export default function StudentsPage() {
             >
               <UploadCloud size={18} />
               Import CSV
+            </button>
+            <button 
+              onClick={() => setShowPhotoUpload(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-green-600 transition font-medium"
+            >
+              <UploadCloud size={18} />
+              Upload Foto
             </button>
             <button 
               onClick={() => { setEditingStudent(null); setShowForm(true); }}
@@ -548,6 +557,13 @@ export default function StudentsPage() {
         <CsvImport 
           onSuccess={fetchStudents} 
           onClose={() => setShowImport(false)} 
+        />
+      )}
+
+      {showPhotoUpload && (
+        <BulkPhotoUpload 
+          onSuccess={fetchStudents} 
+          onClose={() => setShowPhotoUpload(false)} 
         />
       )}
 
