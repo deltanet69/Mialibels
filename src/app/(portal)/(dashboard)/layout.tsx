@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Navbar />
               
               <main className="flex-1 overflow-x-hidden overflow-y-auto print:block print:overflow-visible custom-scrollbar">
-                <div className="p-4 sm:p-6 md:p-8 md:pb-12 h-full mx-auto w-full max-w-[1600px] print:p-0 print:h-auto">
+                <div className="p-4 sm:p-6 xl:p-8 xl:pb-12 h-full mx-auto w-full max-w-[1440px] print:p-0 print:h-auto">
                   {children}
                 </div>
               </main>

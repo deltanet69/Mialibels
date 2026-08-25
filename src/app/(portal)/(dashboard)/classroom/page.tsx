@@ -191,10 +191,10 @@ export default function ClassroomPage() {
       </div>
 
       {/* Quick Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0">
-            <School className="w-6 h-6" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0">
+            <School className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Rombel</span>
@@ -205,9 +205,9 @@ export default function ClassroomPage() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
-            <Users className="w-6 h-6" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shrink-0">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Siswa Terdaftar</span>
@@ -218,9 +218,9 @@ export default function ClassroomPage() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
-            <GraduationCap className="w-6 h-6" />
+        <div className="col-span-2 sm:col-span-1 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+            <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Wali Kelas Terisi</span>
@@ -275,7 +275,7 @@ export default function ClassroomPage() {
 
           {/* View Mode Toggle */}
           <div className="flex items-center gap-2 self-end lg:self-auto shrink-0">
-            <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
+            <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 whitespace-nowrap">
               {filteredClassrooms.length} Kelas
             </span>
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60">
@@ -299,7 +299,7 @@ export default function ClassroomPage() {
 
         {/* Content Section */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filteredClassrooms.length === 0 ? (
@@ -315,52 +315,52 @@ export default function ClassroomPage() {
             </p>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
             {filteredClassrooms.map((classroom) => {
               const gradientClass = getGradeGradient(classroom.name);
               return (
-                <Link
+                  <Link
                   href={`/classroom/kelas-${classroom.name.toLowerCase().replace(/\s+/g, '-')}`}
                   key={classroom.id}
-                  className="group flex flex-col justify-between bg-white border border-slate-200/80 rounded-3xl p-5 hover:border-blue-300 hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+                  className="group flex flex-col justify-between bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-5 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-300 relative overflow-hidden active:scale-98"
                 >
-                  {/* Subtle top decoration mesh */}
-                  <div className="absolute top-0 right-0 w-28 h-28 bg-blue-50/50 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none group-hover:bg-blue-100/60 transition-colors" />
+                  {/* Subtle top decoration */}
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50/50 rounded-full blur-2xl -mr-6 -mt-6 pointer-events-none group-hover:bg-blue-100/60 transition-colors" />
 
                   <div>
-                    {/* Card Top Row: Big Playful Badge + Student Count */}
-                    <div className="flex items-start justify-between gap-3 mb-4">
-                      <div className={`w-13 h-13 rounded-2xl bg-gradient-to-br ${gradientClass} flex items-center justify-center font-headline font-black text-xl shadow-md group-hover:scale-105 transition-transform`}>
+                    {/* Card Top Row: Badge + Student Count */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${gradientClass} flex items-center justify-center font-headline font-black text-base sm:text-xl shadow-md group-hover:scale-105 transition-transform shrink-0`}>
                         {classroom.name}
                       </div>
 
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
-                        <Users size={12} />
-                        <span>{classroom.enrolledStudents || 0} Siswa</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
+                        <Users size={10} />
+                        <span>{classroom.enrolledStudents || 0}</span>
                       </span>
                     </div>
 
-                    {/* Class Info */}
-                    <h3 className="font-headline font-bold text-base text-slate-800 group-hover:text-blue-600 transition-colors mb-1">
+                    {/* Class Name */}
+                    <h3 className="font-headline font-bold text-sm sm:text-base text-slate-800 group-hover:text-blue-600 transition-colors mb-1 leading-tight">
                       Kelas {classroom.name}
                     </h3>
 
                     {/* Homeroom Teacher */}
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-                      <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    <div className="flex items-center gap-1.5 mt-2 pt-2.5 border-t border-slate-100">
+                      <div className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[9px] font-bold shrink-0">
                         {classroom.homeroomTeacher ? classroom.homeroomTeacher.charAt(0) : '?'}
                       </div>
-                      <span className="text-xs font-semibold text-slate-600 truncate" title={classroom.homeroomTeacher}>
-                        {classroom.homeroomTeacher || 'Belum ada Wali Kelas'}
+                      <span className="text-[11px] sm:text-xs font-semibold text-slate-600 truncate" title={classroom.homeroomTeacher}>
+                        {classroom.homeroomTeacher || 'Belum ada Wali'}
                       </span>
                     </div>
                   </div>
 
                   {/* Card Bottom CTA */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500 group-hover:text-blue-600 transition-colors">
-                    <span>Buka Ruang Kelas</span>
-                    <div className="w-7 h-7 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
-                      <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-400 group-hover:text-blue-600 transition-colors">
+                    <span className="text-[11px]">Buka Kelas</span>
+                    <div className="w-6 h-6 rounded-full bg-slate-50 group-hover:bg-blue-50 flex items-center justify-center transition-colors">
+                      <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
                 </Link>

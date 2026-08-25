@@ -109,3 +109,32 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 .lenis.lenis-stopped { overflow: hidden; }
 .lenis.lenis-smooth iframe { pointer-events: none; }
+
+/* Hide scrollbar but keep scrollable */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Clamp-based fluid font sizes */
+.text-fluid-lg {
+  font-size: clamp(1.25rem, 2.5vw, 1.875rem);
+}
+.text-fluid-xl {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+.text-fluid-2xl {
+  font-size: clamp(1.875rem, 4vw, 3rem);
+}
+
+/* Safe container for ultrawide screens */
+.content-guard {
+  width: 100%;
+  max-width: min(100%, 96rem);
+  margin-left: auto;
+  margin-right: auto;
+}
+

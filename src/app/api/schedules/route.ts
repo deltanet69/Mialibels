@@ -12,29 +12,36 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('classroom_schedules')
-      .select('*, teacher:staffs(id, name, photo, position)')
+      .select('*, teacher:staffs(id, name, image, position)')
       .eq('classroom_id', classroomId)
       .order('time', { ascending: true })
 
-    if (error) throw error
+    if (error) {
+      console.error('API /api/schedules GET error:', error)
+      throw error
+    }
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
-    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
+    console.error('API /api/schedules GET catch error:', error)
+    return NextResponse.json({ error: error.message || 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    // Depending on what data ClassroomSchedule sends
     const { data, error } = await supabase
       .from('classroom_schedules')
       .insert(body)
 
-    if (error) throw error
+    if (error) {
+      console.error('API /api/schedules POST error:', error)
+      throw error
+    }
     return NextResponse.json({ success: true, data })
   } catch (error: any) {
-    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
+    console.error('API /api/schedules POST catch error:', error)
+    return NextResponse.json({ error: error.message || 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
 
