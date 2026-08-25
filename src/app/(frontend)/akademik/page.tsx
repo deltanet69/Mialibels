@@ -12,13 +12,15 @@ import {
   Zap,
   ArrowRight,
   Phone,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import AnimatedSection from '@/components/frontend/AnimatedSection';
 
 export const metadata = {
-  title: 'Akademik - MI Attaqwa 15 Babelan',
-  description: 'Kurikulum Terpadu Berbasis KMA 1503/2025 di MI Attaqwa 15',
+  title: 'Akademik | MI Attaqwa 15 Babelan',
+  description: 'Kurikulum Terpadu Berbasis KMA 1503/2025, Program Tahfidz, dan Keunggulan Pembelajaran MI Attaqwa 15 Babelan.',
 };
 
 export default function AkademikPage() {
@@ -27,190 +29,206 @@ export default function AkademikPage() {
       
       {/* Hero Section */}
       <AnimatedSection direction="none" delay={0.1}>
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[500px]">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="/bgheader.png"
-            alt="Header Background Akademik"
-            fill
-            priority
-            className="object-cover"
-          />
-        </div>
+        <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[460px] bg-mesh-radial">
+          {/* Background Image */}
+          <div className="absolute inset-0 z-0 opacity-40">
+            <Image
+              src="/bgheader.png"
+              alt="Header Background Akademik"
+              fill
+              priority
+              className="object-cover object-top"
+            />
+          </div>
 
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#EFF3FB]/90 via-[#EFF3FB]/70 to-[#EFF3FB]/30 z-0" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#EFF3FB]/60 z-0" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <span className="inline-block py-1.5 px-4 rounded-full bg-white/80 backdrop-blur-sm shadow-sm border border-white/60 text-primary font-body text-sm font-bold tracking-wider uppercase mb-6">
-            Akademik
-          </span>
-          <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl mb-6 leading-tight text-secondary">
-            Akademik MI Attaqwa 15<br className="hidden md:block" />
-            <span className="text-primary">Kurikulum Terpadu</span>
-          </h1>
-          <p className="font-body text-gray-600 text-lg sm:text-xl max-w-2xl mx-auto font-medium">
-            Berbasis KMA 1503/2025 · Siap Menghadapi Era Digital
-          </p>
-        </div>
-      </section>
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F4F7FC]/95 via-[#F4F7FC]/80 to-transparent z-0" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#F4F7FC]/30 to-[#F4F7FC] z-0" />
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <div className="inline-flex items-center gap-2 py-2 px-5 rounded-full glass-pill text-primary-dark font-body text-xs sm:text-sm font-bold tracking-wider uppercase mb-5">
+              <GraduationCap className="w-3.5 h-3.5 text-accent" />
+              <span>Pendidikan & Kurikulum</span>
+            </div>
+            <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl mb-4 leading-tight text-secondary">
+              Akademik MI Attaqwa 15 <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-500">
+                Kurikulum Terpadu & Modern
+              </span>
+            </h1>
+            <p className="font-body text-gray-600 text-base sm:text-lg max-w-2xl mx-auto">
+              Berbasis Standar KMA 1503/2025 · Integrasi Sains, Agama, dan Karakter Islami Sejak Dini
+            </p>
+          </div>
+        </section>
       </AnimatedSection>
 
       {/* Sekilas Kurikulum Section */}
       <AnimatedSection direction="up">
-      <section className="py-20 lg:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            {/* Left Content */}
-            <div className="space-y-6">
-              <span className="font-body text-sm font-bold text-accent tracking-wider uppercase flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Sekilas Kurikulum
-              </span>
-              <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary leading-tight">
-                Standar Kurikulum Terbaru <br className="hidden lg:block"/>
-                Madrasah Ibtidaiyah
-              </h2>
-              <div className="font-body text-gray-600 space-y-4 text-base leading-relaxed">
-                <p>
-                  MI Attaqwa 15 menerapkan <strong>Kurikulum Madrasah berbasis KMA Nomor 1503 Tahun 2025</strong> — standar kurikulum terbaru untuk madrasah ibtidaiyah yang memadukan tiga komponen utama.
-                </p>
-                <p>
-                  Pendekatan ini memastikan siswa tidak hanya unggul dalam ilmu umum, tetapi juga kuat dalam pemahaman agama, serta memiliki keterampilan abad 21 yang relevan.
-                </p>
+        <section className="py-20 lg:py-28 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* Left Content */}
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider">
+                  <BookOpen className="w-3.5 h-3.5 text-primary" />
+                  <span>Sekilas Kurikulum</span>
+                </div>
+                <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary leading-tight">
+                  Standar Kurikulum Terbaru <br className="hidden lg:block"/>
+                  Madrasah Ibtidaiyah
+                </h2>
+                <div className="font-body text-gray-600 space-y-4 text-base leading-relaxed">
+                  <p>
+                    MI Attaqwa 15 menerapkan <strong>Kurikulum Madrasah berbasis KMA Nomor 1503 Tahun 2025</strong> — standar kurikulum mutakhir untuk madrasah ibtidaiyah yang memadukan keunggulan kompetensi nasional dengan kedalaman ilmu agama Islam.
+                  </p>
+                  <p>
+                    Pendekatan ini memastikan anak didik tidak hanya cakap secara akademik dan teknologi, namun juga memiliki fondasi akhlakul karimah dan kecintaan pada Al-Qur'an.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Right Cards List */}
+              <div className="space-y-4">
+                {[
+                  {
+                    title: 'Kurikulum Nasional',
+                    desc: 'Standar kompetensi pendidikan nasional yang menjamin penguasaan literasi, numerasi, dan sains.',
+                    icon: <Award className="w-6 h-6 text-teal-600" />,
+                    bgIcon: 'bg-teal-50 border-teal-100'
+                  },
+                  {
+                    title: 'Kurikulum Kemenag & Kepesantrenan',
+                    desc: 'Pendalaman Al-Qur\'an Hadits, Aqidah Akhlak, Fikih, SKI, dan Bahasa Arab khas Yayasan Attaqwa.',
+                    icon: <Star className="w-6 h-6 text-amber-600" />,
+                    bgIcon: 'bg-amber-50 border-amber-100'
+                  },
+                  {
+                    title: 'Pengembangan Diri & IT Club',
+                    desc: 'Kegiatan ekstrakurikuler berbasis minat, tahfidz intensif, seni Islam, dan pengenalan digital sejak dini.',
+                    icon: <Lightbulb className="w-6 h-6 text-emerald-600" />,
+                    bgIcon: 'bg-emerald-50 border-emerald-100'
+                  }
+                ].map((item, idx) => (
+                  <div key={idx} className="bg-[#F4F7FC] p-6 rounded-3xl flex gap-5 items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-white">
+                    <div className={`p-3.5 rounded-2xl ${item.bgIcon} border shadow-2xs flex-shrink-0`}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-headline font-bold text-xl text-secondary mb-1.5">{item.title}</h3>
+                      <p className="font-body text-gray-600 text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* Keunggulan Akademik Section */}
+      <AnimatedSection direction="up">
+        <section className="py-20 lg:py-28 bg-[#F4F7FC]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-4">
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+                <span>Keunggulan Pembelajaran</span>
+              </div>
+              <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">
+                MENGAPA MEMILIH MI ATTAQWA 15?
+              </h2>
+            </div>
             
-            {/* Right List */}
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
               {[
                 {
-                  title: 'Kurikulum Nasional',
-                  desc: 'Berbasis standar nasional pendidikan yang menjamin kesetaraan kompetensi.',
-                  icon: <Award className="w-6 h-6 text-primary" />
+                  title: 'Pembelajaran Aktif & Ceria',
+                  desc: 'Metode pembelajaran variatif yang mengkombinasikan diskusi, praktik langsung, dan proyek kreatif agar anak antusias belajar.',
+                  icon: <Zap className="w-6 h-6 text-amber-500" />,
+                  bgIcon: 'bg-amber-50 border-amber-100'
                 },
                 {
-                  title: 'Kurikulum Madrasah',
-                  desc: 'Pendalaman ilmu agama Islam sebagai pondasi karakter dan spiritual siswa.',
-                  icon: <Star className="w-6 h-6 text-accent" />
+                  title: 'Pendekatan Personal Guru',
+                  desc: 'Rasio guru dan murid yang ideal memastikan setiap anak mendapatkan bimbingan perhatian sesuai gaya belajarnya masing-masing.',
+                  icon: <Target className="w-6 h-6 text-teal-600" />,
+                  bgIcon: 'bg-teal-50 border-teal-100'
                 },
                 {
-                  title: 'Ekstrakurikuler',
-                  desc: 'Pembelajaran mendalam berbasis proyek untuk melatih problem solving.',
-                  icon: <Lightbulb className="w-6 h-6 text-green-500" />
+                  title: 'Penguatan Calistung Dasar',
+                  desc: 'Program intensif membaca, menulis, dan berhitung di kelas awal sebagai pondasi kokoh sebelum melangkah ke jenjang berikutnya.',
+                  icon: <BookType className="w-6 h-6 text-orange-500" />,
+                  bgIcon: 'bg-orange-50 border-orange-100'
+                },
+                {
+                  title: 'Hafalan Al-Qur\'an (Tahfidz)',
+                  desc: 'Pembiasaan harian membaca dan menghafal Juz 30 serta surat-surat pilihan seperti Yasin, Al-Mulk, dan Ar-Rahman.',
+                  icon: <Star className="w-6 h-6 text-emerald-600" />,
+                  bgIcon: 'bg-emerald-50 border-emerald-100'
+                },
+                {
+                  title: 'Praktik Ibadah & Adab',
+                  desc: 'Praktik langsung wudhu, shalat dhuha/dzuhur berjamaah, doa sehari-hari, dan pembiasaan senyum salam sapa.',
+                  icon: <CheckCircle2 className="w-6 h-6 text-indigo-600" />,
+                  bgIcon: 'bg-indigo-50 border-indigo-100'
+                },
+                {
+                  title: 'Literasi Digital Sejak Dini',
+                  desc: 'Pengenalan komputer, logika dasar pemrograman, dan pemanfaatan teknologi secara positif dan aman bagi anak.',
+                  icon: <ShieldCheck className="w-6 h-6 text-blue-600" />,
+                  bgIcon: 'bg-blue-50 border-blue-100'
                 }
               ].map((item, idx) => (
-                <div key={idx} className="bg-[#EFF3FB] p-6 rounded-3xl flex gap-5 items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-white">
-                  <div className="p-3 bg-white rounded-2xl shadow-sm flex-shrink-0">
-                    {item.icon}
-                  </div>
+                <div key={idx} className="bg-white p-7 rounded-3xl shadow-sm border border-gray-100/90 hover:shadow-xl transition-all duration-300 flex flex-col justify-between hover:-translate-y-1">
                   <div>
-                    <h3 className="font-headline font-bold text-xl text-secondary mb-2">{item.title}</h3>
-                    <p className="font-body text-gray-600 text-sm leading-relaxed">{item.desc}</p>
+                    <div className={`w-13 h-13 ${item.bgIcon} border rounded-2xl flex items-center justify-center mb-5 shadow-2xs`}>
+                      {item.icon}
+                    </div>
+                    <h3 className="font-headline font-bold text-xl text-secondary mb-2.5">{item.title}</h3>
+                    <p className="font-body text-gray-500 leading-relaxed text-sm">
+                      {item.desc}
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
-      </AnimatedSection>
-
-      {/* Keunggulan Akademik Section */}
-      <AnimatedSection direction="up">
-      <section className="py-20 lg:py-28 bg-[#EFF3FB]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center mb-16">
-            <span className="font-body text-sm font-bold text-accent tracking-wider uppercase flex items-center justify-center gap-2 mb-4">
-              <GraduationCap className="w-5 h-5" />
-              Keunggulan Akademik
-            </span>
-            <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">
-              Mengapa Memilih MI Attaqwa 15?
-            </h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Pembelajaran Aktif & Menyenangkan',
-                desc: 'Kami menggunakan metode pembelajaran yang bervariasi: ceramah interaktif, diskusi kelompok, praktik langsung, bermain sambil belajar, dan proyek kolaboratif. Setiap siswa didorong untuk aktif bertanya, berpikir kritis, dan menemukan sendiri pemahamannya.',
-                icon: <Zap className="w-7 h-7 text-yellow-500" />,
-                bgIcon: 'bg-yellow-50'
-              },
-              {
-                title: 'Pendekatan Individual',
-                desc: 'Dengan rasio guru-siswa yang ideal (maksimal 25 siswa per kelas), setiap anak mendapat perhatian yang cukup. Guru mengenali gaya belajar, kelebihan, dan kelemahan masing-masing siswa — sehingga pembelajaran bisa disesuaikan.',
-                icon: <Target className="w-7 h-7 text-primary" />,
-                bgIcon: 'bg-blue-50'
-              },
-              {
-                title: 'Penguatan Literasi & Numerasi',
-                desc: 'Program khusus membaca, menulis, dan berhitung (Calistung) intensif di kelas 1-2 memastikan fondasi akademik yang kuat sebelum memasuki jenjang lebih tinggi.',
-                icon: <BookType className="w-7 h-7 text-accent" />,
-                bgIcon: 'bg-orange-50'
-              },
-              {
-                title: 'Hafalan Al-Qur\'an (Tahfidz)',
-                desc: 'Setiap hari siswa dibiasakan membaca dan menghafal juz \'amma serta surat-surat pilihan. Target minimal hafalan saat lulus: Juz 30 (surat An-Naba s/d An-Nas) ditambah surat-surat pilihan seperti Yasin, Al-Mulk, dan Ar-Rahman.',
-                icon: <Star className="w-7 h-7 text-green-500" />,
-                bgIcon: 'bg-green-50'
-              },
-              {
-                title: 'Praktik Ibadah Langsung',
-                desc: 'Pembelajaran Fikih tidak hanya teori. Siswa praktik langsung wudhu, shalat, puasa sunnah, dan doa sehari-hari di bawah bimbingan guru.',
-                icon: <CheckCircle2 className="w-7 h-7 text-purple-500" />,
-                bgIcon: 'bg-purple-50'
-              }
-            ].map((item, idx) => (
-              <div key={idx} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 flex flex-col">
-                <div className={`w-14 h-14 ${item.bgIcon} rounded-2xl flex items-center justify-center mb-6`}>
-                  {item.icon}
-                </div>
-                <h3 className="font-headline font-bold text-xl text-secondary mb-4">{item.title}</h3>
-                <p className="font-body text-gray-600 leading-relaxed text-sm flex-1">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
       </AnimatedSection>
 
       {/* CTA Section */}
       <AnimatedSection direction="up">
-      <section className="py-20 lg:py-28 bg-white text-center">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary mb-6 leading-tight">
-            Ingin putra-putri Anda mendapatkan pendidikan yang <br className="hidden md:block" />
-            <span className="text-primary">seimbang antara dunia dan akhirat?</span>
-          </h2>
-          <p className="font-body text-gray-600 text-lg leading-relaxed mb-10 max-w-3xl mx-auto">
-            MI Attaqwa 15 adalah jawabannya. Dengan kurikulum terpadu, akreditasi A, keunggulan coding & AI, serta lingkungan yang religius dan ramah anak — kami siap mencetak generasi yang cerdas, berakhlak mulia, dan siap menghadapi masa depan.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link 
-              href="/ppdb" 
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-full font-body text-base font-bold bg-primary text-white shadow-lg transition-all duration-300 hover:bg-[#E67A00] hover:-translate-y-1 hover:shadow-xl"
-            >
-              Lihat Biaya & Pendaftaran
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
+        <section className="py-20 lg:py-28 bg-white text-center">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary mb-5 leading-tight">
+              Ingin Putra-Putri Anda Meraih Pendidikan yang <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-700 to-emerald-600">
+                Seimbang Dunia dan Akhirat?
+              </span>
+            </h2>
+            <p className="font-body text-gray-600 text-base sm:text-lg leading-relaxed mb-10 max-w-3xl mx-auto">
+              MI Attaqwa 15 siap mencetak generasi shalih yang unggul dalam ilmu umum, teguh dalam iman, dan terampil menghadapi era modern.
+            </p>
             
-            <Link 
-              href="/contact" 
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-full font-body text-base font-bold bg-white text-secondary border-2 border-secondary/20 shadow-sm transition-all duration-300 hover:border-secondary hover:bg-gray-50"
-            >
-              <Phone className="w-5 h-5 mr-2" />
-              Konsultasi Akademik
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link 
+                href="/ppdb" 
+                className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-btn-secondary text-white shadow-lg shadow-orange-950/20 hover:shadow-xl hover:brightness-110 transition-all"
+              >
+                <span>Informasi PPDB & Biaya</span>
+                <ArrowRight className="w-5 h-5 ml-1" />
+              </Link>
+              
+              <Link 
+                href="/contact" 
+                className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-white text-secondary border-2 border-slate-200 shadow-sm hover:border-primary hover:text-primary transition-all"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Konsultasi Akademik</span>
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       </AnimatedSection>
 
     </div>

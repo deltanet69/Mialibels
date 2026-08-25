@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Newspaper, ChevronLeft, ChevronRight, Calendar, Clock, ArrowRight } from 'lucide-react'
+import { Newspaper, ChevronLeft, ChevronRight, Calendar, Clock, ArrowRight, Sparkles } from 'lucide-react'
 import { NewsArticle } from '@/lib/api/news'
 import NewsCard from '@/components/frontend/NewsCard'
 import AnimatedSection from '@/components/frontend/AnimatedSection'
@@ -45,18 +45,18 @@ function FeaturedSlideshow({ articles }: { articles: NewsArticle[] }) {
     <div className="relative group">
       <Link
         href={`/news/${article.slug}`}
-        className={`flex flex-col md:flex-row bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 ${animating ? 'opacity-0 scale-[0.99]' : 'opacity-100 scale-100'}`}
+        className={`flex flex-col md:flex-row bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100/90 ${animating ? 'opacity-0 scale-[0.99]' : 'opacity-100 scale-100'}`}
         style={{ transition: 'opacity 250ms, transform 250ms' }}
       >
         {/* Image */}
-        <div className="relative w-full md:w-1/2 aspect-[4/3] md:aspect-auto overflow-hidden min-h-[260px]">
+        <div className="relative w-full md:w-1/2 aspect-[16/10] md:aspect-auto overflow-hidden min-h-[280px] bg-slate-100">
           <Image
             src={article.imageUrl}
             alt={article.title}
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <span className="absolute top-4 left-4 bg-primary text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+          <span className="absolute top-4 left-4 bg-primary text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-md backdrop-blur-md">
             {article.category}
           </span>
           {/* Slide indicators */}
@@ -75,17 +75,18 @@ function FeaturedSlideshow({ articles }: { articles: NewsArticle[] }) {
         </div>
 
         {/* Content */}
-        <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center">
-          <div className="flex items-center gap-4 text-gray-500 text-sm mb-4 font-medium">
-            <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{article.date}</span>
-            <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" />{article.readTime}</span>
+        <div className="w-full md:w-1/2 p-8 lg:p-12 flex flex-col justify-center">
+          <div className="flex items-center gap-4 text-gray-400 text-xs font-semibold mb-4">
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-gray-400" />{article.date}</span>
+            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400" />{article.readTime}</span>
           </div>
           <h2 className="font-headline font-black text-2xl lg:text-3xl text-secondary mb-4 leading-tight group-hover:text-primary transition-colors duration-300">
             {article.title}
           </h2>
-          <p className="font-body text-gray-600 mb-6 line-clamp-3 leading-relaxed">{article.excerpt}</p>
-          <div className="mt-auto flex items-center text-primary font-bold text-sm uppercase tracking-wider group-hover:translate-x-2 transition-transform duration-300">
-            Baca Selengkapnya <ArrowRight className="w-4 h-4 ml-2" />
+          <p className="font-body text-gray-500 mb-6 line-clamp-3 leading-relaxed text-sm sm:text-base">{article.excerpt}</p>
+          <div className="mt-auto flex items-center text-primary font-bold text-sm uppercase tracking-wider group-hover:text-btn-secondary transition-colors duration-300">
+            <span>Baca Selengkapnya</span>
+            <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1.5" />
           </div>
         </div>
       </Link>
@@ -96,16 +97,18 @@ function FeaturedSlideshow({ articles }: { articles: NewsArticle[] }) {
           <button
             type="button"
             onClick={prev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 hover:bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="Artikel sebelumnya"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/95 hover:bg-white shadow-lg rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95"
           >
-            <ChevronLeft size={18} className="text-secondary" />
+            <ChevronLeft size={20} className="text-secondary" />
           </button>
           <button
             type="button"
             onClick={next}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 hover:bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label="Artikel selanjutnya"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/95 hover:bg-white shadow-lg rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95"
           >
-            <ChevronRight size={18} className="text-secondary" />
+            <ChevronRight size={20} className="text-secondary" />
           </button>
         </>
       )}
@@ -144,14 +147,14 @@ function Pagination({
   }
 
   return (
-    <nav aria-label="Halaman berita" className="flex items-center justify-center gap-1 mt-12 select-none">
+    <nav aria-label="Halaman berita" className="flex items-center justify-center gap-1.5 mt-14 select-none">
       {/* Prev */}
       <button
         type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         aria-label="Halaman sebelumnya"
-        className="inline-flex items-center justify-center h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 hover:text-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="btn-tactile inline-flex items-center justify-center h-10 px-3.5 rounded-full border border-gray-200 bg-white text-gray-500 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 hover:text-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
@@ -172,10 +175,10 @@ function Pagination({
             onClick={() => onPageChange(page)}
             aria-label={`Halaman ${page}`}
             aria-current={currentPage === page ? 'page' : undefined}
-            className={`inline-flex items-center justify-center h-10 w-10 rounded-lg border text-sm font-semibold transition-colors ${
+            className={`btn-tactile inline-flex items-center justify-center h-10 w-10 rounded-full border text-sm font-bold transition-all ${
               currentPage === page
-                ? 'bg-secondary text-white border-secondary'
-                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-secondary'
+                ? 'bg-secondary text-white border-secondary shadow-sm'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:text-secondary shadow-2xs'
             }`}
           >
             {page}
@@ -189,7 +192,7 @@ function Pagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         aria-label="Halaman selanjutnya"
-        className="inline-flex items-center justify-center h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 hover:text-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        className="btn-tactile inline-flex items-center justify-center h-10 px-3.5 rounded-full border border-gray-200 bg-white text-gray-500 text-sm font-medium hover:bg-gray-50 hover:border-gray-300 hover:text-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
@@ -235,24 +238,25 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
   }
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-[#EFF3FB]">
+    <div className="flex flex-col w-full min-h-screen bg-[#F4F7FC]">
 
       {/* Hero */}
       <AnimatedSection direction="none" delay={0.1}>
-        <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden flex flex-col justify-center bg-[#EFF3FB]">
+        <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden flex flex-col justify-center min-h-[420px] bg-mesh-radial">
           <div className="absolute inset-0 z-0">
             <Image src="/images/student_activity.png" alt="Header Background Berita" fill priority className="object-cover opacity-20 object-top" />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-b from-[#EFF3FB]/95 via-[#EFF3FB]/90 to-[#EFF3FB] z-0" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#F4F7FC]/90 via-[#F4F7FC]/80 to-[#F4F7FC] z-0" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-            <span className="inline-flex items-center gap-2 py-1.5 px-5 rounded-full bg-white border border-blue-100 text-secondary font-body text-sm font-bold tracking-wider uppercase mb-6 shadow-sm">
-              <Newspaper className="w-5 h-5 text-btn-secondary" /> Pusat Informasi
-            </span>
-            <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl mb-6 leading-tight text-secondary">
-              Berita &amp; <span className="text-primary">Artikel</span>
+            <div className="inline-flex items-center gap-2 py-2 px-5 rounded-full glass-pill text-primary-dark font-body text-xs sm:text-sm font-bold tracking-wider uppercase mb-5">
+              <Newspaper className="w-3.5 h-3.5 text-btn-secondary" />
+              <span>Pusat Informasi &amp; Publikasi</span>
+            </div>
+            <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl mb-4 leading-tight text-secondary">
+              Berita &amp; <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-500">Artikel Edukasi</span>
             </h1>
-            <p className="font-body text-gray-600 text-lg md:text-xl max-w-2xl mx-auto">
-              Ikuti perkembangan terbaru, prestasi siswa, dan artikel pendidikan menarik seputar MI Attaqwa 15 Babelan.
+            <p className="font-body text-gray-600 text-base sm:text-lg max-w-2xl mx-auto">
+              Ikuti perkembangan terbaru, dokumentasi prestasi, dan tulisan pendidikan seputar MI Attaqwa 15 Babelan.
             </p>
           </div>
         </section>
@@ -274,14 +278,18 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
       </AnimatedSection>
 
       {/* Category Tabs */}
-      <section id="news-grid" className="pb-6 pt-4 scroll-mt-24">
+      <section id="news-grid" className="pb-6 pt-6 scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-center gap-3 border-b border-gray-200 pb-6">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pb-6">
             {CATEGORIES.map(cat => (
               <button
                 key={cat}
                 onClick={() => handleCategoryChange(cat)}
-                className={`px-6 py-2.5 rounded-full font-body text-sm font-bold shadow-sm transition-all border ${currentCategory === cat ? 'bg-secondary text-white border-secondary' : 'bg-white text-gray-600 hover:text-secondary hover:bg-gray-50 border-gray-200'}`}
+                className={`btn-tactile px-6 py-2.5 rounded-full font-body text-sm font-bold shadow-2xs transition-all border ${
+                  currentCategory === cat 
+                    ? 'bg-secondary text-white border-secondary shadow-sm' 
+                    : 'bg-white text-gray-600 hover:text-secondary hover:bg-slate-50 border-gray-200'
+                }`}
               >
                 {cat}
               </button>
@@ -290,12 +298,12 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
 
           {/* Article count info */}
           {filteredNews.length > 0 && (
-            <p className="text-center font-body text-sm text-gray-400 mt-4">
+            <p className="text-center font-body text-xs sm:text-sm text-gray-400 mt-2">
               Menampilkan{' '}
-              <strong className="text-secondary">
+              <strong className="text-secondary font-semibold">
                 {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredNews.length)}
               </strong>{' '}
-              dari <strong className="text-secondary">{filteredNews.length}</strong> artikel
+              dari <strong className="text-secondary font-semibold">{filteredNews.length}</strong> artikel
             </p>
           )}
         </div>

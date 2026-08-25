@@ -1,23 +1,26 @@
 'use client';
 
 import React from 'react';
-import { MapIcon } from 'lucide-react';
+import { MapPin, Sparkles } from 'lucide-react';
 
 export default function ContactMap() {
   return (
-    <section className="py-20 bg-[#F8FAFC]">
+    <section className="py-20 bg-[#F4F7FC]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="font-headline font-bold text-3xl md:text-4xl text-secondary mb-4 flex items-center justify-center gap-3">
-            <MapIcon className="w-8 h-8 text-primary" />
-            Lokasi <span className="text-primary">Madrasah</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-4">
+            <MapPin className="w-3.5 h-3.5 text-accent" />
+            <span>Peta Petunjuk Arah</span>
+          </div>
+          <h2 className="font-headline font-black text-3xl md:text-4xl text-secondary mb-4">
+            LOKASI MADRASAH KAMI
           </h2>
-          <p className="font-body text-gray-600 text-lg">
-            Kunjungi kami secara langsung untuk melihat fasilitas dan lingkungan belajar di MI Attaqwa 15 Babelan.
+          <p className="font-body text-gray-500 text-base sm:text-lg">
+            Kunjungi kami secara langsung untuk melihat suasana belajar kondusif dan fasilitas di MI Attaqwa 15 Babelan.
           </p>
         </div>
 
-        <div className="w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-lg border-4 border-white relative z-10">
+        <div className="w-full h-[400px] md:h-[480px] rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-900/5 border-4 border-white relative z-10">
           <iframe 
             src="https://www.google.com/maps?q=Jl.+Raya+Ps.+Babelan+No.1,+Babelan+Kota,+Kec.+Babelan,+Kabupaten+Bekasi,+Jawa+Barat+17610&output=embed" 
             width="100%" 

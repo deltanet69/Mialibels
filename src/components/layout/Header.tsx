@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Menu, X, PhoneCall } from 'lucide-react';
+import { Menu, X, PhoneCall, Sparkles, ChevronRight } from 'lucide-react';
 
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel', href: '/news' },
-  { label: 'PPDB', href: '/ppdb' },
+  { label: 'PPDB', href: '/ppdb', highlight: true },
 ];
 
 export default function Header() {
@@ -37,41 +37,50 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ${scrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-md'
-          : 'bg-transparent'
-          }`}
+        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ${
+          scrolled
+            ? 'py-3 sm:py-3.5 bg-white/85 backdrop-blur-xl shadow-lg shadow-blue-950/5 border-b border-white/60'
+            : 'py-4 sm:py-5 bg-transparent'
+        }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20">
+          <div className="flex items-center justify-between h-14 sm:h-16">
 
             {/* ===== LOGO ===== */}
             <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-              <div className="relative w-[140px] h-[40px] sm:w-[170px] sm:h-[48px] flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+              <div className="relative w-[145px] h-[42px] sm:w-[175px] sm:h-[48px] flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
                 <Image
                   src="/logomi.png"
                   alt="Logo MI Attaqwa 15"
                   fill
                   priority
-                  className="object-contain object-left"
+                  className="object-contain object-left drop-shadow-sm"
                 />
               </div>
             </Link>
 
             {/* ===== DESKTOP NAV ===== */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1.5 p-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/80 shadow-sm">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
                   <Link
                     key={link.label}
                     href={link.href}
-                    className={`px-3 lg:px-4 py-2 rounded-full font-body text-sm font-medium transition-all duration-200 ${isActive
-                      ? 'text-primary bg-primary/10 font-semibold'
-                      : 'text-secondary hover:text-primary hover:bg-gray-100'
-                      }`}
+                    className={`relative px-4 py-2 rounded-full font-body text-sm font-semibold transition-all duration-300 ${
+                      isActive
+                        ? 'text-white bg-primary shadow-md shadow-teal-700/20'
+                        : link.highlight
+                        ? 'text-btn-secondary hover:text-white hover:bg-btn-secondary/90'
+                        : 'text-secondary/80 hover:text-primary hover:bg-teal-50/70'
+                    }`}
                   >
-                    {link.label}
+                    <span className="flex items-center gap-1.5">
+                      {link.highlight && !isActive && (
+                        <span className="w-2 h-2 rounded-full bg-btn-secondary animate-ping inline-block" />
+                      )}
+                      {link.label}
+                    </span>
                   </Link>
                 );
               })}
@@ -81,17 +90,17 @@ export default function Header() {
             <div className="hidden md:flex items-center flex-shrink-0">
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-body text-sm font-bold bg-btn-primary text-white shadow-md transition-all duration-300 hover:bg-secondary hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                className="btn-tactile inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-body text-sm font-bold bg-btn-primary text-white shadow-md shadow-blue-950/15 hover:bg-[#001d3d] hover:shadow-lg transition-all duration-300"
               >
-                <PhoneCall className="w-4 h-4" />
-                Kontak Kami
+                <PhoneCall className="w-4 h-4 text-accent" />
+                <span>Kontak Kami</span>
               </Link>
             </div>
 
             {/* ===== MOBILE HAMBURGER ===== */}
             <button
               onClick={() => setIsOpen(true)}
-              className="md:hidden p-2 rounded-lg text-secondary hover:text-primary hover:bg-gray-100 transition-colors focus:outline-none"
+              className="md:hidden p-2.5 rounded-2xl bg-white/80 backdrop-blur-md border border-white/80 text-secondary hover:text-primary hover:bg-white shadow-sm transition-all duration-200 focus:outline-none"
               aria-label="Buka menu"
             >
               <Menu className="w-6 h-6" />
@@ -104,32 +113,32 @@ export default function Header() {
       {/* ===== MOBILE DRAWER ===== */}
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/50 md:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
+        className={`fixed inset-0 z-[60] bg-slate-950/40 backdrop-blur-sm md:hidden transition-opacity duration-300 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
         onClick={() => setIsOpen(false)}
         aria-hidden="true"
       />
 
       {/* Drawer Panel */}
       <div
-        className={`fixed top-0 right-0 bottom-0 z-[70] w-[330px] max-w-[85vw] bg-white shadow-2xl flex flex-col md:hidden transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
+        className={`fixed top-0 right-0 bottom-0 z-[70] w-[320px] max-w-[85vw] bg-white/95 backdrop-blur-2xl shadow-2xl flex flex-col md:hidden transition-transform duration-300 ease-out border-l border-white/50 ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
       >
         {/* Drawer Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100/80">
+          <div className="relative w-[130px] h-[38px]">
             <Image
               src="/logomi.png"
               alt="Logo MI"
-              width={120}
-              height={120}
-              className="object-contain"
+              fill
+              className="object-contain object-left"
             />
-
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-gray-100 transition-colors focus:outline-none"
+            className="p-2 rounded-xl bg-gray-100/80 text-gray-500 hover:text-primary hover:bg-gray-200/80 transition-colors focus:outline-none"
             aria-label="Tutup menu"
           >
             <X className="w-5 h-5" />
@@ -137,7 +146,7 @@ export default function Header() {
         </div>
 
         {/* Drawer Nav Links */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-1">
+        <nav className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-2">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -145,26 +154,35 @@ export default function Header() {
                 key={link.label}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center px-4 py-3.5 rounded-xl font-body text-sm font-semibold transition-all ${isActive
-                  ? 'text-primary bg-primary/10 border border-primary/15'
-                  : 'text-secondary hover:text-primary hover:bg-gray-50'
-                  }`}
+                className={`flex items-center justify-between px-4 py-3.5 rounded-2xl font-body text-sm font-bold transition-all ${
+                  isActive
+                    ? 'text-white bg-primary shadow-md shadow-teal-700/20'
+                    : link.highlight
+                    ? 'text-btn-secondary bg-orange-50/80 border border-orange-200/60'
+                    : 'text-secondary hover:text-primary hover:bg-slate-50'
+                }`}
               >
-                {link.label}
+                <div className="flex items-center gap-2">
+                  {link.highlight && (
+                    <Sparkles className="w-4 h-4 text-btn-secondary" />
+                  )}
+                  <span>{link.label}</span>
+                </div>
+                <ChevronRight className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
               </Link>
             );
           })}
         </nav>
 
         {/* Drawer Footer CTA */}
-        <div className="px-4 py-5 border-t border-gray-100">
+        <div className="p-5 border-t border-gray-100 bg-slate-50/50">
           <Link
             href="/contact"
             onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-full font-body text-sm font-bold bg-btn-primary text-white shadow-md hover:bg-secondary hover:shadow-lg transition-all"
+            className="btn-tactile flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-2xl font-body text-sm font-bold bg-btn-primary text-white shadow-lg shadow-blue-950/20 hover:bg-[#001d3d] transition-all"
           >
-            <PhoneCall className="w-4 h-4" />
-            Kontak Kami
+            <PhoneCall className="w-4 h-4 text-accent" />
+            <span>Hubungi Kami</span>
           </Link>
         </div>
       </div>

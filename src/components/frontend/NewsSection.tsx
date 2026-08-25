@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 // Define TS Interface for post
@@ -52,18 +52,18 @@ const mockPosts: Post[] = [
   },
 ];
 
-const categoryColors = {
-  berita: 'bg-teal-50 text-teal-700 border-teal-100',
-  pengumuman: 'bg-amber-50 text-amber-700 border-amber-100',
-  artikel: 'bg-blue-50 text-blue-700 border-blue-100',
-  kegiatan: 'bg-purple-50 text-purple-700 border-purple-100',
+const categoryStyles: Record<string, { bg: string; text: string; border: string }> = {
+  berita: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+  pengumuman: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  artikel: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  kegiatan: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
 };
 
-const categoryLabels = {
-  berita: 'Berita Terbaru',
+const categoryLabels: Record<string, string> = {
+  berita: 'Berita',
   pengumuman: 'Pengumuman',
-  artikel: 'Artikel Opini',
-  kegiatan: 'Kegiatan Sekolah',
+  artikel: 'Artikel',
+  kegiatan: 'Kegiatan',
 };
 
 export default function NewsSection() {
@@ -84,7 +84,6 @@ export default function NewsSection() {
         }
 
         if (data && data.length > 0) {
-          // Map to correct category types
           const typedData = data.map((item: any) => ({
             ...item,
             category: item.category as Post['category'],
@@ -101,71 +100,82 @@ export default function NewsSection() {
   }, []);
 
   return (
-    <section className="py-20 lg:py-28 bg-[#EFF3FB]">
+    <section className="py-20 lg:py-28 bg-[#F4F7FC]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Title Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
           <div className="flex flex-col space-y-3">
-            <span className="font-body text-sm font-bold text-primary tracking-wider uppercase">
-              Berita & Artikel
-            </span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider w-fit">
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span>Kabar & Artikel Madrasah</span>
+            </div>
             <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">
-              BERITA UPDATE MIA 15
+              BERITA & KEGIATAN TERKINI
             </h2>
           </div>
           <Link
             href="/news"
-            className="inline-flex items-center justify-center px-6 py-3 rounded-full font-body text-sm font-bold bg-[#002957] text-white transition-all duration-300 hover:bg-[#001d3d] hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+            className="btn-tactile inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-body text-sm font-bold bg-btn-primary text-white shadow-md shadow-blue-950/15 hover:bg-[#001d3d] hover:shadow-lg transition-all"
           >
-            Berita Selengkapnya
+            <span>Lihat Semua Artikel</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
         {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
           {posts.map((post) => {
             const dateStr = new Date(post.created_at).toLocaleDateString('id-ID', {
               day: 'numeric',
-              month: 'long',
+              month: 'short',
               year: 'numeric',
             });
+
+            const cat = categoryStyles[post.category] || categoryStyles.berita;
 
             return (
               <article
                 key={post.id}
-                className="bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col h-full border border-gray-100 group hover:-translate-y-1"
+                className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full border border-gray-100/90 hover:-translate-y-1.5"
               >
                 {/* Image Wrap */}
-                <div className="relative w-full aspect-[16/10] overflow-hidden bg-gray-100">
+                <div className="relative w-full aspect-[16/10] overflow-hidden bg-slate-100">
                   <Image
                     src={post.thumbnail || '/images/classroom_view.png'}
                     alt={post.title}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
+                  <div className="absolute top-3.5 left-3.5">
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full border shadow-xs backdrop-blur-md ${cat.bg}/90 ${cat.text} ${cat.border}`}
+                    >
+                      {categoryLabels[post.category] || post.category}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Content Block */}
                 <div className="p-6 flex flex-col flex-grow space-y-4 justify-between">
                   <div className="space-y-3">
                     
-                    {/* Meta info & Category badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                          categoryColors[post.category] || categoryColors.berita
-                        }`}
-                      >
-                        {categoryLabels[post.category] || post.category}
-                      </span>
-                      <span className="font-body text-xs font-medium text-gray-400">
-                        {dateStr}
-                      </span>
+                    {/* Meta Info (Date & Read time) */}
+                    <div className="flex items-center gap-4 text-gray-400 text-xs font-semibold">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        <span>{dateStr}</span>
+                      </div>
+                      {post.reading_time && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{post.reading_time} mnt baca</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Post Title */}
-                    <h3 className="font-headline font-black text-lg text-secondary line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-300">
+                    <h3 className="font-headline font-black text-xl text-secondary line-clamp-2 leading-snug group-hover:text-primary transition-colors duration-300">
                       <Link href={`/news/${post.slug}`}>{post.title}</Link>
                     </h3>
 
@@ -184,13 +194,13 @@ export default function NewsSection() {
                   </div>
 
                   {/* Read More Link */}
-                  <div className="pt-2">
+                  <div className="pt-2 border-t border-gray-50 flex items-center justify-between">
                     <Link
                       href={`/news/${post.slug}`}
-                      className="inline-flex items-center font-body text-sm font-bold text-primary group-hover:text-secondary transition-colors duration-300"
+                      className="inline-flex items-center font-body text-sm font-bold text-primary group-hover:text-btn-secondary transition-colors duration-300"
                     >
-                      Read more...
-                      <ArrowUpRight className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      <span>Baca Selengkapnya</span>
+                      <ArrowRight className="w-4 h-4 ml-1.5 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
                   </div>
 
