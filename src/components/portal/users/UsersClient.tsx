@@ -11,7 +11,7 @@ type Admin = {
   id: string
   name: string
   email: string
-  role: 'superadmin' | 'kepsek' | 'guru' | 'staff'
+  role: 'superadmin' | 'kepsek' | 'guru' | 'staff' | 'staff_operator'
   is_active: boolean
   created_at: string
 }
@@ -29,6 +29,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string; icon: React.El
   kepsek: { label: 'Kepala Sekolah', color: 'bg-teal-100 text-teal-800 border-teal-200', icon: ShieldCheck },
   guru: { label: 'Guru', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: GraduationCap },
   staff: { label: 'Staff', color: 'bg-orange-100 text-orange-800 border-orange-200', icon: Users },
+  staff_operator: { label: 'Staff Operator', color: 'bg-cyan-100 text-cyan-800 border-cyan-200', icon: ShieldCheck },
 }
 
 function RoleBadge({ role }: { role: string }) {
@@ -222,6 +223,7 @@ function UserForm({ initialData, isSelf, onSuccess, onClose }: UserFormProps) {
             >
               <option value="guru">Guru — Absensi, Classroom, Data Siswa (read)</option>
               <option value="staff">Staff — Sama seperti Guru + Kelola Berita &amp; Artikel</option>
+              <option value="staff_operator">Staff Operator — Akses penuh (kecuali keuangan) + Manage User</option>
               <option value="kepsek">Kepala Sekolah — Full akses (kecuali eksekusi transaksi)</option>
               <option value="superadmin">Super Admin — Full akses + Manage User</option>
             </select>
@@ -250,10 +252,12 @@ function UserForm({ initialData, isSelf, onSuccess, onClose }: UserFormProps) {
           {/* Role preview info */}
           <div className={`p-3 rounded-xl text-xs border ${form.role === 'superadmin' ? 'bg-violet-50 border-violet-200 text-violet-800' :
               form.role === 'kepsek' ? 'bg-teal-50 border-teal-200 text-teal-800' :
+              form.role === 'staff_operator' ? 'bg-cyan-50 border-cyan-200 text-cyan-800' :
                 'bg-blue-50 border-blue-200 text-blue-800'
             }`}>
             {form.role === 'superadmin' && 'Super Admin: Akses penuh ke semua fitur, termasuk manajemen user dan semua transaksi keuangan.'}
             {form.role === 'kepsek' && 'Kepala Sekolah: Akses penuh seperti Super Admin, kecuali tidak bisa eksekusi transaksi tabungan & SPP.'}
+            {form.role === 'staff_operator' && 'Staff Operator: Akses penuh ke semua fitur kecuali keuangan. Bisa kelola data, konten website, jadwal, dan user management.'}
             {form.role === 'guru' && 'Guru: Hanya bisa absensi guru, kelola classroom, dan melihat data siswa. Tidak bisa create/delete siswa.'}
             {form.role === 'staff' && 'Staff: Sama seperti Guru, ditambah bisa membuat dan mengelola konten Berita & Artikel di website sekolah.'}
           </div>
@@ -457,6 +461,8 @@ interface UsersClientProps {
 }
 
 export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: UsersClientProps) {
+  // staff_operator has same CRUD rights as superadmin (except cannot manage superadmin accounts)
+  const canManage = isSuperAdmin || currentUserRole === 'staff_operator';
   const [users, setUsers] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -502,6 +508,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
     kepsek: users.filter(u => u.role === 'kepsek').length,
     guru: users.filter(u => u.role === 'guru').length,
     staff: users.filter(u => u.role === 'staff').length,
+    staff_operator: users.filter(u => u.role === 'staff_operator').length,
   }), [users])
 
   const handleFormSuccess = (savedUser: Admin) => {
@@ -546,10 +553,10 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
           <h1 className="text-2xl font-bold text-slate-800">Manajemen User</h1>
           <p className="text-slate-500 mt-0.5">
             Kelola akun admin dan hak akses sistem.
-            {!isSuperAdmin && <span className="ml-1 text-amber-600 font-medium">(Mode Read-Only)</span>}
+            {!isSuperAdmin && currentUserRole !== 'staff_operator' && <span className="ml-1 text-amber-600 font-medium">(Mode Read-Only)</span>}
           </p>
         </div>
-        {isSuperAdmin && (
+        {(isSuperAdmin || currentUserRole === 'staff_operator') && (
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => setShowImportModal(true)}
@@ -570,21 +577,21 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {[
           { label: 'Total User', value: stats.total, bg: 'bg-slate-800 text-white', icon: Users },
           { label: 'Aktif', value: stats.active, bg: 'bg-green-50 border border-green-100 text-green-800', icon: CheckCircle },
           { label: 'Super Admin', value: stats.superadmin, bg: 'bg-violet-50 border border-violet-100 text-violet-800', icon: Shield },
-          { label: 'Kepala Sekolah', value: stats.kepsek, bg: 'bg-teal-50 border border-teal-100 text-teal-800', icon: ShieldCheck },
+          { label: 'Kepsek', value: stats.kepsek, bg: 'bg-teal-50 border border-teal-100 text-teal-800', icon: ShieldCheck },
           { label: 'Guru', value: stats.guru, bg: 'bg-blue-50 border border-blue-100 text-blue-800', icon: GraduationCap },
-          { label: 'Staff', value: stats.staff, bg: 'bg-orange-50 border border-orange-100 text-orange-800', icon: Users },
+          { label: 'Staff Operator', value: stats.staff_operator, bg: 'bg-cyan-50 border border-cyan-100 text-cyan-800', icon: ShieldCheck },
         ].map(({ label, value, bg, icon: Icon }) => (
-          <div key={label} className={`${bg} rounded-2xl p-4`}>
+          <div key={label} className={`${bg} rounded-2xl p-3 sm:p-4`}>
             <div className="flex items-center justify-between mb-2 opacity-75">
               <p className="text-xs font-medium">{label}</p>
               <Icon size={15} />
             </div>
-            <p className="text-2xl font-bold">{loading ? '—' : value}</p>
+            <p className="text-xl sm:text-2xl font-bold">{loading ? '—' : value}</p>
           </div>
         ))}
       </div>
@@ -613,6 +620,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
             <option value="kepsek">Kepala Sekolah</option>
             <option value="guru">Guru</option>
             <option value="staff">Staff</option>
+            <option value="staff_operator">Staff Operator</option>
           </select>
           <select
             value={statusFilter}
@@ -641,7 +649,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                 <th className="pb-3 px-4 pt-4">Role</th>
                 <th className="pb-3 px-4 pt-4">Status</th>
                 <th className="pb-3 px-4 pt-4">Bergabung</th>
-                {isSuperAdmin && <th className="pb-3 px-4 pt-4 text-right">Aksi</th>}
+                {canManage && <th className="pb-3 px-4 pt-4 text-right">Aksi</th>}
               </tr>
             </thead>
             <tbody>
@@ -649,11 +657,11 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                 Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 5 : 4} className="py-16 text-center">
+                  <td colSpan={canManage ? 5 : 4} className="py-16 text-center">
                     <Users size={40} className="mx-auto mb-3 text-slate-200" />
                     <p className="font-semibold text-slate-500">Tidak ada user ditemukan</p>
                     <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau tambah user baru</p>
-                    {isSuperAdmin && (
+                    {canManage && (
                       <button
                         onClick={() => { setEditingUser(null); setShowForm(true) }}
                         className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
@@ -676,6 +684,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                           ) : (
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
                                 user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
+                                user.role === 'staff_operator' ? 'bg-cyan-100 text-cyan-700' :
                                   user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
                                     'bg-blue-100 text-blue-700'
                               }`}>
@@ -710,7 +719,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                       <td className="py-3.5 px-4 text-sm text-slate-500">
                         {formatDate(user.created_at)}
                       </td>
-                      {isSuperAdmin && (
+                      {canManage && (
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition">
                             <button
@@ -781,6 +790,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                           ) : (
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
                                 user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
+                                user.role === 'staff_operator' ? 'bg-cyan-100 text-cyan-700' :
                                   user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
                                     'bg-blue-100 text-blue-700'
                               }`}>
@@ -812,7 +822,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                       </span>
                     </div>
 
-                    {isSuperAdmin && (
+                    {canManage && (
                       <div className="flex items-center justify-end gap-2 pt-3 mt-1 border-t border-slate-50">
                         <button
                           onClick={() => { setEditingUser(user); setShowForm(true) }}
@@ -844,7 +854,7 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-slate-50 text-xs text-slate-400 flex items-center justify-between">
             <span>Menampilkan <strong className="text-slate-600">{filtered.length}</strong> dari <strong className="text-slate-600">{users.length}</strong> user</span>
-            {isSuperAdmin && (
+            {canManage && (
               <button
                 onClick={() => { setEditingUser(null); setShowForm(true) }}
                 className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-medium transition"

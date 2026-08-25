@@ -195,7 +195,7 @@ export async function middleware(request: NextRequest) {
       return res;
     }
     const role = verified.payload.role as string;
-    if (matchesAny(pathname, ['/users']) && role !== 'superadmin')
+    if (matchesAny(pathname, ['/users']) && !['superadmin', 'kepsek', 'staff_operator'].includes(role))
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
     if (matchesAny(pathname, ['/finance']) && !['superadmin', 'kepsek'].includes(role))
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
@@ -312,9 +312,9 @@ export async function middleware(request: NextRequest) {
 
     const SUPERADMIN_ONLY: string[] = ['/users'];
     const FINANCE_ONLY: string[] = ['/finance'];
+    const USERS_ALLOWED: string[] = ['superadmin', 'kepsek', 'staff_operator'];
 
-    if (matchesAny(pathname, SUPERADMIN_ONLY) && role !== 'superadmin') {
-      // Redirect to dashboard with access denied notice
+    if (matchesAny(pathname, SUPERADMIN_ONLY) && !USERS_ALLOWED.includes(role)) {
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
     }
 

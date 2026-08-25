@@ -10,8 +10,8 @@ const supabase = createClient(
 
 function isAllowed(role: string | undefined, minRole: 'view' | 'manage') {
   if (!role) return false
-  if (minRole === 'view') return ['superadmin', 'kepsek'].includes(role)
-  if (minRole === 'manage') return role === 'superadmin'
+  if (minRole === 'view') return ['superadmin', 'kepsek', 'staff_operator'].includes(role)
+  if (minRole === 'manage') return ['superadmin', 'staff_operator'].includes(role)
   return false
 }
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Nama, email, password, dan role wajib diisi.' }, { status: 400 })
   }
 
-  const validRoles = ['superadmin', 'kepsek', 'guru', 'staff']
+  const validRoles = ['superadmin', 'kepsek', 'guru', 'staff', 'staff_operator']
   if (!validRoles.includes(role)) {
     return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 })
   }

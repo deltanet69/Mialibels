@@ -49,7 +49,7 @@ export default function ModulCard({ modul, onDelete, currentUserRole }: ModulCar
           <Link href={`/modul-pembelajaran/edit/${modul.id}`} className="p-2 text-slate-400 hover:text-white hover:bg-emerald-600 rounded-xl transition-all shadow-sm hover:shadow-md" title="Edit">
             <Edit3 size={16} strokeWidth={2.5} />
           </Link>
-          {(currentUserRole === 'admin' || currentUserRole === 'superadmin') && onDelete && (
+          {(currentUserRole === 'admin' || currentUserRole === 'superadmin' || currentUserRole === 'staff_operator') && onDelete && (
              <button onClick={() => onDelete(modul.id)} className="p-2 text-slate-400 hover:text-white hover:bg-rose-600 rounded-xl transition-all shadow-sm hover:shadow-md" title="Hapus">
                <Trash2 size={16} strokeWidth={2.5} />
              </button>

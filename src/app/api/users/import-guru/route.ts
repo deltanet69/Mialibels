@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/session';
 import { hash } from 'bcryptjs';
@@ -11,9 +11,9 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    // Only superadmin can import users
-    if (!session || session.role !== 'superadmin') {
-      return NextResponse.json({ error: 'Forbidden. Only Superadmin can import users.' }, { status: 403 });
+    // Only superadmin and staff_operator can import users
+    if (!session || !['superadmin', 'staff_operator'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden. Only Superadmin or Staff Operator can import users.' }, { status: 403 });
     }
 
     const body = await request.json();

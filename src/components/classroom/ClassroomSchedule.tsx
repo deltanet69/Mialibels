@@ -52,7 +52,7 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
   // Safely define currentUser and role permissions
   const currentUser = user || null;
   const role = currentUser?.role?.toLowerCase() || '';
-  const isSuperAdmin = role === 'superadmin' || role === 'admin';
+  const isSuperAdmin = role === 'superadmin' || role === 'admin' || role === 'staff_operator';
   const isStaff = role === 'staff';
   const isKepsek = role === 'kepsek';
   const isHomeroom = role.includes('guru') && currentUser?.staffId === homeroomTeacherId;

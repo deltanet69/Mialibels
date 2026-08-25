@@ -71,7 +71,7 @@ export default function StudentsPage() {
     fetchStudents()
   }, [fetchStudents])
 
-  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff'
+  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff' || currentUser?.role === 'staff_operator'
 
   const classes = useMemo(() => {
     const uniqueClasses = Array.from(new Set(allStudents.map(s => s.class).filter(Boolean)))

@@ -62,6 +62,10 @@ export function SidebarClient({ role, userName }: Props) {
     if (!role) return false;
     // superadmin & kepsek have full access to navigation
     if (role === 'superadmin' || role === 'kepsek') return true;
+    // staff_operator: full access except finance
+    if (role === 'staff_operator') {
+      return section !== 'finance';
+    }
     // guru: limited access
     if (role === 'guru') {
       switch (section) {
@@ -72,7 +76,7 @@ export function SidebarClient({ role, userName }: Props) {
           return false;
       }
     }
-    // staff: same as guru + content posts only
+    // staff: same as guru
     if (role === 'staff') {
       switch (section) {
         case 'main':
@@ -88,7 +92,7 @@ export function SidebarClient({ role, userName }: Props) {
   // kepsek can see finance pages but cannot execute transactions (handled per-page)
   const canViewFinance = role === 'superadmin' || role === 'kepsek';
 
-  // Staff can only manage Berita & Artikel (posts), not full content
+  // Staff operator manages content; old staff role gets basic posts only
   const canViewContentPosts = role === 'staff';
 
   return (

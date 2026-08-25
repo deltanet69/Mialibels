@@ -49,7 +49,7 @@ export default function DetailGuruPage() {
     fetchGuru()
   }, [params.id])
 
-  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek'
+  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek' || currentUser?.role === 'staff_operator'
 
   if (loading) {
     return (

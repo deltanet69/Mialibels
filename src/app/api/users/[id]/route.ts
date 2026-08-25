@@ -10,15 +10,15 @@ const supabase = createClient(
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
-  if (session?.role !== 'superadmin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!session || !['superadmin', 'staff_operator'].includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden.' }, { status: 403 })
   }
 
   const { id } = await params
   const body = await request.json()
   const { name, email, password, role, is_active } = body
 
-  const validRoles = ['superadmin', 'kepsek', 'guru', 'staff']
+  const validRoles = ['superadmin', 'kepsek', 'guru', 'staff', 'staff_operator']
   if (role && !validRoles.includes(role)) {
     return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 })
   }

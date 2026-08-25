@@ -5,8 +5,8 @@ import { UsersClient } from '@/components/portal/users/UsersClient'
 export default async function UsersPage() {
   const session = await getSession()
 
-  // Guard: hanya superadmin dan kepsek
-  if (!session || !['superadmin', 'kepsek'].includes(session.role)) {
+  // Guard: hanya superadmin, kepsek, dan staff_operator
+  if (!session || !['superadmin', 'kepsek', 'staff_operator'].includes(session.role)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
         <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">

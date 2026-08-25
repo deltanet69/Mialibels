@@ -71,7 +71,7 @@ export default function GuruPage() {
     fetchGuru()
   }, [fetchGuru])
 
-  const canEdit = currentUser?.role === 'superadmin'
+  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff_operator'
 
   // Unique positions for filter
   const positions = useMemo(() => {
