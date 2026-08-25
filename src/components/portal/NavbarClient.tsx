@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Bell, CheckCircle2, DollarSign, User, LogOut } from 'lucide-react';
+import { Menu, Bell, CheckCircle2, User, LogOut, Sparkles, ExternalLink } from 'lucide-react';
 import { useSidebar } from './SidebarProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -81,100 +81,132 @@ export function NavbarClient({ user }: { user: any }) {
   };
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30 print:hidden">
-      <div className="flex items-center gap-4">
+    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 print:hidden transition-all">
+      <div className="flex items-center gap-3">
         <button 
           onClick={() => setIsOpen(true)}
-          className="p-2 hover:bg-slate-100 rounded-xl md:hidden text-slate-500 transition"
+          className="p-2 hover:bg-slate-100/80 rounded-xl md:hidden text-slate-600 transition"
+          aria-label="Buka Menu"
         >
           <Menu size={20} />
         </button>
+
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-400">Portal</span>
+          <span className="text-xs text-slate-300">/</span>
+          <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-100">
+            {user?.role ? user.role.toUpperCase() : 'ADMIN'}
+          </span>
+        </div>
       </div>
       
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Link to Live Website */}
+        <Link 
+          href="/"
+          target="_blank"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/90 text-slate-600 hover:text-primary hover:border-teal-200 text-xs font-semibold transition-all"
+        >
+          <span>Buka Website</span>
+          <ExternalLink size={12} />
+        </Link>
+
+        {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`relative p-2 rounded-xl transition ${showNotifications ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}
+            className={`relative p-2.5 rounded-xl transition-all ${
+              showNotifications 
+                ? 'bg-teal-50 text-primary' 
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+            }`}
+            aria-label="Notifikasi"
           >
-            <Bell size={20} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+            <Bell size={18} />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-teal-600 rounded-full ring-2 ring-white"></span>
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-4 duration-200">
-              <div className="px-4 py-2 border-b border-slate-50 flex items-center justify-between">
-                <span className="font-semibold text-slate-800">Notifikasi</span>
-                {notifications.length > 0 && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{notifications.length} Baru</span>
-                )}
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-3 duration-200 z-50">
+              <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-headline font-bold text-sm text-slate-800">Notifikasi</span>
+                  {notifications.length > 0 && (
+                    <span className="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">
+                      {notifications.length} Baru
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="max-h-[300px] overflow-y-auto">
+              <div className="max-h-[320px] overflow-y-auto divide-y divide-slate-50">
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-slate-500">Tidak ada notifikasi</div>
+                  <div className="p-8 text-center text-xs text-slate-400">
+                    Belum ada notifikasi baru.
+                  </div>
                 ) : (
                   notifications.map((notif: any) => (
-                    <button key={notif.id} className="w-full text-left px-4 py-3 hover:bg-slate-50 transition flex items-start gap-3 border-b border-slate-50 last:border-0">
-                      <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                        <CheckCircle2 size={16} />
+                    <button key={notif.id} className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
+                      <div className="p-2 bg-teal-50 text-teal-700 rounded-xl shrink-0 mt-0.5">
+                        <CheckCircle2 size={15} />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">{notif.title}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{notif.message}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">{notif.title}</p>
+                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{notif.message}</p>
                         <p className="text-[10px] text-slate-400 mt-1">{new Date(notif.created_at).toLocaleString('id-ID')}</p>
                       </div>
                     </button>
                   ))
                 )}
               </div>
-              <div className="px-4 py-2 border-t border-slate-50 text-center">
-                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">Tandai Semua Dibaca</button>
+              <div className="px-4 py-2 border-t border-slate-50 text-center bg-slate-50/50">
+                <button className="text-xs text-teal-700 hover:text-teal-900 font-bold">Tandai Semua Dibaca</button>
               </div>
             </div>
           )}
         </div>
         
-        <div className="h-8 w-px bg-slate-200"></div>
+        <div className="h-6 w-px bg-slate-200"></div>
 
+        {/* Profile Dropdown */}
         <div className="relative" ref={profileRef}>
           <div 
-            className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1.5 rounded-xl transition"
+            className="flex items-center gap-3 cursor-pointer hover:bg-slate-100/70 p-1.5 pr-2.5 rounded-2xl transition-all"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
           >
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-semibold text-slate-800 leading-tight">{user?.name || 'Admin'}</p>
-              <p className="text-xs text-slate-500 capitalize">{user?.role?.toLowerCase() || 'Administrator'}</p>
-            </div>
             {user?.image ? (
-              <img src={user.image} alt={user?.name || 'Admin'} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+              <img src={user.image} alt={user?.name || 'Admin'} className="w-8 h-8 rounded-xl object-cover shadow-2xs ring-2 ring-teal-500/20" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center overflow-hidden shadow-sm text-white font-bold text-sm">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-600 to-[#002957] flex items-center justify-center shadow-2xs text-white font-black text-xs">
                 {initials}
               </div>
             )}
+            <div className="hidden sm:block text-left">
+              <p className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">{user?.name || 'Admin'}</p>
+              <p className="text-[10px] text-slate-400 capitalize font-medium">{user?.role?.toLowerCase() || 'Administrator'}</p>
+            </div>
           </div>
 
           {showProfileMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-100 overflow-hidden py-2 animate-in fade-in slide-in-from-top-3 duration-200 z-50">
               <div className="px-4 py-3 border-b border-slate-50 mb-1">
-                <p className="text-sm font-bold text-slate-800">{user?.name || 'Admin'}</p>
-                <p className="text-xs text-slate-500 truncate">{user?.email || 'admin@miattaqwa15.sch.id'}</p>
+                <p className="text-xs font-bold text-slate-800 truncate">{user?.name || 'Admin'}</p>
+                <p className="text-[11px] text-slate-400 truncate">{user?.email || 'admin@miattaqwa15.sch.id'}</p>
               </div>
-              <div className="px-2">
+              <div className="px-2 space-y-0.5">
                 <Link 
                   href="/profile"
                   onClick={() => setShowProfileMenu(false)}
-                  className="flex items-center gap-3 w-full text-left px-3 py-2.5 hover:bg-slate-50 rounded-xl transition text-sm font-medium text-slate-700"
+                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 hover:bg-slate-50 rounded-xl transition text-xs font-medium text-slate-700"
                 >
-                  <User size={18} className="text-slate-400" />
-                  Profil Saya
+                  <User size={15} className="text-slate-400" />
+                  <span>Profil Saya</span>
                 </Link>
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center gap-3 w-full text-left px-3 py-2.5 hover:bg-red-50 rounded-xl transition text-sm font-medium text-red-600 mt-1"
+                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 hover:bg-rose-50 rounded-xl transition text-xs font-semibold text-rose-600"
                 >
-                  <LogOut size={18} />
-                  Keluar
+                  <LogOut size={15} />
+                  <span>Keluar Akun</span>
                 </button>
               </div>
             </div>
@@ -186,15 +218,15 @@ export function NavbarClient({ user }: { user: any }) {
       {toasts.length > 0 && (
         <div className="fixed top-20 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
           {toasts.map(toast => (
-            <div key={`toast-${toast.id}`} className="bg-white rounded-xl shadow-2xl border border-slate-100 p-4 w-80 animate-in slide-in-from-right-8 fade-in duration-300 pointer-events-auto relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+            <div key={`toast-${toast.id}`} className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 w-80 animate-in slide-in-from-right-8 fade-in duration-300 pointer-events-auto relative overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500"></div>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                  <Bell size={18} className="animate-pulse" />
+                <div className="p-2 bg-teal-50 text-teal-700 rounded-xl shrink-0">
+                  <Bell size={16} className="animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-slate-800">{toast.title}</h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{toast.message}</p>
+                  <h4 className="text-xs font-bold text-slate-800">{toast.title}</h4>
+                  <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{toast.message}</p>
                 </div>
               </div>
             </div>

@@ -13,8 +13,8 @@ export async function Navbar() {
       .eq('email', user.email)
       .single()
       
-    if (staff && staff.image) {
-      user.image = staff.image
+    if (staff && (staff as any).image) {
+      (user as any).image = (staff as any).image
     }
   }
 

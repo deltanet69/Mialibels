@@ -5,24 +5,25 @@ import { DashboardCards } from '@/components/portal/dashboard/DashboardCards';
 import { AttendanceChart } from '@/components/portal/dashboard/AttendanceChart';
 import { TransactionsTable } from '@/components/portal/dashboard/TransactionsTable';
 import { GuruDashboard } from '@/components/portal/dashboard/GuruDashboard';
+import { Sparkles } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 // Timeout wrapper — prevents any single slow Supabase query from hanging the page forever
-function withTimeout<T>(promise: Promise<T>, ms = 5000): Promise<T> {
+function withTimeout<T>(promise: Promise<T> | PromiseLike<T>, ms = 5000): Promise<T> {
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Query timeout')), ms))
-  ])
+  ]);
 }
 
 // Safe fetch — returns fallback if query fails or times out
-async function safeQuery<T>(promise: Promise<{ data: T | null; count: number | null }>, fallback: T): Promise<{ data: T; count: number }> {
+async function safeQuery<T>(promise: PromiseLike<any> | any, fallback: T): Promise<{ data: T; count: number }> {
   try {
-    const result = await withTimeout(promise)
-    return { data: result.data ?? fallback, count: result.count ?? 0 }
+    const result: any = await withTimeout(promise);
+    return { data: result?.data ?? fallback, count: result?.count ?? 0 };
   } catch {
-    return { data: fallback, count: 0 }
+    return { data: fallback, count: 0 };
   }
 }
 
@@ -76,27 +77,33 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6 w-full pb-10">
-      {/* Welcome Message */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-          Hello {user?.name || 'Admin'}, <span className="text-2xl">👋</span>
-        </h1>
-        <p className="text-slate-500 mt-1">
-          selamat datang di Admin portal Mialibels.
-        </p>
+      {/* Welcome Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 sm:p-7 rounded-[2rem] border border-slate-200/70 shadow-sm">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3 h-3 text-accent" />
+            <span>Pusat Kendali Administrasi</span>
+          </div>
+          <h1 className="font-headline font-black text-2xl sm:text-3xl text-secondary tracking-tight">
+            Selamat Datang, {user?.name || 'Admin'} 👋
+          </h1>
+          <p className="font-body text-gray-500 text-xs sm:text-sm mt-1">
+            Ringkasan data operasional madrasah, presensi, dan keuangan terkini MI Attaqwa 15.
+          </p>
+        </div>
       </div>
 
       {/* Top Stats Row */}
       <DashboardCards stats={stats} attendanceRates={attendanceRates} />
 
       {/* Bottom Section - Full Width Stacked */}
-      <div className="flex flex-col gap-6 mt-6">
-        {/* Attendance Chart (Full Width) */}
+      <div className="flex flex-col gap-6">
+        {/* Attendance Chart */}
         <div className="w-full">
           <AttendanceChart />
         </div>
 
-        {/* Transactions (Full Width) */}
+        {/* Transactions Table */}
         <div className="w-full">
           <TransactionsTable transactions={transactions || []} />
         </div>

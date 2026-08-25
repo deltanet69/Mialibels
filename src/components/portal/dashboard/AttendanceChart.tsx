@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Calendar, Users, Briefcase } from 'lucide-react';
+import { Calendar, Users, Briefcase, BarChart3, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
@@ -19,7 +19,6 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
     async function fetchClasses() {
       const { data } = await supabase.from('classrooms').select('id, name').order('name', { ascending: true });
       if (data) {
-        // Filter out any class that might be named "Semua Kelas" to avoid duplicates with our static 'all' option
         setClasses((data as any[]).filter((c: any) => c.name && c.name.toLowerCase() !== 'semua kelas'));
       }
     }
@@ -31,8 +30,6 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
     async function fetchData() {
       setLoading(true);
       try {
-        const table = view === 'siswa' ? 'classroom_attendances' : 'staff_attendance';
-        
         const getLocalDateString = (d: Date) => {
           const local = new Date(d);
           local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
@@ -74,10 +71,8 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
 
   // Process data for Recharts
   const chartData = useMemo(() => {
-    // If no data, return empty to trigger empty state
     if (!rawData || rawData.length === 0) return [];
 
-    // Group by date
     const grouped: Record<string, { hadir: number; izin: number; sakit: number; alfa: number; dateStr: string }> = {};
 
     rawData.forEach(record => {
@@ -90,20 +85,18 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
       if (status.includes('hadir') || status.includes('present')) grouped[date].hadir++;
       else if (status.includes('izin') || status.includes('permit')) grouped[date].izin++;
       else if (status.includes('sakit') || status.includes('sick')) grouped[date].sakit++;
-      else grouped[date].alfa++; // Default to alfa for unmapped/absent
+      else grouped[date].alfa++;
     });
 
-    // Convert to array and sort by date
     const sorted = Object.values(grouped).sort((a, b) => new Date(a.dateStr).getTime() - new Date(b.dateStr).getTime());
 
-    // Format date for X-Axis based on filter
     return sorted.map(item => {
       const dateObj = new Date(item.dateStr);
       let name = '';
       if (timeFilter === 'hari') {
         name = 'Hari Ini';
       } else if (timeFilter === 'minggu') {
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
         name = days[dateObj.getDay()];
       } else {
         name = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
@@ -117,33 +110,40 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
   }, [rawData, timeFilter]);
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col w-full min-h-[400px]">
+    <div className="bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col w-full min-h-[420px]">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Overview Kehadiran</h3>
-          <p className="text-sm text-slate-500">Statistik kehadiran terintegrasi langsung dari data sistem</p>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+            <h3 className="font-headline font-bold text-lg text-secondary">Grafik Presensi &amp; Kehadiran</h3>
+          </div>
+          <p className="font-body text-xs sm:text-sm text-slate-500 mt-0.5">Statistik kehadiran terintegrasi langsung dari data sistem</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           {!guruClassId && (
             <>
               {/* Toggle Siswa/Guru */}
-              <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-auto">
+              <div className="flex p-1 bg-slate-100/90 rounded-2xl w-full sm:w-auto border border-slate-200/60">
                 <button 
                   onClick={() => setView('siswa')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    view === 'siswa' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    view === 'siswa' 
+                      ? 'bg-white text-teal-700 shadow-2xs' 
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Users size={16} /> Siswa
+                  <Users size={14} /> <span>Siswa</span>
                 </button>
                 <button 
                   onClick={() => setView('guru')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    view === 'guru' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    view === 'guru' 
+                      ? 'bg-white text-teal-700 shadow-2xs' 
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <Briefcase size={16} /> Guru
+                  <Briefcase size={14} /> <span>Guru</span>
                 </button>
               </div>
 
@@ -157,7 +157,7 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
               <select 
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
-                className="flex-1 sm:flex-none bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="flex-1 sm:flex-none bg-slate-50/80 border border-slate-200/90 text-slate-700 text-xs font-medium rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
               >
                 <option value="all">Semua Kelas</option>
                 {classes.map(c => (
@@ -167,11 +167,11 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
             )}
             
             <div className="relative flex-1 sm:flex-none">
-              <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Calendar size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <select 
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-600 text-sm rounded-xl pl-9 pr-3 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full bg-slate-50/80 border border-slate-200/90 text-slate-700 text-xs font-medium rounded-xl pl-8 pr-4 py-2 outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
               >
                 <option value="hari">Hari Ini</option>
                 <option value="minggu">7 Hari Terakhir</option>
@@ -186,25 +186,25 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
       {/* Chart Area */}
       <div className="flex-grow flex flex-col justify-center h-full min-h-[300px] w-full relative">
         {loading ? (
-          <div className="flex-grow flex items-center justify-center z-10">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex-grow flex items-center justify-center z-10 py-16">
+            <div className="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : chartData.length === 0 ? (
-          <div className="flex-grow flex flex-col items-center justify-center text-slate-400 gap-2">
-            <Calendar size={48} className="text-slate-200 mb-2" />
-            <p className="font-medium text-slate-500">Belum ada data kehadiran</p>
-            <p className="text-sm">Tidak ada catatan untuk filter waktu/kelas yang dipilih.</p>
+          <div className="flex-grow flex flex-col items-center justify-center text-slate-400 py-16 gap-2">
+            <BarChart3 size={40} className="text-slate-300 mb-1" />
+            <p className="font-headline font-bold text-sm text-slate-600">Belum ada data kehadiran</p>
+            <p className="font-body text-xs text-slate-400">Tidak ada catatan untuk filter waktu/kelas yang dipilih.</p>
           </div>
         ) : (
-          <div className="flex-grow w-full h-[300px] sm:h-[350px]">
+          <div className="flex-grow w-full h-[320px] sm:h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }} barGap={4} barSize={20}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barGap={6} barSize={22}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 12 }} 
+                  tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
                   dy={10} 
                 />
                 <YAxis 
@@ -214,20 +214,25 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
                   allowDecimals={false}
                 />
                 <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ fontSize: '13px', fontWeight: 500 }}
-                  labelStyle={{ color: '#0f172a', fontWeight: 'bold', marginBottom: '4px' }}
+                  cursor={{ fill: '#f8fafc', radius: 8 }}
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: '1px solid #e2e8f0', 
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08)',
+                    padding: '10px 14px'
+                  }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+                  labelStyle={{ color: '#0f2744', fontWeight: 'bold', marginBottom: '6px', fontSize: '13px' }}
                 />
                 
-                <Bar dataKey="hadir" name="Hadir" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="hadir" name="Hadir" radius={[6, 6, 0, 0]}>
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={view === 'siswa' ? '#3b82f6' : '#6366f1'} />
+                    <Cell key={`cell-${index}`} fill={view === 'siswa' ? '#009688' : '#0f2744'} />
                   ))}
                 </Bar>
-                <Bar dataKey="izin" name="Izin" fill="#fbbf24" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sakit" name="Sakit" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="alfa" name="Alfa" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="izin" name="Izin" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="sakit" name="Sakit" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="alfa" name="Alfa" fill="#f43f5e" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
