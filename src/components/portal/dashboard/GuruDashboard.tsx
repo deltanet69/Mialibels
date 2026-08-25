@@ -71,16 +71,16 @@ export async function GuruDashboard({ user }: { user: any }) {
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 sm:p-7 rounded-[2rem] border border-slate-200/70 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-6 sm:p-7 rounded-[2rem] border border-slate-200/70 shadow-sm">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-3 h-3 text-accent" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-body text-xs font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
             <span>Portal Pendidik</span>
           </div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-secondary tracking-tight">
             Selamat Datang, {user?.name || 'Bapak/Ibu Guru'} 👋
           </h1>
-          <p className="font-body text-gray-500 text-xs sm:text-sm mt-1">
+          <p className="font-body text-slate-500 text-xs sm:text-sm mt-1">
             Pantau presensi kelas perwalian dan agenda jadwal mengajar Anda hari ini ({dayOfWeek}).
           </p>
         </div>
@@ -89,15 +89,15 @@ export async function GuruDashboard({ user }: { user: any }) {
       {/* Top Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Class Attendance Card */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-[#002957] via-[#0f2744] to-[#004d40] p-6 sm:p-7 rounded-[2rem] shadow-xl shadow-slate-900/10 relative overflow-hidden flex flex-col justify-between min-h-[170px] border border-white/10 text-white">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+        <div className="lg:col-span-2 bg-gradient-to-br from-[#002957] via-[#0c3868] to-[#1d4ed8] p-6 sm:p-7 rounded-[2rem] shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[175px] border border-white/10 text-white">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
           <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-amber-400/10 rounded-full blur-2xl -mb-16 pointer-events-none"></div>
           
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 h-full">
             {/* Kehadiran Info */}
             <div className="flex-1 w-full">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-slate-200 text-xs font-semibold uppercase tracking-wider mb-2">
-                <Users size={13} className="text-teal-300" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-blue-100 text-xs font-semibold uppercase tracking-wider mb-2">
+                <Users size={13} className="text-blue-300" />
                 <span>
                   {homeroomClass ? `Wali Kelas ${homeroomClass.name}` : 'Guru Mata Pelajaran'}
                 </span>
@@ -106,22 +106,22 @@ export async function GuruDashboard({ user }: { user: any }) {
                 <div className="flex flex-col gap-3 mt-3">
                   <div>
                     <div className="flex justify-between items-end mb-1.5">
-                      <span className="text-xs font-semibold text-slate-200">Presensi Siswa Kelas</span>
-                      <span className="text-xs font-black text-teal-300">{studentAttendanceRate}%</span>
+                      <span className="text-xs font-semibold text-blue-100">Presensi Siswa Kelas</span>
+                      <span className="text-xs font-black text-cyan-300">{studentAttendanceRate}%</span>
                     </div>
-                    <div className="w-full bg-black/30 rounded-full h-2 overflow-hidden p-0.5">
+                    <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden p-0.5">
                       <div 
-                        className="bg-gradient-to-r from-teal-400 to-emerald-300 h-full rounded-full transition-all duration-500 shadow-sm" 
+                        className="bg-gradient-to-r from-cyan-400 to-blue-300 h-full rounded-full transition-all duration-500 shadow-sm" 
                         style={{ width: `${studentAttendanceRate}%` }}
                       ></div>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-300">
+                  <p className="text-xs text-blue-100">
                     <strong className="text-white">{studentHadir}</strong> dari {activeStudents} siswa hadir hari ini.
                   </p>
                 </div>
               ) : (
-                <div className="text-slate-300 text-xs mt-3">
+                <div className="text-blue-100 text-xs mt-3">
                   Informasi kehadiran terpusat di dashboard masing-masing wali kelas.
                 </div>
               )}
@@ -132,7 +132,7 @@ export async function GuruDashboard({ user }: { user: any }) {
             
             {/* Personal Status */}
             <div className="flex-1 w-full flex flex-col justify-center items-start sm:pl-2">
-              <p className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Status Presensi Anda</p>
+              <p className="text-xs font-bold text-blue-200 uppercase tracking-wider mb-2">Status Presensi Anda</p>
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-2xl ${attendanceToday ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-amber-500/20 text-amber-300 border border-amber-400/30'}`}>
                   {attendanceToday ? <CheckCircle size={22} /> : <AlertCircle size={22} />}
@@ -141,7 +141,7 @@ export async function GuruDashboard({ user }: { user: any }) {
                   <h3 className="font-headline font-black text-xl text-white">
                     {attendanceToday ? attendanceToday.status : 'Belum Presensi'}
                   </h3>
-                  <p className="text-[11px] text-slate-300 mt-0.5">{todayStr}</p>
+                  <p className="text-[11px] text-blue-200 mt-0.5">{todayStr}</p>
                 </div>
               </div>
             </div>
@@ -149,14 +149,14 @@ export async function GuruDashboard({ user }: { user: any }) {
         </div>
 
         {/* Next Schedule Alert Card */}
-        <div className="lg:col-span-2 bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-all">
+        <div className="lg:col-span-2 bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-[0_4px_20px_-4px_rgba(15,39,68,0.06)] transition-all">
           <div className="flex items-start justify-between mb-4">
             <div>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Jadwal Mengajar Terdekat</span>
               {nextSchedule ? (
                 <div>
                   <p className="font-headline font-black text-2xl text-secondary">{nextSchedule.subject}</p>
-                  <p className="font-body text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-md inline-block mt-1">
+                  <p className="font-body text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-md inline-block mt-1">
                     Kelas {nextSchedule.classroom?.name}
                   </p>
                 </div>

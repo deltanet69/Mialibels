@@ -53,7 +53,7 @@ export default async function AdminDashboardPage() {
     safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', false), null),
     safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }), null),
     safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }).eq('is_active', true), null),
-    safeQuery(supabase.from('spp_transactions').select('*, admins(name), students(name, class), spp_invoices(title, month, year)').order('created_at', { ascending: false }).limit(5), [] as any[]),
+    safeQuery(supabase.from('spp_transactions').select('*, admins(name), students(name, class), spp_invoices(title, month, year, amount)').order('created_at', { ascending: false }).limit(6), [] as any[]),
     safeQuery(supabase.from('classroom_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
     safeQuery(supabase.from('staff_attendance').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
   ]);
@@ -78,16 +78,16 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6 w-full pb-10">
       {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 sm:p-7 rounded-[2rem] border border-slate-200/70 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-6 sm:p-7 rounded-[2rem] border border-slate-200/70 shadow-sm">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-3 h-3 text-accent" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-body text-xs font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
             <span>Pusat Kendali Administrasi</span>
           </div>
           <h1 className="font-headline font-black text-2xl sm:text-3xl text-secondary tracking-tight">
             Selamat Datang, {user?.name || 'Admin'} 👋
           </h1>
-          <p className="font-body text-gray-500 text-xs sm:text-sm mt-1">
+          <p className="font-body text-slate-500 text-xs sm:text-sm mt-1">
             Ringkasan data operasional madrasah, presensi, dan keuangan terkini MI Attaqwa 15.
           </p>
         </div>

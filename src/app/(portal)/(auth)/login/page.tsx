@@ -48,7 +48,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-[#F4F7FC] font-sans antialiased">
       {/* Left Pane - Brand Showcase */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#002957] via-[#0f2744] to-[#004d40] overflow-hidden items-center justify-center p-12 text-white">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#002957] via-[#092c53] to-[#1e40af] overflow-hidden items-center justify-center p-12 text-white">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0">
           <Image 
@@ -62,7 +62,7 @@ export default function LoginPage() {
         </div>
 
         {/* Ambient Glows */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-400/15 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
         
         {/* Content over background */}
@@ -75,20 +75,20 @@ export default function LoginPage() {
           <h2 className="font-headline font-black text-4xl xl:text-5xl leading-tight mb-5 text-white">
             Sistem Manajemen Akademik &amp; Administrasi Terpadu
           </h2>
-          <p className="font-body text-slate-200 text-base leading-relaxed mb-8">
+          <p className="font-body text-blue-100 text-base leading-relaxed mb-8">
             Platform terintegrasi bagi dewan guru, tata usaha, dan pimpinan madrasah MI Attaqwa 15 Babelan.
           </p>
 
           <div className="grid grid-cols-2 gap-4 text-left">
             <div className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl">
-              <ShieldCheck className="w-5 h-5 text-teal-300 mb-2" />
+              <ShieldCheck className="w-5 h-5 text-cyan-300 mb-2" />
               <p className="font-headline font-bold text-sm text-white">Keamanan Terverifikasi</p>
-              <p className="font-body text-xs text-slate-300 mt-0.5">Akses role-based aman dengan proteksi multi-layer.</p>
+              <p className="font-body text-xs text-blue-200 mt-0.5">Akses role-based aman dengan proteksi multi-layer.</p>
             </div>
             <div className="bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl">
               <Sparkles className="w-5 h-5 text-amber-300 mb-2" />
               <p className="font-headline font-bold text-sm text-white">Data Real-time</p>
-              <p className="font-body text-xs text-slate-300 mt-0.5">Sinkronisasi presensi, nilai, dan infaq sekolah.</p>
+              <p className="font-body text-xs text-blue-200 mt-0.5">Sinkronisasi presensi, nilai, dan infaq sekolah.</p>
             </div>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function LoginPage() {
 
       {/* Right Pane - Form Login */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-16">
-        <div className="w-full max-w-md bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-xl shadow-slate-900/5 border border-slate-200/80 space-y-6">
+        <div className="w-full max-w-md bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-slate-200/80 space-y-6">
           {/* Logo & Header */}
           <div className="text-center">
             <div className="flex justify-center mb-6">
@@ -143,7 +143,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3.5 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 text-xs font-medium text-slate-800 transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-3.5 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-medium text-slate-800 transition-all outline-none"
                   placeholder="admin@miattaqwa15.sch.id"
                   disabled={loading}
                 />
@@ -153,7 +153,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between ml-1">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Kata Sandi</label>
-                <Link href="/contact" className="text-xs font-bold text-teal-700 hover:text-teal-900 transition-colors">
+                <Link href="/contact" className="text-xs font-bold text-blue-700 hover:text-blue-900 transition-colors">
                   Lupa Password?
                 </Link>
               </div>
@@ -166,7 +166,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3.5 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 text-xs font-medium text-slate-800 transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-3.5 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-medium text-slate-800 transition-all outline-none"
                   placeholder="••••••••"
                   disabled={loading}
                 />
@@ -177,7 +177,7 @@ export default function LoginPage() {
               <button 
                 type="submit"
                 disabled={loading}
-                className="btn-tactile w-full flex items-center justify-center gap-2 py-4 px-6 rounded-full font-headline text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-teal-700 shadow-xl shadow-teal-900/20 hover:shadow-2xl hover:brightness-105 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn-tactile w-full flex items-center justify-center gap-2 py-4 px-6 rounded-full font-headline text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 shadow-sm shadow-blue-900/10 hover:brightness-105 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -198,7 +198,7 @@ export default function LoginPage() {
           <div className="pt-4 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-500">
               Butuh bantuan akses akun?{' '}
-              <Link href="/contact" className="font-bold text-teal-700 hover:text-teal-900 transition-colors">
+              <Link href="/contact" className="font-bold text-blue-700 hover:text-blue-900 transition-colors">
                 Hubungi Administrator
               </Link>
             </p>

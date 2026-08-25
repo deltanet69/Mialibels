@@ -53,8 +53,8 @@ export function SidebarClient({ role, userName }: Props) {
     const active = isActive(path);
     return `group flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
       active
-        ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white shadow-md shadow-teal-900/15 font-semibold'
-        : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
+        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm shadow-blue-900/10 font-semibold'
+        : 'text-slate-600 hover:bg-blue-50/50 hover:text-blue-700'
     }`;
   };
 
