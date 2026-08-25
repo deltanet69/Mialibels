@@ -1,9 +1,34 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Plus, Trash2, Edit2, X, PlayCircle, Loader2, UserCircle2, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { 
+  Clock, 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  X, 
+  PlayCircle, 
+  Loader2, 
+  UserCircle2, 
+  CheckCircle2, 
+  Sparkles,
+  BookOpen,
+  Calendar,
+  AlertCircle,
+  Coffee,
+  Trophy
+} from 'lucide-react';
 
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+
+const SUBJECTS = [
+  "Al-Qur'an Hadis", "Akidah Akhlak", "Fikih", "Sejarah Kebudayaan Islam",
+  "Bahasa Arab", "Tematik", "Matematika", "Ilmu Pengetahuan Alam (IPA)",
+  "Ilmu Pengetahuan Sosial (IPS)", "Pendidikan Kewarganegaraan (PKn)",
+  "Bahasa Indonesia", "Pendidikan Jasmani Olahraga dan Kesehatan (PJOK)",
+  "Seni Budaya dan Prakarya (SBdP)", "Bahasa Inggris", "Muatan Lokal",
+  "Tahfidz", "Baca Tulis Al-Qur'an (BTQ)"
+];
 
 export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { classroomId: string, user?: any, homeroomTeacherId?: string }) {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -19,27 +44,19 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', time_start: '', time_end: '', type: 'Pelajaran', teacher_id: '' });
+  const [formData, setFormData] = useState({ name: SUBJECTS[0], time_start: '', time_end: '', type: 'Pelajaran', teacher_id: '' });
   const [saving, setSaving] = useState(false);
   const [teachingLogs, setTeachingLogs] = useState<Record<string, any>>({});
   const [loadingTeaching, setLoadingTeaching] = useState(false);
 
-  const role = user?.role?.toLowerCase();
-  const isSuperAdmin = role === 'superadmin';
+  // Safely define currentUser and role permissions
+  const currentUser = user || null;
+  const role = currentUser?.role?.toLowerCase() || '';
+  const isSuperAdmin = role === 'superadmin' || role === 'admin';
   const isStaff = role === 'staff';
   const isKepsek = role === 'kepsek';
-  // Guru can edit only if they are the homeroom teacher for this specific class
-  const isHomeroom = role?.includes('guru') && user?.staffId === homeroomTeacherId;
+  const isHomeroom = role.includes('guru') && currentUser?.staffId === homeroomTeacherId;
   const canEdit = isSuperAdmin || isStaff || isKepsek || isHomeroom;
-
-  const SUBJECTS = [
-    "Al-Qur'an Hadis", "Akidah Akhlak", "Fikih", "Sejarah Kebudayaan Islam",
-    "Bahasa Arab", "Tematik", "Matematika", "Ilmu Pengetahuan Alam (IPA)",
-    "Ilmu Pengetahuan Sosial (IPS)", "Pendidikan Kewarganegaraan (PKn)",
-    "Bahasa Indonesia", "Pendidikan Jasmani Olahraga dan Kesehatan (PJOK)",
-    "Seni Budaya dan Prakarya (SBdP)", "Bahasa Inggris", "Muatan Lokal",
-    "Tahfidz", "Baca Tulis Al-Qur'an (BTQ)"
-  ];
 
   // Update current time every minute
   useEffect(() => {
@@ -49,31 +66,29 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
     return () => clearInterval(timer);
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!classroomId) return;
     setLoading(true);
     try {
-      // Fetch schedules
-      const resSchedules = await fetch(`/api/schedules?classroomId=${classroomId}`);
+      // Fetch schedules with teacher relations
+      const resSchedules = await fetch(`/api/schedules?classroomId=${classroomId}&_t=` + Date.now());
       const dataSchedules = await resSchedules.json();
       if (dataSchedules.success) {
-        setSchedules(dataSchedules.data);
+        setSchedules(dataSchedules.data || []);
       }
       
-      // Fetch teachers for dropdown if allowed to edit
-      if (canEdit) {
-        const resTeachers = await fetch('/api/guru');
-        const dataTeachers = await resTeachers.json();
-        if (dataTeachers.success) {
-          setTeachers(dataTeachers.data);
-        }
+      // Fetch teachers for assign dropdown
+      const resTeachers = await fetch('/api/guru');
+      const dataTeachers = await resTeachers.json();
+      if (dataTeachers.success) {
+        setTeachers(dataTeachers.data || []);
       }
       
       // Fetch teaching logs for today
       const todayStr = new Date().toISOString().split('T')[0];
       const resLogs = await fetch(`/api/teaching-attendance?date=${todayStr}&classroomId=${classroomId}`);
       const dataLogs = await resLogs.json();
-      if (dataLogs.success) {
+      if (dataLogs.success && dataLogs.data) {
         const logMap: Record<string, any> = {};
         dataLogs.data.forEach((log: any) => {
           logMap[log.schedule_id] = log;
@@ -81,29 +96,48 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
         setTeachingLogs(logMap);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching schedules:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [classroomId]);
 
   useEffect(() => {
     fetchData();
-  }, [classroomId]);
+  }, [fetchData]);
 
-  const getTypeColor = (type: string) => {
+  const getTypeStyle = (type: string) => {
     switch (type?.toLowerCase()) {
-      case 'pelajaran': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'ekstrakurikuler': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'istirahat': return 'bg-slate-100 text-slate-600 border-slate-200';
-      default: return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'pelajaran': 
+        return {
+          badge: 'bg-blue-50 text-blue-700 border-blue-200',
+          icon: BookOpen,
+          iconBg: 'bg-blue-50 text-blue-600'
+        };
+      case 'ekstrakurikuler': 
+        return {
+          badge: 'bg-purple-50 text-purple-700 border-purple-200',
+          icon: Trophy,
+          iconBg: 'bg-purple-50 text-purple-600'
+        };
+      case 'istirahat': 
+        return {
+          badge: 'bg-amber-50 text-amber-700 border-amber-200',
+          icon: Coffee,
+          iconBg: 'bg-amber-50 text-amber-600'
+        };
+      default: 
+        return {
+          badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          icon: Sparkles,
+          iconBg: 'bg-emerald-50 text-emerald-600'
+        };
     }
   };
 
   const isScheduleActive = (timeString: string, scheduleDay: string) => {
-    const todayIndex = new Date().getDay(); 
-    // Match current day of week with scheduleDay
-    const currentDayName = (todayIndex >= 1 && todayIndex <= 5) ? DAYS[todayIndex - 1] : null;
+    const todayIdx = new Date().getDay(); 
+    const currentDayName = (todayIdx >= 1 && todayIdx <= 5) ? DAYS[todayIdx - 1] : null;
     if (scheduleDay !== currentDayName) return false;
 
     try {
@@ -128,13 +162,13 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
 
   const handleOpenAdd = () => {
     setEditingId(null);
-    setFormData({ name: SUBJECTS[0], time_start: '', time_end: '', type: 'Pelajaran', teacher_id: '' });
+    setFormData({ name: SUBJECTS[0], time_start: '07:30', time_end: '08:45', type: 'Pelajaran', teacher_id: '' });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (schedule: any) => {
     setEditingId(schedule.id);
-    let tStart = '', tEnd = '';
+    let tStart = '07:30', tEnd = '08:45';
     if (schedule.time) {
       const parts = schedule.time.split('-');
       if (parts.length === 2) {
@@ -188,7 +222,7 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
     if(confirm('Yakin ingin menghapus jadwal ini?')) {
       try {
         await fetch(`/api/schedules?id=${id}`, { method: 'DELETE' });
-        setSchedules(schedules.filter(s => s.id !== id));
+        setSchedules(prev => prev.filter(s => s.id !== id));
       } catch (e) {
         console.error(e);
       }
@@ -204,7 +238,7 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
       }
 
       const payload = {
-        name: formData.type === 'Pelajaran' ? formData.name : formData.name, // Will refine in UI
+        name: formData.name,
         time: `${formData.time_start} - ${formData.time_end}`,
         type: formData.type,
         teacher_id: formData.teacher_id || null,
@@ -212,181 +246,270 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
         day: selectedDay
       };
       
-      await fetch('/api/schedules', {
+      const res = await fetch('/api/schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([payload])
+        body: JSON.stringify(payload)
       });
       
-      setIsModalOpen(false);
-      fetchData();
+      if (res.ok) {
+        setIsModalOpen(false);
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Gagal menyimpan jadwal');
+      }
     } catch(e) {
       console.error(e);
+      alert('Terjadi kesalahan');
     } finally {
       setSaving(false);
     }
   };
 
-  // Sort schedules by time
+  // Sort schedules by start time
   const filteredSchedules = useMemo(() => {
     return schedules
       .filter(s => s.day === selectedDay)
       .sort((a, b) => {
-        const timeA = a.time.split('-')[0].trim();
-        const timeB = b.time.split('-')[0].trim();
+        const timeA = a.time ? a.time.split('-')[0].trim() : '';
+        const timeB = b.time ? b.time.split('-')[0].trim() : '';
         return timeA.localeCompare(timeB);
       });
   }, [schedules, selectedDay]);
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-12 flex justify-center items-center">
+      <div className="bg-white rounded-[2rem] border border-slate-200/80 p-16 flex flex-col justify-center items-center gap-3 shadow-sm">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="text-xs font-semibold text-slate-500">Memuat Jadwal Pelajaran...</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-      <div className="p-6 border-b border-slate-100 flex flex-col gap-4">
+    <div className="bg-white rounded-[2rem] border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+      {/* Schedule Top Header */}
+      <div className="p-6 sm:p-7 border-b border-slate-100 flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Jadwal Pelajaran</h3>
-            <p className="text-sm text-slate-500">Atur jadwal mingguan untuk kelas ini.</p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2 border border-blue-100">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Agenda Mingguan</span>
+            </div>
+            <h3 className="font-headline font-black text-xl text-slate-800 tracking-tight">Jadwal Mata Pelajaran</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Kelola mata pelajaran harian, alokasi jam belajar, dan guru pengampu.</p>
           </div>
+
           {canEdit && (
             <button 
               onClick={handleOpenAdd}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors"
+              className="btn-tactile flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:brightness-105 text-white rounded-full text-xs font-bold transition shadow-sm shadow-blue-900/15 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              Tambah Jadwal
+              <span>Tambah Jadwal</span>
             </button>
           )}
         </div>
 
-        {/* Days Tabs */}
+        {/* Days Selector Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
-          {DAYS.map(day => (
-            <button
-              key={day}
-              onClick={() => setSelectedDay(day)}
-              className={`px-5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                selectedDay === day 
-                  ? 'bg-blue-50 text-blue-700 shadow-sm' 
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-              }`}
-            >
-              {day}
-            </button>
-          ))}
+          {DAYS.map(day => {
+            const isSelected = selectedDay === day;
+            const countOnDay = schedules.filter(s => s.day === day).length;
+            return (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                  isSelected 
+                    ? 'bg-blue-600 text-white shadow-xs' 
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                }`}
+              >
+                <span>{day}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-600'
+                }`}>
+                  {countOnDay}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
       
+      {/* Schedule Items List */}
       <div className="divide-y divide-slate-100 flex-1">
         {filteredSchedules.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">Belum ada jadwal di hari {selectedDay}.</div>
+          <div className="py-16 text-center">
+            <div className="w-14 h-14 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <Clock className="w-7 h-7" />
+            </div>
+            <h4 className="font-headline font-bold text-sm text-slate-700">Belum ada jadwal untuk hari {selectedDay}</h4>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+              Klik tombol &quot;Tambah Jadwal&quot; di kanan atas untuk menyusun agenda belajar kelas ini.
+            </p>
+          </div>
         ) : (
           filteredSchedules.map((schedule) => {
             const active = isScheduleActive(schedule.time, schedule.day);
+            const typeStyle = getTypeStyle(schedule.type);
+            const IconComp = typeStyle.icon;
+
+            // Check if current user can trigger "Mulai Mengajar"
+            const canStartTeaching = 
+              isSuperAdmin || 
+              isKepsek || 
+              (currentUser?.staffId && currentUser?.staffId === schedule.teacher_id);
+
             return (
-              <div key={schedule.id} className={`p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 transition-colors group relative ${active ? 'bg-green-50/30' : 'hover:bg-slate-50'}`}>
-                {active && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500 rounded-r-md"></div>
-                )}
-                
-                <div className={`flex items-center gap-2 min-w-[140px] ${active ? 'text-green-600 font-bold' : 'text-slate-500'}`}>
-                  {active ? (
-                    <div className="relative flex items-center justify-center w-4 h-4">
-                      <div className="absolute w-full h-full bg-green-500 rounded-full animate-ping opacity-75"></div>
-                      <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                    </div>
-                  ) : (
-                    <Clock className="w-4 h-4" />
-                  )}
-                  <span className="text-sm tracking-wide">{schedule.time}</span>
+              <div 
+                key={schedule.id} 
+                className={`p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 transition-all group relative ${
+                  active ? 'bg-emerald-50/40 border-l-4 border-l-emerald-500' : 'hover:bg-slate-50/60'
+                }`}
+              >
+                {/* Time Indicator Badge */}
+                <div className={`flex items-center gap-2.5 min-w-[150px] shrink-0 ${
+                  active ? 'text-emerald-700 font-bold' : 'text-slate-600 font-medium'
+                }`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    active ? 'bg-emerald-100 text-emerald-700' : typeStyle.iconBg
+                  }`}>
+                    {active ? (
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                      </span>
+                    ) : (
+                      <IconComp size={16} />
+                    )}
+                  </div>
+                  <span className="text-xs font-bold tracking-wide font-headline">{schedule.time}</span>
                 </div>
                 
+                {/* Subject & Teacher Details */}
                 <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-3">
-                      <h4 className={`text-base font-semibold ${active ? 'text-green-700' : 'text-slate-800'}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className={`font-headline font-bold text-sm sm:text-base ${
+                        active ? 'text-emerald-800' : 'text-slate-800'
+                      }`}>
                         {schedule.name}
                       </h4>
+
                       {active && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 uppercase tracking-wider">Sedang Berlangsung</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 animate-pulse uppercase tracking-wider">
+                          Sedang Berlangsung
+                        </span>
                       )}
                     </div>
-                    {schedule.type !== 'Istirahat' && schedule.teacher && (
-                      <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-500">
-                        <UserCircle2 className="w-3.5 h-3.5" />
-                        <span>{schedule.teacher.name}</span>
+
+                    {/* Teacher Assignee */}
+                    {schedule.type !== 'Istirahat' && (
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {schedule.teacher ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs font-medium text-slate-700">
+                            <UserCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span className="font-semibold">{schedule.teacher.name}</span>
+                            {schedule.teacher.position && (
+                              <span className="text-[11px] text-slate-400">({schedule.teacher.position})</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            <AlertCircle size={12} />
+                            Belum Ada Guru Pengampu
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  <div className="sm:ml-auto flex items-center gap-3">
+                  {/* Actions & Status Pill */}
+                  <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
                     {schedule.type === 'Pelajaran' && (
                       teachingLogs[schedule.id] ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-green-100 text-green-700">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Guru Hadir
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Guru Hadir</span>
                         </span>
                       ) : (
-                        (currentUser?.role === 'superadmin' || currentUser?.role === 'admin' || currentUser?.role === 'kepsek' || currentUser?.id === schedule.teacher_id) ? (
+                        canStartTeaching ? (
                           <button 
                             onClick={() => handleStartTeaching(schedule.id, schedule.teacher_id)}
                             disabled={loadingTeaching}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
+                            className="btn-tactile inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50 shadow-xs shadow-blue-900/15 cursor-pointer"
                           >
                             <PlayCircle className="w-3.5 h-3.5" />
-                            Mulai Mengajar
+                            <span>Mulai Mengajar</span>
                           </button>
                         ) : null
                       )
                     )}
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getTypeColor(schedule.type)}`}>
+
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${typeStyle.badge}`}>
                       {schedule.type}
                     </span>
+
+                    {canEdit && (
+                      <div className="flex items-center gap-1 border-l border-slate-100 pl-2">
+                        <button 
+                          onClick={() => handleOpenEdit(schedule)} 
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition" 
+                          title="Edit Jadwal"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(schedule.id)} 
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition" 
+                          title="Hapus Jadwal"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                {canEdit && (
-                  <div className="flex items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleOpenEdit(schedule)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors" title="Edit">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDelete(schedule.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors" title="Hapus">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
 
+      {/* Add / Edit Schedule Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800">{editingId ? 'Edit Jadwal' : 'Tambah Jadwal'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-headline font-black text-lg text-slate-800">
+                  {editingId ? 'Edit Jadwal Pelajaran' : 'Tambah Jadwal Baru'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">Hari {selectedDay}</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kegiatan</label>
-                <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.type} onChange={e => {
-                  const newType = e.target.value;
-                  setFormData({
-                    ...formData, 
-                    type: newType,
-                    name: newType === 'Pelajaran' ? SUBJECTS[0] : (newType === 'Istirahat' ? 'Istirahat' : '')
-                  });
-                }}>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Jenis Kegiatan</label>
+                <select 
+                  className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-medium text-slate-800 transition outline-none" 
+                  value={formData.type} 
+                  onChange={e => {
+                    const newType = e.target.value;
+                    setFormData({
+                      ...formData, 
+                      type: newType,
+                      name: newType === 'Pelajaran' ? SUBJECTS[0] : (newType === 'Istirahat' ? 'Istirahat' : '')
+                    });
+                  }}
+                >
                   <option value="Pelajaran">Mata Pelajaran</option>
                   <option value="Ekstrakurikuler">Ekstrakurikuler</option>
                   <option value="Istirahat">Istirahat / Kosong</option>
@@ -394,36 +517,62 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kegiatan</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Mata Pelajaran / Kegiatan</label>
                 {formData.type === 'Pelajaran' ? (
-                  <select required className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}>
+                  <select 
+                    required 
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-bold text-slate-800 transition outline-none" 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  >
                     {SUBJECTS.map(subj => (
                       <option key={subj} value={subj}>{subj}</option>
                     ))}
                   </select>
                 ) : (
-                  <input required type="text" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder={formData.type === 'Istirahat' ? "Contoh: Istirahat Pertama" : "Contoh: Pramuka"} />
+                  <input 
+                    required 
+                    type="text" 
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-medium text-slate-800 transition outline-none" 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                    placeholder={formData.type === 'Istirahat' ? "Contoh: Istirahat Pertama" : "Contoh: Pramuka / Tahfidz Sore"} 
+                  />
                 )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jam Mulai</label>
-                  <input required type="time" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.time_start} onChange={e => setFormData({...formData, time_start: e.target.value})} />
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Jam Mulai</label>
+                  <input 
+                    required 
+                    type="time" 
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-semibold text-slate-800 transition outline-none" 
+                    value={formData.time_start} 
+                    onChange={e => setFormData({...formData, time_start: e.target.value})} 
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jam Selesai</label>
-                  <input required type="time" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.time_end} onChange={e => setFormData({...formData, time_end: e.target.value})} />
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Jam Selesai</label>
+                  <input 
+                    required 
+                    type="time" 
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-semibold text-slate-800 transition outline-none" 
+                    value={formData.time_end} 
+                    onChange={e => setFormData({...formData, time_end: e.target.value})} 
+                  />
                 </div>
               </div>
 
-
-
               {formData.type !== 'Istirahat' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Guru / Penanggung Jawab</label>
-                  <select className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" value={formData.teacher_id} onChange={e => setFormData({...formData, teacher_id: e.target.value})}>
-                    <option value="">-- Pilih Guru --</option>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Guru / Pengampu</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-medium text-slate-800 transition outline-none" 
+                    value={formData.teacher_id} 
+                    onChange={e => setFormData({...formData, teacher_id: e.target.value})}
+                  >
+                    <option value="">-- Pilih Guru Pengampu --</option>
                     {teachers.map(t => (
                       <option key={t.id} value={t.id}>{t.name} {t.position ? `(${t.position})` : ''}</option>
                     ))}
@@ -431,10 +580,21 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
                 </div>
               )}
               
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">Batal</button>
-                <button disabled={saving} type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />} Simpan
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-full transition"
+                >
+                  Batal
+                </button>
+                <button 
+                  disabled={saving} 
+                  type="submit" 
+                  className="btn-tactile px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold transition shadow-sm shadow-blue-900/15 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{editingId ? 'Simpan Perubahan' : 'Tambahkan Jadwal'}</span>
                 </button>
               </div>
             </form>

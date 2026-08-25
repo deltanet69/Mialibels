@@ -1,10 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, AlertCircle, Clock, Save, Loader2, CalendarDays, BarChart2 } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  Clock, 
+  Save, 
+  Loader2, 
+  CalendarDays, 
+  BarChart2, 
+  Sparkles,
+  Search
+} from 'lucide-react';
 import { ClassroomAttendanceRecap } from './ClassroomAttendanceRecap';
 
-type Student = { id: string; name: string; student_number: string };
+type Student = { id: string; name: string; student_number: string; nisn?: string };
 type AttendanceStatus = 'Hadir' | 'Izin' | 'Sakit' | 'Alpha' | '';
 type StudentAttendance = {
   student_id: string;
@@ -28,6 +39,7 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
   const [savingStatus, setSavingStatus] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'daily' | 'recap'>('daily');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!classroomId) return;
@@ -37,15 +49,15 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
       setError(null);
       try {
         // Fetch students
-        const stdRes = await fetch(`/api/students/classroom?classroomId=${classroomId}`);
+        const stdRes = await fetch(`/api/students/classroom?classroomId=${classroomId}&_t=` + Date.now());
         const stdData = await stdRes.json();
         
         // Fetch attendance for selected date
-        const attRes = await fetch(`/api/attendance/classroom?classroomId=${classroomId}&date=${selectedDate}`);
+        const attRes = await fetch(`/api/attendance/classroom?classroomId=${classroomId}&date=${selectedDate}&_t=` + Date.now());
         const attData = await attRes.json();
         
         if (stdData.success) {
-          setStudents(stdData.data);
+          setStudents(stdData.data || []);
           
           // Initialize attendance record
           const currentAtt: Record<string, StudentAttendance> = {};
@@ -135,178 +147,239 @@ export function ClassroomAttendance({ classroomId }: { classroomId: string }) {
     }
   };
 
-  const getStatusButtonClass = (currentStatus: string, targetStatus: string, baseClass: string, activeClass: string) => {
-    if (currentStatus === targetStatus) return activeClass;
-    return `${baseClass} hover:opacity-80`;
-  };
+  const filteredStudents = students.filter(s => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return s.name.toLowerCase().includes(q) || (s.student_number && s.student_number.includes(q)) || (s.nisn && s.nisn.includes(q));
+  });
+
+  const countHadir = Object.values(attendance).filter(a => a.status === 'Hadir').length;
+  const countIzin = Object.values(attendance).filter(a => a.status === 'Izin').length;
+  const countSakit = Object.values(attendance).filter(a => a.status === 'Sakit').length;
+  const countAlpha = Object.values(attendance).filter(a => a.status === 'Alpha').length;
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-12 flex justify-center items-center">
+      <div className="bg-white rounded-[2rem] border border-slate-200/80 p-16 flex flex-col justify-center items-center gap-3 shadow-sm">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="text-xs font-semibold text-slate-500">Memuat Data Presensi...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Mode Toggle */}
-      <div className="bg-slate-100 p-1 rounded-xl inline-flex mb-2">
-        <button
-          onClick={() => setViewMode('daily')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            viewMode === 'daily' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <CalendarDays size={16} /> Pencatatan Harian
-        </button>
-        <button
-          onClick={() => setViewMode('recap')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-            viewMode === 'recap' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <BarChart2 size={16} /> Rekap Bulanan
-        </button>
+      {/* Mode Selector Tabs */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/60 inline-flex">
+          <button
+            onClick={() => setViewMode('daily')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'daily' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <CalendarDays size={14} /> 
+            <span>Pencatatan Harian</span>
+          </button>
+          <button
+            onClick={() => setViewMode('recap')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'recap' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <BarChart2 size={14} /> 
+            <span>Rekap Bulanan</span>
+          </button>
+        </div>
+
+        {viewMode === 'daily' && (
+          <div className="flex items-center gap-2 text-xs font-bold flex-wrap">
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
+              Hadir: {countHadir}
+            </span>
+            <span className="px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200">
+              Izin: {countIzin}
+            </span>
+            <span className="px-3 py-1 bg-blue-50 text-blue-800 rounded-full border border-blue-200">
+              Sakit: {countSakit}
+            </span>
+            <span className="px-3 py-1 bg-rose-50 text-rose-800 rounded-full border border-rose-200">
+              Alpha: {countAlpha}
+            </span>
+          </div>
+        )}
       </div>
 
       {viewMode === 'recap' ? (
         <ClassroomAttendanceRecap classroomId={classroomId} />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-800">Absensi Kelas</h3>
-          <p className="text-sm text-slate-500">Pilih tanggal untuk melihat/mengubah absensi</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <input 
-            type="date" 
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full sm:w-auto pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700"
-          />
-        </div>
-      </div>
+        <div className="bg-white rounded-[2rem] border border-slate-200/80 shadow-sm overflow-hidden animate-in fade-in">
+          {/* Header Controls */}
+          <div className="p-6 sm:p-7 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-headline font-black text-lg text-slate-800">Presensi Harian Siswa</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Status otomatis tersimpan ke sistem saat diklik.</p>
+            </div>
 
-      {error && (
-        <div className="p-4 bg-red-50 text-red-600 text-sm font-medium">
-          {error}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="text"
+                  placeholder="Cari nama / NISN..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-2 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-blue-500"
+                />
+              </div>
+
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-4 bg-rose-50 border-b border-rose-100 text-rose-700 text-xs font-semibold">
+              {error}
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="py-3.5 pr-4 pl-6 w-36">NIS / NISN</th>
+                  <th className="py-3.5 pr-4">Nama Siswa</th>
+                  <th className="py-3.5 pr-4 text-center">Jam Masuk</th>
+                  <th className="py-3.5 pr-4 text-center">Jam Keluar</th>
+                  <th className="py-3.5 pr-6 text-center w-80">Status Kehadiran</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredStudents.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                      {searchQuery ? 'Tidak ada siswa yang sesuai pencarian.' : 'Belum ada siswa di kelas ini.'}
+                    </td>
+                  </tr>
+                ) : filteredStudents.map((student) => {
+                  const record = attendance[student.id];
+                  const isSaving = savingStatus[student.id];
+
+                  return (
+                    <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-4 pr-4 pl-6 align-top">
+                        <span className="font-headline font-bold text-xs text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100 inline-block">
+                          {student.nisn || student.student_number || '—'}
+                        </span>
+                      </td>
+
+                      <td className="py-4 pr-4 align-top">
+                        <div className="font-headline font-bold text-xs text-slate-800">{student.name}</div>
+                        {record?.status === 'Izin' && (
+                          <div className="mt-2">
+                            <input 
+                              type="text" 
+                              placeholder="Tulis alasan izin..."
+                              value={record.reason}
+                              onChange={(e) => handleReasonChange(student.id, e.target.value)}
+                              onBlur={() => handleReasonBlur(student.id)}
+                              className="w-full sm:w-64 px-3 py-1 border border-slate-200 bg-white rounded-lg text-xs font-medium focus:outline-none focus:border-amber-500 text-slate-700 placeholder-slate-400"
+                            />
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="py-4 pr-4 align-top text-center">
+                        {record?.entry_time ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
+                            <Clock className="w-3 h-3" />
+                            <span>{record.entry_time}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-4 pr-4 align-top text-center">
+                        {record?.exit_time ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
+                            <Clock className="w-3 h-3" />
+                            <span>{record.exit_time}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-4 pr-6 align-top">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button 
+                            onClick={() => handleStatusChange(student.id, 'Hadir')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              record?.status === 'Hadir'
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200/80 hover:bg-emerald-50 hover:text-emerald-700'
+                            }`}
+                          >
+                            <CheckCircle2 size={13} />
+                            <span>Hadir</span>
+                          </button>
+
+                          <button 
+                            onClick={() => handleStatusChange(student.id, 'Izin')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              record?.status === 'Izin'
+                                ? 'bg-amber-500 text-white shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200/80 hover:bg-amber-50 hover:text-amber-700'
+                            }`}
+                          >
+                            <AlertCircle size={13} />
+                            <span>Izin</span>
+                          </button>
+
+                          <button 
+                            onClick={() => handleStatusChange(student.id, 'Sakit')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              record?.status === 'Sakit'
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200/80 hover:bg-blue-50 hover:text-blue-700'
+                            }`}
+                          >
+                            <Clock size={13} />
+                            <span>Sakit</span>
+                          </button>
+
+                          <button 
+                            onClick={() => handleStatusChange(student.id, 'Alpha')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                              record?.status === 'Alpha'
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200/80 hover:bg-rose-50 hover:text-rose-700'
+                            }`}
+                          >
+                            <XCircle size={13} />
+                            <span>Alpha</span>
+                          </button>
+
+                          {isSaving && (
+                            <Loader2 size={12} className="animate-spin text-blue-600 ml-1" />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[600px]">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="p-4 font-semibold text-slate-600 text-sm w-40">ID Pelajar / NIS</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm">Nama Siswa</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm text-center">Jam Masuk</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm text-center">Jam Keluar</th>
-              <th className="p-4 font-semibold text-slate-600 text-sm text-center w-80">Status Kehadiran</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {students.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500">Belum ada siswa di kelas ini.</td>
-              </tr>
-            ) : students.map((student) => {
-              const record = attendance[student.id];
-              return (
-                <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4 align-top pt-5">
-                    <div className="font-mono text-sm font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md inline-block">
-                      {student.student_number || '-'}
-                    </div>
-                  </td>
-                  <td className="p-4 align-top pt-5">
-                    <div className="text-sm font-medium text-slate-800">{student.name}</div>
-                    {record?.status === 'Izin' && (
-                      <div className="mt-3">
-                        <input 
-                          type="text" 
-                          placeholder="Keterangan izin..."
-                          value={record.reason}
-                          onChange={(e) => handleReasonChange(student.id, e.target.value)}
-                          onBlur={() => handleReasonBlur(student.id)}
-                          className="w-full sm:w-64 px-3 py-1.5 border border-slate-200 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400"
-                        />
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-4 align-top pt-5 text-center">
-                    {record?.entry_time ? (
-                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-100">
-                        <Clock className="w-3.5 h-3.5" />
-                        {record.entry_time}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 text-sm">-</span>
-                    )}
-                  </td>
-                  <td className="p-4 align-top pt-5 text-center">
-                    {record?.exit_time ? (
-                      <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium border border-slate-200">
-                        <Clock className="w-3.5 h-3.5" />
-                        {record.exit_time}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 text-sm">-</span>
-                    )}
-                  </td>
-                  <td className="p-4 align-top pt-4">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button 
-                        onClick={() => handleStatusChange(student.id, 'Hadir')}
-                        className={getStatusButtonClass(
-                          record?.status || '', 'Hadir',
-                          'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white text-xs font-medium flex items-center gap-1.5 transition-all',
-                          'px-3 py-1.5 rounded-lg border border-emerald-500 bg-emerald-50 text-emerald-700 text-xs font-medium flex items-center gap-1.5 shadow-sm ring-1 ring-emerald-500/20'
-                        )}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Hadir
-                      </button>
-                      <button 
-                        onClick={() => handleStatusChange(student.id, 'Izin')}
-                        className={getStatusButtonClass(
-                          record?.status || '', 'Izin',
-                          'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white text-xs font-medium flex items-center gap-1.5 transition-all',
-                          'px-3 py-1.5 rounded-lg border border-amber-500 bg-amber-50 text-amber-700 text-xs font-medium flex items-center gap-1.5 shadow-sm ring-1 ring-amber-500/20'
-                        )}
-                      >
-                        <AlertCircle className="w-3.5 h-3.5" /> Izin
-                      </button>
-                      <button 
-                        onClick={() => handleStatusChange(student.id, 'Sakit')}
-                        className={getStatusButtonClass(
-                          record?.status || '', 'Sakit',
-                          'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white text-xs font-medium flex items-center gap-1.5 transition-all',
-                          'px-3 py-1.5 rounded-lg border border-blue-500 bg-blue-50 text-blue-700 text-xs font-medium flex items-center gap-1.5 shadow-sm ring-1 ring-blue-500/20'
-                        )}
-                      >
-                        <Clock className="w-3.5 h-3.5" /> Sakit
-                      </button>
-                      <button 
-                        onClick={() => handleStatusChange(student.id, 'Alpha')}
-                        className={getStatusButtonClass(
-                          record?.status || '', 'Alpha',
-                          'px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 bg-white text-xs font-medium flex items-center gap-1.5 transition-all',
-                          'px-3 py-1.5 rounded-lg border border-rose-500 bg-rose-50 text-rose-700 text-xs font-medium flex items-center gap-1.5 shadow-sm ring-1 ring-rose-500/20'
-                        )}
-                      >
-                        <XCircle className="w-3.5 h-3.5" /> Alpha
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
     </div>
-    )}
-  </div>
   );
 }

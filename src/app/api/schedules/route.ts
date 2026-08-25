@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('classroom_schedules')
-      .select('*, teacher:staffs(id, name)')
+      .select('*, teacher:staffs(id, name, photo, position)')
       .eq('classroom_id', classroomId)
       .order('time', { ascending: true })
 
