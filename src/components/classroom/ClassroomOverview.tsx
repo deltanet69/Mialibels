@@ -156,24 +156,24 @@ export function ClassroomOverview({ totalStudents, classroomId, classroomSlug }:
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+            <div key={i} className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1 leading-tight">
                   {stat.label}
                 </span>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-headline font-black text-2xl text-slate-800">{stat.value}</span>
-                  <span className="text-xs font-semibold text-slate-500">{stat.unit}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-headline font-black text-xl sm:text-2xl text-slate-800">{stat.value}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-slate-500">{stat.unit}</span>
                 </div>
               </div>
-              <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center border shrink-0 shadow-2xs`}>
-                <Icon className="w-6 h-6" />
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center border shrink-0 shadow-2xs`}>
+                <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
             </div>
           );

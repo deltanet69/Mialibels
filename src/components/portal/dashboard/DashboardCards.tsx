@@ -57,9 +57,9 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
     : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
       {/* Realtime Clock & Attendance Card */}
-      <div className="lg:col-span-2 bg-gradient-to-br from-[#002957] via-[#0c3868] to-[#1d4ed8] p-6 sm:p-7 rounded-[2rem] shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[175px] border border-white/10 text-white">
+      <div className="col-span-2 bg-gradient-to-br from-[#002957] via-[#0c3868] to-[#1d4ed8] p-5 sm:p-7 rounded-2xl sm:rounded-[2rem] shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[150px] sm:min-h-[175px] border border-white/10 text-white">
         {/* Subtle background glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/15 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
         <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-amber-400/10 rounded-full blur-2xl -mb-16 pointer-events-none"></div>
@@ -73,7 +73,7 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
             </div>
             {time ? (
               <>
-                <div className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight mb-1">
+                <div className="font-headline font-black text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight mb-1">
                   {formatTime(time)}
                 </div>
                 <div className="font-body text-blue-100 text-xs sm:text-sm flex items-center gap-1.5 font-medium">
@@ -123,15 +123,15 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
       </div>
 
       {/* Total Siswa Card */}
-      <div className="bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-[0_4px_20px_-4px_rgba(15,39,68,0.06)] transition-all">
+      <div className="bg-white p-4 sm:p-6 xl:p-7 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-[0_4px_20px_-4px_rgba(15,39,68,0.06)] transition-all">
         <div>
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Siswa Terdata</span>
-              <p className="font-headline font-black text-3xl sm:text-4xl text-secondary">{stats.students.total}</p>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Siswa</span>
+              <p className="font-headline font-black text-2xl sm:text-3xl lg:text-4xl text-secondary">{stats.students.total}</p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
-              <Users size={22} />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs shrink-0">
+              <Users size={18} />
             </div>
           </div>
 
@@ -170,15 +170,15 @@ export function DashboardCards({ stats, attendanceRates = { student: 0, staff: 0
       </div>
 
       {/* Total Guru Card */}
-      <div className="bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-[0_4px_20px_-4px_rgba(15,39,68,0.06)] transition-all">
+      <div className="bg-white p-4 sm:p-6 xl:p-7 rounded-2xl sm:rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col justify-between hover:shadow-[0_4px_20px_-4px_rgba(15,39,68,0.06)] transition-all">
         <div>
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Guru &amp; Tenaga</span>
-              <p className="font-headline font-black text-3xl sm:text-4xl text-secondary">{stats.staffs.total}</p>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Guru &amp; Staff</span>
+              <p className="font-headline font-black text-2xl sm:text-3xl lg:text-4xl text-secondary">{stats.staffs.total}</p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs">
-              <Briefcase size={22} />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+              <Briefcase size={18} />
             </div>
           </div>
 
