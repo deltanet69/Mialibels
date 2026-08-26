@@ -7,7 +7,7 @@ import { Award, ArrowRight, Sparkles, ShieldCheck, Users, BookOpen } from 'lucid
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-[92vh] lg:min-h-screen flex items-center justify-center pt-28 pb-16 lg:pt-36 lg:pb-24 overflow-hidden bg-mesh-radial">
+    <section className="relative min-h-[92vh] lg:min-h-screen flex items-center justify-center pt-20 pb-16 lg:pt-18 lg:pb-32 overflow-hidden bg-mesh-radial">
       {/* Background Image with soft opacity */}
       <div className="absolute inset-0 z-0 opacity-40">
         <Image
@@ -41,7 +41,7 @@ export default function HeroSection() {
               <span className="hidden sm:inline-block text-gray-300">|</span>
               <span className="hidden sm:inline-flex items-center gap-1 font-body text-xs font-semibold text-gray-600">
                 <Sparkles className="w-3.5 h-3.5 text-accent" />
-                Akreditasi A Unggul
+                Akreditasi Unggul
               </span>
             </div>
 
@@ -104,7 +104,7 @@ export default function HeroSection() {
             {/* Main Floating Image 1 (Students) */}
             <div className="absolute left-3 top-4 w-[210px] sm:w-[290px] aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white z-10 rotate-[-3deg] transition-all duration-500 hover:scale-105 hover:rotate-0 hover:z-20">
               <Image
-                src="/images/student_activity.png"
+                src="/mialibels10.jpg"
                 alt="Siswa MI Attaqwa 15"
                 fill
                 priority
@@ -124,7 +124,7 @@ export default function HeroSection() {
             {/* Main Floating Image 2 (Graduation) */}
             <div className="absolute right-2 bottom-3 w-[200px] sm:w-[280px] aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white z-0 rotate-[4deg] transition-all duration-500 hover:scale-105 hover:rotate-0 hover:z-20">
               <Image
-                src="/images/graduation_day.png"
+                src="/mialibels8.jpg"
                 alt="Kelulusan MI Attaqwa 15"
                 fill
                 priority
@@ -157,7 +157,7 @@ export default function HeroSection() {
             </div>
 
             {/* Floating Playful Badge 2 (Digital Madrasah) */}
-            <div className="absolute bottom-[8%] left-[-10px] sm:left-[-15px] z-20 glass-pill px-4 py-2.5 rounded-2xl shadow-xl border border-teal-200/80 flex items-center gap-3 transition-transform duration-300 hover:scale-105">
+            <div className="absolute bottom-[10%] left-[-15px] sm:left-[-15px] z-30 glass-pill px-4 py-2.5 rounded-2xl shadow-xl border border-teal-200/80 flex items-center gap-3 transition-transform duration-300 hover:scale-105">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center flex-shrink-0 shadow-sm text-white">
                 <ShieldCheck className="w-5 h-5" />
               </div>

@@ -44,13 +44,15 @@ export default function PpdbCTA() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/contact"
+              <a
+                href={process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id'}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-btn-secondary text-white shadow-xl shadow-orange-950/30 hover:shadow-2xl hover:brightness-110 transition-all"
               >
                 <span>Daftar Sekarang Online</span>
                 <ArrowRight className="w-5 h-5 ml-1" />
-              </Link>
+              </a>
               
               <Link
                 href="/contact"

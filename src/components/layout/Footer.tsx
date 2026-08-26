@@ -63,7 +63,7 @@ export default function Footer() {
                 />
               </div>
             </Link>
-            <p className="font-body text-sm text-gray-500 leading-relaxed max-w-sm">
+            <p className="font-body text-md text-gray-500 leading-relaxed max-w-sm">
               Madrasah Ibtidaiyah unggulan di Babelan, Bekasi. Membentuk generasi cerdas, berakhlak mulia, dan berkarakter pejuang berlandaskan Islam Ahlussunnah Wal Jamaah.
             </p>
             {/* Social icons */}
@@ -88,7 +88,7 @@ export default function Footer() {
 
           {/* Col 2: Navigasi Cepat */}
           <div className="md:col-span-3 flex flex-col gap-3">
-            <h4 className="font-headline font-bold text-sm text-secondary uppercase tracking-wider flex items-center gap-2">
+            <h4 className="font-headline font-bold text-md text-secondary uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-3.5 bg-primary rounded-full" />
               Navigasi Halaman
             </h4>
@@ -97,7 +97,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="font-body text-sm text-gray-500 hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
+                    className="font-body text-md text-gray-500 hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-primary transition-colors" />
                     <span>{link.label}</span>
@@ -109,11 +109,11 @@ export default function Footer() {
 
           {/* Col 3: Kontak & Alamat */}
           <div className="md:col-span-4 flex flex-col gap-3">
-            <h4 className="font-headline font-bold text-sm text-secondary uppercase tracking-wider flex items-center gap-2">
+            <h4 className="font-headline font-bold text-md text-secondary uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-3.5 bg-btn-secondary rounded-full" />
               Lokasi & Kontak
             </h4>
-            <div className="flex flex-col gap-2.5 font-body text-sm text-gray-500">
+            <div className="flex flex-col gap-2.5 font-body text-md text-gray-500">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
                 <span>Jl. Raya Pasar Babelan RT.05/RW.01, Kec. Babelan, Kab. Bekasi, Jawa Barat 17610</span>
@@ -147,7 +147,7 @@ export default function Footer() {
             <span>&copy; {new Date().getFullYear()} MI Attaqwa 15 Babelan. Seluruh Hak Cipta Dilindungi.</span>
           </p>
           <p className="text-center sm:text-right font-medium text-gray-500">
-            Yayasan Attaqwa Babelan — Bekasi
+            Yayasan Attaqwa 15 Babelan — Bekasi
           </p>
         </div>
 

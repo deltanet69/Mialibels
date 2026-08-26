@@ -77,8 +77,8 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-slate-200">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             {isEditing ? <Save className="text-blue-600" /> : <UserPlus className="text-blue-600" />}

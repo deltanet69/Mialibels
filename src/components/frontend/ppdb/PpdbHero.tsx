@@ -42,13 +42,15 @@ export default function PpdbHero() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <Link
-            href="/contact"
+          <a
+            href={process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id'}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-tactile inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-btn-secondary text-white shadow-xl shadow-orange-950/20 hover:shadow-2xl hover:brightness-110 transition-all"
           >
             <GraduationCap className="w-5 h-5" />
             <span>Daftar Sekarang</span>
-          </Link>
+          </a>
           <Link
             href="#alur-pendaftaran"
             className="btn-tactile inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-white text-secondary shadow-sm border border-slate-200 hover:border-primary hover:text-primary transition-all"

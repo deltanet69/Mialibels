@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell, Trash2 } from 'lucide-react'
+import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell, Trash2, ClipboardCheck } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '../../../../lib/supabase/client'
 
@@ -47,8 +47,9 @@ export default function AbsensiGuruPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [viewPersonalOnly, setViewPersonalOnly] = useState<boolean>(true)
+
   const formatTime = (isoString?: string | null) => {
-    if (!isoString) return '-'
+    if (!isoString) return '—'
     const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
     const d = new Date(validIso)
     return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -189,7 +190,6 @@ export default function AbsensiGuruPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Polling every 15s (quiet fallback — no spinner)
   const getAttendanceStatus = (att: AttendanceRecord | null | undefined) => {
     if (att && att.status) return att.status
 
@@ -205,7 +205,7 @@ export default function AbsensiGuruPage() {
         return 'TIDAK MASUK'
       }
     }
-    return '-'
+    return 'BELUM SCAN'
   }
 
   // Calculate summaries for the selected period
@@ -219,16 +219,16 @@ export default function AbsensiGuruPage() {
   if (filterType === 'hari') {
     staffs.forEach(s => {
       const status = getAttendanceStatus(s.attendance)
-      if (status === 'HADIR') globalSummary.HADIR++
+      if (status === 'HADIR' || status === 'TERLAMBAT') globalSummary.HADIR++
       else if (status === 'IZIN') globalSummary.IZIN++
       else if (status === 'SAKIT') globalSummary.SAKIT++
-      else if (status === 'TIDAK MASUK') globalSummary.TIDAK_MASUK++
+      else if (status === 'TIDAK MASUK' || status === 'ALPA') globalSummary.TIDAK_MASUK++
     })
   } else {
     // For minggu/bulan, summarize all attendances
     staffs.forEach(s => {
       s.attendances?.forEach(att => {
-        if (att.status === 'HADIR') globalSummary.HADIR++
+        if (att.status === 'HADIR' || att.status === 'TERLAMBAT') globalSummary.HADIR++
         else if (att.status === 'IZIN') globalSummary.IZIN++
         else if (att.status === 'SAKIT') globalSummary.SAKIT++
       })
@@ -248,13 +248,13 @@ export default function AbsensiGuruPage() {
   if (myStaffRecord) {
     if (filterType === 'hari') {
       const status = getAttendanceStatus(myStaffRecord.attendance)
-      if (status === 'HADIR') personalSummary.HADIR++
+      if (status === 'HADIR' || status === 'TERLAMBAT') personalSummary.HADIR++
       else if (status === 'IZIN') personalSummary.IZIN++
       else if (status === 'SAKIT') personalSummary.SAKIT++
-      else if (status === 'TIDAK MASUK') personalSummary.TIDAK_MASUK++
+      else if (status === 'TIDAK MASUK' || status === 'ALPA') personalSummary.TIDAK_MASUK++
     } else {
       myStaffRecord.attendances?.forEach(att => {
-        if (att.status === 'HADIR') personalSummary.HADIR++
+        if (att.status === 'HADIR' || att.status === 'TERLAMBAT') personalSummary.HADIR++
         else if (att.status === 'IZIN') personalSummary.IZIN++
         else if (att.status === 'SAKIT') personalSummary.SAKIT++
       })
@@ -265,354 +265,441 @@ export default function AbsensiGuruPage() {
   const activeStaffs = (isGuru && viewPersonalOnly) ? (myStaffRecord ? [myStaffRecord] : []) : staffs;
 
   return (
-    <div className="w-full flex flex-col font-sans relative">
+    <div className="font-sans space-y-6 sm:space-y-7 w-full pb-16">
       
-      {/* Main Content */}
-      <div className="flex-1 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Absensi Guru & Staff</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-slate-500 text-md">Sistem Absensi RF ID Card Dewan Guru MI ATTAQWA 15 BABELAN.</p>
-              {isSyncing && (
-                <span className="flex items-center gap-1 text-xs text-emerald-500 font-medium">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Sync...
-                </span>
-              )}
-            </div>
+      {/* Header Bar */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2.5">
+            <ClipboardCheck size={13} />
+            <span>Presensi Digital Dewan Guru</span>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <Filter className="text-slate-400" size={16} />
-              </div>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as FilterType)}
-                className="pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-btn-primary focus:ring-4 focus:ring-btn-primary/10 transition font-medium text-slate-700 shadow-sm outline-none appearance-none"
-              >
-                <option value="hari">Harian</option>
-                <option value="minggu">Mingguan</option>
-                <option value="bulan">Bulanan</option>
-              </select>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <Calendar className="text-slate-400" size={18} />
-              </div>
-              <input
-                type={filterType === 'bulan' ? 'month' : 'date'}
-                value={filterType === 'bulan' ? date.substring(0, 7) : date}
-                onChange={(e) => {
-                  let val = e.target.value
-                  if (filterType === 'bulan' && val.length === 7) val += '-01'
-                  setDate(val)
-                }}
-                className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-btn-primary focus:ring-4 focus:ring-btn-primary/10 transition font-medium text-slate-700 shadow-sm outline-none"
-              />
-            </div>
-
-            <button
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-medium rounded-xl shadow-sm transition"
-              title="Urutkan Nama"
-            >
-              {sortOrder === 'asc' ? <ArrowDownAZ size={18} /> : <ArrowUpAZ size={18} />}
-            </button>
-
-            <div className="flex bg-slate-100 p-1 rounded-xl">
-              <button
-                onClick={() => setViewMode('card')}
-                className={`p-2 rounded-lg transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-btn-primary' : 'text-slate-400 hover:text-slate-600'}`}
-                title="Card View"
-              >
-                <LayoutGrid size={18} />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-btn-primary' : 'text-slate-400 hover:text-slate-600'}`}
-                title="List View"
-              >
-                <List size={18} />
-              </button>
-            </div>
-
-            {isGuru && (
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button
-                  onClick={() => setViewPersonalOnly(true)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${viewPersonalOnly ? 'bg-white shadow-sm text-blue-700 border border-blue-100' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                  Kehadiran Saya
-                </button>
-                <button
-                  onClick={() => setViewPersonalOnly(false)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${!viewPersonalOnly ? 'bg-white shadow-sm text-slate-800 border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
-                  Semua Guru
-                </button>
-              </div>
+          <h1 className="font-sans font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
+            Absensi Guru &amp; Staff
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="font-sans text-xs sm:text-sm text-slate-500">
+              Sistem absensi terintegrasi RFID card dewan guru MI Attaqwa 15 Babelan.
+            </p>
+            {isSyncing && (
+              <span className="flex items-center gap-1 text-xs text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Realtime Sync
+              </span>
             )}
-
-            <button 
-              onClick={() => setShowLog(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl shadow-sm transition"
-            >
-              <Activity size={18} className="text-btn-secondary" />
-              Activity Log
-              {logs.length > 0 && (
-                <span className="ml-1 bg-btn-secondary text-white text-xs px-2 py-0.5 rounded-full">{logs.length}</span>
-              )}
-            </button>
           </div>
         </div>
+        
+        {/* Controls Toolbar */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+          
+          {/* Filter Periode */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Filter size={15} />
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as FilterType)}
+              className="pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
+            >
+              <option value="hari">Harian</option>
+              <option value="minggu">Mingguan</option>
+              <option value="bulan">Bulanan</option>
+            </select>
+          </div>
 
-        {/* Listening Indicator (Only for daily view today) */}
-        {filterType === 'hari' && date === new Date().toISOString().split('T')[0] && (
-          <div className="bg-btn-primary/5 border border-btn-primary/10 rounded-2xl p-4 flex items-center justify-center gap-3 animate-pulse">
-            <Fingerprint className="text-btn-primary" size={24} />
-            <span className="text-btn-primary font-semibold text-sm">Sistem aktif mendengarkan Scanner RFID...</span>
+          {/* Date Picker */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Calendar size={15} />
+            </div>
+            <input
+              type={filterType === 'bulan' ? 'month' : 'date'}
+              value={filterType === 'bulan' ? date.substring(0, 7) : date}
+              onChange={(e) => {
+                let val = e.target.value
+                if (filterType === 'bulan' && val.length === 7) val += '-01'
+                setDate(val)
+              }}
+              className="pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
+            />
           </div>
-        )}
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">Hadir</p>
-              <h3 className="text-3xl font-bold text-emerald-600">{activeSummary.HADIR}</h3>
-            </div>
-            <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="text-emerald-500" size={24} />
-            </div>
+          {/* Sort Order */}
+          <button
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-2xl transition cursor-pointer"
+            title="Urutkan Nama"
+          >
+            {sortOrder === 'asc' ? <ArrowDownAZ size={17} /> : <ArrowUpAZ size={17} />}
+          </button>
+
+          {/* View Mode Switcher */}
+          <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'card' ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-500 hover:text-slate-800'}`}
+              title="Tampilan Kartu"
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'list' ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-500 hover:text-slate-800'}`}
+              title="Tampilan List"
+            >
+              <List size={16} />
+            </button>
           </div>
-          
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">Izin</p>
-              <h3 className="text-3xl font-bold text-blue-600">{activeSummary.IZIN}</h3>
-            </div>
-            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-              <Activity className="text-blue-500" size={24} />
-            </div>
-          </div>
-          
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">Sakit</p>
-              <h3 className="text-3xl font-bold text-amber-500">{activeSummary.SAKIT}</h3>
-            </div>
-            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
-              <AlertCircle className="text-amber-500" size={24} />
-            </div>
-          </div>
-          
-          {filterType === 'hari' && (
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500 mb-1">Tidak Masuk</p>
-                <h3 className="text-3xl font-bold text-rose-500">{activeSummary.TIDAK_MASUK}</h3>
-              </div>
-              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center">
-                <XCircle className="text-rose-500" size={24} />
-              </div>
+
+          {/* Personal vs All (For Guru) */}
+          {isGuru && (
+            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/80">
+              <button
+                onClick={() => setViewPersonalOnly(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${viewPersonalOnly ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+                <span>Saya</span>
+              </button>
+              <button
+                onClick={() => setViewPersonalOnly(false)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${!viewPersonalOnly ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
+                <span>Semua</span>
+              </button>
             </div>
           )}
+
+          {/* Activity Log Button */}
+          <button 
+            onClick={() => setShowLog(true)}
+            className="btn-tactile flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl shadow-sm transition cursor-pointer"
+          >
+            <Activity size={15} className="text-amber-400" />
+            <span>Activity Log</span>
+            {logs.length > 0 && (
+              <span className="bg-amber-500 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">{logs.length}</span>
+            )}
+          </button>
         </div>
+      </div>
 
-        {/* Staff Cards List */}
-        <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "flex flex-col gap-3"}>
-          {loading ? (
-            <div className="col-span-full p-10 text-center text-slate-500 bg-white rounded-2xl border border-slate-100">
-              Memuat data absensi...
-            </div>
-          ) : activeStaffs.length === 0 ? (
-            <div className="col-span-full p-10 text-center text-slate-500 bg-white rounded-2xl border border-slate-100">
-              {viewPersonalOnly && isGuru ? 'Data absensi pribadi belum tersedia.' : 'Belum ada data guru/staff yang aktif.'}
-            </div>
-          ) : (
-            [...activeStaffs]
-              .sort((a, b) => sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))
-              .map((staff) => {
+      {/* RFID Listening Banner */}
+      {filterType === 'hari' && date === new Date().toISOString().split('T')[0] && (
+        <div className="bg-blue-50/80 border border-blue-200/80 rounded-3xl p-4 flex items-center justify-center gap-3 text-blue-800 font-sans shadow-2xs">
+          <Fingerprint className="text-blue-600 animate-pulse shrink-0" size={22} />
+          <span className="text-xs sm:text-sm font-bold">Sistem siap mendengarkan scan kartu RFID realtime...</span>
+        </div>
+      )}
+
+      {/* Summary Stats Bento Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 font-sans">
+        
+        {/* Hadir */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:shadow-md transition">
+          <div>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Hadir</span>
+            <h3 className="font-sans font-extrabold text-2xl sm:text-3xl text-emerald-600 tracking-tight">{activeSummary.HADIR}</h3>
+          </div>
+          <div className="w-11 h-11 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shrink-0">
+            <CheckCircle2 size={22} />
+          </div>
+        </div>
+        
+        {/* Izin */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:shadow-md transition">
+          <div>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Izin</span>
+            <h3 className="font-sans font-extrabold text-2xl sm:text-3xl text-blue-600 tracking-tight">{activeSummary.IZIN}</h3>
+          </div>
+          <div className="w-11 h-11 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
+            <Activity size={22} />
+          </div>
+        </div>
+        
+        {/* Sakit */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:shadow-md transition">
+          <div>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Sakit</span>
+            <h3 className="font-sans font-extrabold text-2xl sm:text-3xl text-amber-600 tracking-tight">{activeSummary.SAKIT}</h3>
+          </div>
+          <div className="w-11 h-11 bg-amber-50 border border-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
+            <AlertCircle size={22} />
+          </div>
+        </div>
+        
+        {/* Tidak Masuk */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:shadow-md transition">
+          <div>
+            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tidak Masuk</span>
+            <h3 className="font-sans font-extrabold text-2xl sm:text-3xl text-rose-600 tracking-tight">{activeSummary.TIDAK_MASUK}</h3>
+          </div>
+          <div className="w-11 h-11 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-center text-rose-600 shrink-0">
+            <XCircle size={22} />
+          </div>
+        </div>
+      </div>
+
+      {/* Staff Attendance Display */}
+      <div className={viewMode === 'card' ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "flex flex-col gap-3"}>
+        {loading ? (
+          <div className="col-span-full p-12 text-center text-slate-500 bg-white rounded-3xl border border-slate-200 text-xs sm:text-sm font-semibold">
+            Memuat data absensi dewan guru...
+          </div>
+        ) : activeStaffs.length === 0 ? (
+          <div className="col-span-full p-12 text-center text-slate-500 bg-white rounded-3xl border border-slate-200 text-xs sm:text-sm">
+            {viewPersonalOnly && isGuru ? 'Data absensi pribadi belum tersedia untuk periode ini.' : 'Belum ada data guru/staff yang aktif.'}
+          </div>
+        ) : (
+          [...activeStaffs]
+            .sort((a, b) => sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))
+            .map((staff) => {
+            
+            if (filterType === 'hari') {
+              const att = staff.attendance
+              const status = getAttendanceStatus(att)
               
-              if (filterType === 'hari') {
-                const att = staff.attendance
-                const status = getAttendanceStatus(att)
-                
-                let statusColor = 'bg-slate-100 text-slate-500 border-slate-200'
-                if (status === 'HADIR') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                if (status === 'TERLAMBAT') statusColor = 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                if (status === 'IZIN') statusColor = 'bg-blue-50 text-blue-700 border-blue-200'
-                if (status === 'SAKIT') statusColor = 'bg-orange-50 text-orange-700 border-orange-200'
-                if (status === 'TIDAK MASUK' || status === 'ALPA') statusColor = 'bg-red-50 text-red-700 border-red-200'
-                
-                if (viewMode === 'list') {
-                  return (
-                    <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex items-center justify-between cursor-pointer hover:border-slate-300">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner flex-shrink-0 overflow-hidden">
-                          {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-slate-800 text-md line-clamp-1">{staff.name}</h3>
-                          <p className="text-[14px] text-slate-500 line-clamp-1">{staff.position}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-6 md:gap-24 ml-4">
-                        <div className="flex flex-col items-end hidden sm:flex relative group pr-6">
-                          <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wider">Masuk</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_in_time)}</p>
-                            {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
-                              <button onClick={(e) => handleSoftDelete(e, staff.id, 'in')} className="absolute -right-2 top-1/2 p-1 bg-red-100 text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam masuk">
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end hidden sm:flex relative group pr-6">
-                          <p className="text-[14px] font-bold text-slate-400 uppercase tracking-wider">Keluar</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-md font-semibold text-slate-700">{formatTime(att?.check_out_time)}</p>
-                            {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
-                              <button onClick={(e) => handleSoftDelete(e, staff.id, 'out')} className="absolute -right-2 top-1/2 p-1 bg-red-100 text-red-500 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam pulang">
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${statusColor} w-20 md:w-24 text-center flex-shrink-0`}>
-                          {status}
-                        </div>
-                      </div>
-                    </Link>
-                  )
-                }
-
+              let statusColor = 'bg-slate-100 text-slate-700 border-slate-200'
+              if (status === 'HADIR') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              if (status === 'TERLAMBAT') statusColor = 'bg-amber-50 text-amber-800 border-amber-200'
+              if (status === 'IZIN') statusColor = 'bg-blue-50 text-blue-700 border-blue-200'
+              if (status === 'SAKIT') statusColor = 'bg-orange-50 text-orange-700 border-orange-200'
+              if (status === 'TIDAK MASUK' || status === 'ALPA') statusColor = 'bg-rose-50 text-rose-700 border-rose-200'
+              
+              if (viewMode === 'list') {
                 return (
-                  <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-3 cursor-pointer hover:border-slate-300">
-                    {/* Top info: Avatar + Name + Overall Status */}
-                    <div className="flex justify-between items-start mb-1">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner overflow-hidden">
-                          {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-slate-800 text-md">{staff.name}</h3>
-                          <p className="text-[14px]  text-slate-500 ">{staff.position}</p>
-                        </div>
-                      </div>
-                      <div className={`px-4 py-1 mt-2 rounded-full text-[10px] font-bold border ${statusColor}`}>
-                        {status}
-                      </div>
-                    </div>
-
-                    {/* Bottom info: Check-in & Check-out Times */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        <div className="overflow-hidden w-full relative group">
-                          <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Masuk</p>
-                          <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_in_time)}</p>
-                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
-                            <button onClick={(e) => handleSoftDelete(e, staff.id, 'in')} className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 bg-red-100 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam masuk">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center gap-3">
-                        <div className="overflow-hidden w-full relative group">
-                          <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider truncate">Waktu Keluar</p>
-                          <p className="text-md font-semibold text-slate-700 truncate">{formatTime(att?.check_out_time)}</p>
-                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
-                            <button onClick={(e) => handleSoftDelete(e, staff.id, 'out')} className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 bg-red-100 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200" title="Hapus jam pulang">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              } else {
-                // Summary View for Week / Month
-                const sum = { HADIR: 0, IZIN: 0, SAKIT: 0 }
-                staff.attendances?.forEach(att => {
-                  if (att.status === 'HADIR') sum.HADIR++
-                  else if (att.status === 'IZIN') sum.IZIN++
-                  else if (att.status === 'SAKIT') sum.SAKIT++
-                })
-
-                if (viewMode === 'list') {
-                  return (
-                    <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:border-slate-300">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner flex-shrink-0 overflow-hidden">
-                          {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-slate-800 text-sm line-clamp-1">{staff.name}</h3>
-                          <p className="text-[12px] text-slate-500 line-clamp-1">{staff.position}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="bg-emerald-50 rounded-lg px-3 py-1.5 flex items-center justify-between md:justify-center gap-2 border border-emerald-100 flex-1 md:flex-initial">
-                          <p className="text-[10px] font-bold text-emerald-600 uppercase">Hadir</p>
-                          <p className="text-sm font-black text-emerald-700">{sum.HADIR}</p>
-                        </div>
-                        <div className="bg-blue-50 rounded-lg px-3 py-1.5 flex items-center justify-between md:justify-center gap-2 border border-blue-100 flex-1 md:flex-initial">
-                          <p className="text-[10px] font-bold text-blue-600 uppercase">Izin</p>
-                          <p className="text-sm font-black text-blue-700">{sum.IZIN}</p>
-                        </div>
-                        <div className="bg-orange-50 rounded-lg px-3 py-1.5 flex items-center justify-between md:justify-center gap-2 border border-orange-100 flex-1 md:flex-initial">
-                          <p className="text-[10px] font-bold text-orange-600 uppercase">Sakit</p>
-                          <p className="text-sm font-black text-orange-700">{sum.SAKIT}</p>
-                        </div>
-                      </div>
-                    </Link>
-                  )
-                }
-
-                return (
-                  <Link key={staff.id} href={`/guru/${staff.id}`} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col gap-5 cursor-pointer hover:border-slate-300">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 shadow-inner overflow-hidden">
-                        {staff.image ? <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" /> : getInitials(staff.name)}
+                  <Link 
+                    key={staff.id} 
+                    href={`/guru/${staff.id}`} 
+                    className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-slate-200/80 hover:shadow-md hover:border-blue-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer font-sans"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 shadow-2xs shrink-0 overflow-hidden border border-slate-200">
+                        {staff.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{getInitials(staff.name)}</span>
+                        )}
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">{staff.name}</h3>
-                        <p className="text-[11px] font-medium text-slate-500 mt-0.5">{staff.position}</p>
+                        <h3 className="font-sans font-bold text-slate-900 text-base leading-snug hover:text-blue-600 transition">
+                          {staff.name}
+                        </h3>
+                        <p className="font-sans text-xs sm:text-sm text-slate-500 font-medium">
+                          {staff.position}
+                        </p>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-emerald-50 rounded-xl p-2 text-center border border-emerald-100">
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase">Hadir</p>
-                        <p className="text-lg font-black text-emerald-700">{sum.HADIR}</p>
+                    <div className="flex items-center gap-4 sm:gap-8 justify-between sm:justify-end">
+                      <div className="flex flex-col items-start sm:items-end relative group pr-4">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Masuk</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-sans text-sm sm:text-base font-bold text-slate-800">
+                            {formatTime(att?.check_in_time)}
+                          </span>
+                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
+                            <button 
+                              onClick={(e) => handleSoftDelete(e, staff.id, 'in')} 
+                              className="p-1 bg-rose-50 text-rose-600 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
+                              title="Hapus jam masuk"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="bg-blue-50 rounded-xl p-2 text-center border border-blue-100">
-                        <p className="text-[10px] font-bold text-blue-600 uppercase">Izin</p>
-                        <p className="text-lg font-black text-blue-700">{sum.IZIN}</p>
+
+                      <div className="flex flex-col items-start sm:items-end relative group pr-4">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Keluar</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-sans text-sm sm:text-base font-bold text-slate-800">
+                            {formatTime(att?.check_out_time)}
+                          </span>
+                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
+                            <button 
+                              onClick={(e) => handleSoftDelete(e, staff.id, 'out')} 
+                              className="p-1 bg-rose-50 text-rose-600 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
+                              title="Hapus jam pulang"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="bg-orange-50 rounded-xl p-2 text-center border border-orange-100">
-                        <p className="text-[10px] font-bold text-orange-600 uppercase">Sakit</p>
-                        <p className="text-lg font-black text-orange-700">{sum.SAKIT}</p>
+
+                      <div className={`px-3 py-1 rounded-full text-xs font-bold border ${statusColor} text-center shrink-0`}>
+                        {status}
                       </div>
                     </div>
                   </Link>
                 )
               }
-            })
-          )}
-        </div>
+
+              return (
+                <Link 
+                  key={staff.id} 
+                  href={`/guru/${staff.id}`} 
+                  className="bg-white rounded-3xl p-5 shadow-2xs border border-slate-200/80 hover:shadow-md hover:border-blue-300 transition-all flex flex-col gap-4 cursor-pointer font-sans"
+                >
+                  {/* Top info: Avatar + Name + Status */}
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 shadow-2xs shrink-0 overflow-hidden border border-slate-200">
+                        {staff.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{getInitials(staff.name)}</span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-sans font-bold text-slate-900 text-base leading-snug hover:text-blue-600 transition">
+                          {staff.name}
+                        </h3>
+                        <p className="font-sans text-xs sm:text-sm text-slate-500 font-medium">
+                          {staff.position}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-bold border ${statusColor} shrink-0`}>
+                      {status}
+                    </div>
+                  </div>
+
+                  {/* Bottom info: Check-in & Check-out Times */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100 flex flex-col justify-center relative group">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Waktu Masuk</span>
+                      <span className="font-sans text-sm sm:text-base font-bold text-slate-800 mt-0.5">
+                        {formatTime(att?.check_in_time)}
+                      </span>
+                      {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
+                        <button 
+                          onClick={(e) => handleSoftDelete(e, staff.id, 'in')} 
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
+                          title="Hapus jam masuk"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-100 flex flex-col justify-center relative group">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Waktu Keluar</span>
+                      <span className="font-sans text-sm sm:text-base font-bold text-slate-800 mt-0.5">
+                        {formatTime(att?.check_out_time)}
+                      </span>
+                      {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
+                        <button 
+                          onClick={(e) => handleSoftDelete(e, staff.id, 'out')} 
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
+                          title="Hapus jam pulang"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              )
+            } else {
+              // Summary View for Week / Month
+              const sum = { HADIR: 0, IZIN: 0, SAKIT: 0 }
+              staff.attendances?.forEach(att => {
+                if (att.status === 'HADIR' || att.status === 'TERLAMBAT') sum.HADIR++
+                else if (att.status === 'IZIN') sum.IZIN++
+                else if (att.status === 'SAKIT') sum.SAKIT++
+              })
+
+              if (viewMode === 'list') {
+                return (
+                  <Link 
+                    key={staff.id} 
+                    href={`/guru/${staff.id}`} 
+                    className="bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-slate-200/80 hover:shadow-md hover:border-blue-300 transition flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer font-sans"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 shadow-2xs shrink-0 overflow-hidden border border-slate-200">
+                        {staff.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{getInitials(staff.name)}</span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-sans font-bold text-slate-900 text-base leading-snug hover:text-blue-600 transition">
+                          {staff.name}
+                        </h3>
+                        <p className="font-sans text-xs sm:text-sm text-slate-500 font-medium">{staff.position}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 w-full md:w-auto font-sans">
+                      <div className="bg-emerald-50 rounded-2xl px-4 py-2 flex items-center justify-between md:justify-center gap-2.5 border border-emerald-100 flex-1 md:flex-initial">
+                        <span className="text-xs font-bold text-emerald-700 uppercase">Hadir</span>
+                        <span className="text-base font-extrabold text-emerald-800">{sum.HADIR}</span>
+                      </div>
+                      <div className="bg-blue-50 rounded-2xl px-4 py-2 flex items-center justify-between md:justify-center gap-2.5 border border-blue-100 flex-1 md:flex-initial">
+                        <span className="text-xs font-bold text-blue-700 uppercase">Izin</span>
+                        <span className="text-base font-extrabold text-blue-800">{sum.IZIN}</span>
+                      </div>
+                      <div className="bg-orange-50 rounded-2xl px-4 py-2 flex items-center justify-between md:justify-center gap-2.5 border border-orange-100 flex-1 md:flex-initial">
+                        <span className="text-xs font-bold text-orange-700 uppercase">Sakit</span>
+                        <span className="text-base font-extrabold text-orange-800">{sum.SAKIT}</span>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              }
+
+              return (
+                <Link 
+                  key={staff.id} 
+                  href={`/guru/${staff.id}`} 
+                  className="bg-white rounded-3xl p-5 shadow-2xs border border-slate-200/80 hover:shadow-md hover:border-blue-300 transition flex flex-col gap-4 cursor-pointer font-sans"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 shadow-2xs shrink-0 overflow-hidden border border-slate-200">
+                      {staff.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={staff.image} alt={staff.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{getInitials(staff.name)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-sans font-bold text-slate-900 text-base leading-snug hover:text-blue-600 transition">
+                        {staff.name}
+                      </h3>
+                      <p className="font-sans text-xs sm:text-sm text-slate-500 font-medium">{staff.position}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2.5 font-sans">
+                    <div className="bg-emerald-50 rounded-2xl p-2.5 text-center border border-emerald-100">
+                      <span className="text-[11px] font-bold text-emerald-700 uppercase block">Hadir</span>
+                      <span className="text-lg font-extrabold text-emerald-800 mt-0.5 block">{sum.HADIR}</span>
+                    </div>
+                    <div className="bg-blue-50 rounded-2xl p-2.5 text-center border border-blue-100">
+                      <span className="text-[11px] font-bold text-blue-700 uppercase block">Izin</span>
+                      <span className="text-lg font-extrabold text-blue-800 mt-0.5 block">{sum.IZIN}</span>
+                    </div>
+                    <div className="bg-orange-50 rounded-2xl p-2.5 text-center border border-orange-100">
+                      <span className="text-[11px] font-bold text-orange-700 uppercase block">Sakit</span>
+                      <span className="text-lg font-extrabold text-orange-800 mt-0.5 block">{sum.SAKIT}</span>
+                    </div>
+                  </div>
+                </Link>
+              )
+            }
+          })
+        )}
       </div>
 
       {/* RIGHT SLIDE-OVER - Realtime Log */}
@@ -620,43 +707,43 @@ export default function AbsensiGuruPage() {
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 transition-opacity"
             onClick={() => setShowLog(false)}
           />
           {/* Drawer */}
-          <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-slate-900 shadow-2xl z-50 flex flex-col transform transition-transform border-l border-slate-800">
+          <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-slate-900 shadow-2xl z-50 flex flex-col transform transition-transform border-l border-slate-800 font-sans">
             <div className="flex items-center justify-between p-6 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Activity className="text-btn-secondary" size={20} />
-                <h2 className="text-lg font-bold text-white">Live Activity Log</h2>
+              <div className="flex items-center gap-2.5">
+                <Activity className="text-amber-400" size={20} />
+                <h2 className="font-sans text-lg font-bold text-white">Live Activity Log</h2>
               </div>
               <button 
                 onClick={() => setShowLog(false)}
-                className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+                className="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-3.5 custom-scrollbar">
               {logs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 opacity-50">
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 opacity-50 py-16">
                   <Fingerprint className="text-slate-500" size={32} />
-                  <p className="text-slate-400 text-sm">Menunggu aktivitas scan...</p>
+                  <p className="text-slate-400 text-xs sm:text-sm">Menunggu aktivitas scan...</p>
                 </div>
               ) : (
                 logs.map((log) => (
-                  <div key={log.id} className="flex gap-3 text-sm">
+                  <div key={log.id} className="flex gap-3 text-xs sm:text-sm bg-slate-800/60 p-3 rounded-2xl border border-slate-800">
                     <div className="flex-shrink-0 mt-0.5">
                       {log.type === 'success' && <CheckCircle2 size={16} className="text-emerald-400" />}
-                      {log.type === 'error' && <XCircle size={16} className="text-red-400" />}
+                      {log.type === 'error' && <XCircle size={16} className="text-rose-400" />}
                       {log.type === 'info' && <Clock size={16} className="text-blue-400" />}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-500 font-mono font-medium mb-0.5">{log.time}</span>
-                      <span className={`font-medium leading-snug ${
-                        log.type === 'success' ? 'text-emerald-50' : 
-                        log.type === 'error' ? 'text-red-200' : 'text-blue-50'
+                      <span className="text-[11px] text-slate-400 font-mono font-medium mb-0.5">{log.time}</span>
+                      <span className={`font-semibold leading-snug ${
+                        log.type === 'success' ? 'text-emerald-300' : 
+                        log.type === 'error' ? 'text-rose-300' : 'text-blue-300'
                       }`}>
                         {log.message}
                       </span>
@@ -669,8 +756,6 @@ export default function AbsensiGuruPage() {
         </>
       )}
 
-
     </div>
   )
 }
-

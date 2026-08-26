@@ -14,7 +14,7 @@ export default function CtaBanner() {
           {/* Subtle Background Classroom Texture */}
           <div className="absolute inset-0 z-0 opacity-15 mix-blend-overlay pointer-events-none">
             <Image
-              src="/images/classroom_view.png"
+              src="/blue.jpg"
               alt="Digitalisasi Madrasah"
               fill
               className="object-cover"
@@ -55,7 +55,7 @@ export default function CtaBanner() {
               </div>
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-white text-xs font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                <span>Transparansi Tabungan</span>
+                <span>Transparansi Keuangan Siswa</span>
               </div>
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-white text-xs font-semibold">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-300" />

@@ -90,7 +90,7 @@ export default function StudentDetailPage() {
   const sppPayments = student.spp_invoices || []
 
   return (
-    <div className="space-y-6">
+    <div className="font-sans space-y-6 sm:space-y-7 w-full pb-16">
       <div className="flex items-center gap-4">
         <Link 
           href="/students"

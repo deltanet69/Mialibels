@@ -93,7 +93,7 @@ export default function DetailGuruPage() {
     .slice(0, 5)
 
   return (
-    <div className="w-full space-y-6">
+    <div className="font-sans w-full space-y-6 sm:space-y-7 pb-16">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Link 

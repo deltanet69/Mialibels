@@ -51,22 +51,22 @@ export default function AboutSection() {
             {/* Main Classroom Image */}
             <div className="relative w-full aspect-[16/10] rounded-[2rem] overflow-hidden shadow-xl border-4 border-white group">
               <Image
-                src="/images/classroom_view.png"
+                src="/mialibels9.jpg"
                 alt="Ruang Kelas MI Attaqwa 15"
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-5 right-5 text-white">
-                <span className="font-headline font-bold text-lg block">Fasilitas Nyaman & Representatif</span>
+                <span className="font-headline font-bold text-lg block">MI Attaqwa 15 Babelan</span>
                 <span className="font-body text-xs text-slate-200">Kapasitas ideal & lingkungan belajar ramah anak</span>
               </div>
             </div>
 
             {/* Overlapping Secondary Image with Floating Stat Badge */}
-            <div className="relative w-full max-w-[480px] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-xl border-4 border-white self-center lg:-mt-14 z-10 group">
+            <div className="relative w-full max-w-[480px] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-xl border-4 border-white self-center lg:-mt-10 z-10 group">
               <Image
-                src="/images/school_building.png"
+                src="/mialibels8.jpg"
                 alt="Gedung MI Attaqwa 15"
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-105"

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles } from 'lucide-react'
+import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles, Users, X } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { BulkPhotoUpload } from '@/components/portal/students/BulkPhotoUpload'
 import { StudentForm } from '@/components/portal/students/StudentForm'
@@ -11,15 +11,15 @@ import Link from 'next/link'
 function SkeletonRow() {
   return (
     <tr className="animate-pulse border-b border-slate-100">
-      <td className="py-4 pr-4 pl-6"><div className="h-4 bg-slate-100 rounded-lg w-20" /></td>
-      <td className="py-4 pr-4"><div className="h-4 bg-slate-100 rounded-lg w-36" /></td>
-      <td className="py-4 pr-4"><div className="h-4 bg-slate-100 rounded-lg w-12" /></td>
+      <td className="py-4 pr-4 pl-6"><div className="h-4.5 bg-slate-100 rounded-lg w-20" /></td>
+      <td className="py-4 pr-4"><div className="h-4.5 bg-slate-100 rounded-lg w-36" /></td>
+      <td className="py-4 pr-4"><div className="h-4.5 bg-slate-100 rounded-lg w-12" /></td>
       <td className="py-4 pr-4">
-        <div className="h-4 bg-slate-100 rounded-lg w-28 mb-1" />
-        <div className="h-3 bg-slate-100 rounded-lg w-20" />
+        <div className="h-4.5 bg-slate-100 rounded-lg w-28 mb-1" />
+        <div className="h-3.5 bg-slate-100 rounded-lg w-20" />
       </td>
-      <td className="py-4 pr-4"><div className="h-5 bg-slate-100 rounded-full w-14" /></td>
-      <td className="py-4 pr-6 text-right"><div className="h-7 bg-slate-100 rounded-xl w-20 ml-auto" /></td>
+      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-16" /></td>
+      <td className="py-4 pr-6 text-right"><div className="h-8 bg-slate-100 rounded-xl w-20 ml-auto" /></td>
     </tr>
   )
 }
@@ -179,49 +179,50 @@ export default function StudentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="font-sans space-y-6 sm:space-y-7 w-full pb-16">
+      
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 backdrop-blur-md p-6 sm:p-7 rounded-[2rem] border border-slate-200/70 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 font-body text-xs font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span>Master Data Siswa</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2.5">
+            <Users size={13} />
+            <span>Master Data Akademik</span>
           </div>
-          <h1 className="font-headline font-black text-2xl sm:text-3xl text-secondary tracking-tight">
+          <h1 className="font-sans font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
             Data Seluruh Siswa
           </h1>
-          <p className="font-body text-xs sm:text-sm text-slate-500 mt-0.5">
-            Kelola profil siswa, NISN, kelas, dan akun akses wali murid.
+          <p className="font-sans text-xs sm:text-sm text-slate-500 mt-1">
+            Kelola data profil siswa, NISN, kelas, dan akun akses wali murid madrasah.
           </p>
         </div>
         {canEdit && (
           <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
             <button 
               onClick={() => setShowGenerateModal(true)}
-              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200/90 text-indigo-700 px-4 py-2.5 rounded-full hover:bg-indigo-100 transition text-xs font-bold shadow-2xs"
+              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200/90 text-indigo-700 px-4 py-2.5 rounded-2xl hover:bg-indigo-100 transition text-xs font-bold shadow-2xs cursor-pointer"
             >
               <Key size={15} />
               <span>Akses Orang Tua</span>
             </button>
             <button 
               onClick={() => setShowImport(true)}
-              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200/90 text-slate-700 px-4 py-2.5 rounded-full hover:bg-slate-50 hover:border-blue-200 transition text-xs font-bold shadow-2xs"
+              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition text-xs font-bold shadow-2xs cursor-pointer"
             >
               <UploadCloud size={15} />
               <span>Import CSV</span>
             </button>
             <button 
               onClick={() => setShowPhotoUpload(true)}
-              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200/90 text-slate-700 px-4 py-2.5 rounded-full hover:bg-slate-50 hover:border-blue-200 transition text-xs font-bold shadow-2xs"
+              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition text-xs font-bold shadow-2xs cursor-pointer"
             >
               <UploadCloud size={15} />
               <span>Upload Foto</span>
             </button>
             <button 
               onClick={() => { setEditingStudent(null); setShowForm(true); }}
-              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-full hover:brightness-105 transition text-xs font-bold shadow-sm shadow-blue-900/15 cursor-pointer"
+              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl transition text-xs font-bold shadow-md shadow-blue-600/20 cursor-pointer"
             >
-              <Plus size={16} />
+              <Plus size={16} className="stroke-[2.5]" />
               <span>Tambah Siswa</span>
             </button>
           </div>
@@ -230,35 +231,47 @@ export default function StudentsPage() {
 
       {/* Result notification */}
       {regenerateResult && (
-        <div className={`px-5 py-4 rounded-2xl text-xs font-semibold flex items-start justify-between gap-4 border ${
+        <div className={`px-5 py-4 rounded-2xl text-xs sm:text-sm font-semibold flex items-start justify-between gap-4 border ${
           regenerateResult.startsWith('✅') 
             ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
             : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
           <span>{regenerateResult}</span>
-          <button onClick={() => setRegenerateResult(null)} className="shrink-0 font-bold opacity-60 hover:opacity-100">✕</button>
+          <button onClick={() => setRegenerateResult(null)} className="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">
+            <X size={16} />
+          </button>
         </div>
       )}
 
       {/* Main Table Card */}
-      <div className="bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+      <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-sm border border-slate-200/80 space-y-6">
+        
+        {/* Search & Filter Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
             <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input 
                 type="text" 
                 placeholder="Cari nama, NISN, atau kelas..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-slate-50/80 border border-slate-200/90 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition text-xs font-medium text-slate-800 outline-none"
+                className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition text-xs sm:text-sm font-medium text-slate-800 outline-none"
               />
+              {search && (
+                <button 
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
             
             <select
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
-              className="w-full sm:w-auto px-4 py-2.5 bg-slate-50/80 border border-slate-200/90 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition text-xs font-medium text-slate-700 outline-none"
+              className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer"
             >
               <option value="all">Semua Kelas</option>
               {classes.map((c: any) => (
@@ -267,7 +280,7 @@ export default function StudentsPage() {
             </select>
 
             {!loading && (
-              <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 whitespace-nowrap shrink-0 ml-auto sm:ml-0">
+              <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 whitespace-nowrap shrink-0 ml-auto sm:ml-0">
                 {filteredStudents.length} Siswa Ditemukan
               </span>
             )}
@@ -276,65 +289,74 @@ export default function StudentsPage() {
 
         {/* Desktop Table Layout */}
         <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[650px]">
+          <table className="w-full text-left border-collapse min-w-[720px]">
             <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                <th className="py-3.5 pr-4 pl-6">NISN</th>
-                <th className="py-3.5 pr-4">Nama Lengkap</th>
-                <th className="py-3.5 pr-4">Kelas</th>
-                <th className="py-3.5 pr-4">Wali Murid</th>
-                <th className="py-3.5 pr-4">Status</th>
-                <th className="py-3.5 pr-6 text-right">Aksi</th>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="py-4 pr-4 pl-5">NISN</th>
+                <th className="py-4 pr-4">Nama Lengkap Siswa</th>
+                <th className="py-4 pr-4">Kelas</th>
+                <th className="py-4 pr-4">Wali Murid</th>
+                <th className="py-4 pr-4">Status</th>
+                <th className="py-4 pr-5 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 font-sans">
               {loading ? (
-                Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
+                Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : paginatedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-400 text-xs">
+                  <td colSpan={6} className="text-center py-12 text-slate-400 text-xs sm:text-sm">
                     {search || classFilter !== 'all' ? `Tidak ada siswa yang sesuai pencarian.` : 'Tidak ada data siswa.'}
                   </td>
                 </tr>
               ) : (
                 paginatedStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="py-3.5 pr-4 pl-6">
-                      <span className="font-headline font-bold text-xs text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                  <tr key={student.id} className="hover:bg-blue-50/30 transition-colors group">
+                    <td className="py-4 pr-4 pl-5">
+                      <span className="font-sans font-semibold text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
                         {student.nisn || '—'}
                       </span>
                     </td>
-                    <td className="py-3.5 pr-4 font-headline font-bold text-xs text-slate-800">
-                      {student.name}
+                    <td className="py-4 pr-4">
+                      <Link 
+                        href={`/students/${student.id}`} 
+                        className="font-sans font-bold text-[14px] sm:text-[15px] text-slate-900 hover:text-blue-600 transition-colors leading-snug"
+                      >
+                        {student.name}
+                      </Link>
                     </td>
-                    <td className="py-3.5 pr-4 text-xs font-semibold text-slate-600">
-                      <span className="bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-700">
-                        {student.class}
+                    <td className="py-4 pr-4">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        Kelas {student.class}
                       </span>
                     </td>
-                    <td className="py-3.5 pr-4">
-                      <div className="text-xs font-semibold text-slate-800">{student.parent_name || '—'}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">{student.parent_phone || '—'}</div>
+                    <td className="py-4 pr-4">
+                      <div className="font-sans text-xs sm:text-sm font-semibold text-slate-800">
+                        {student.parent_name || '—'}
+                      </div>
+                      <div className="font-sans text-xs text-slate-400 mt-0.5">
+                        {student.parent_phone || '—'}
+                      </div>
                     </td>
-                    <td className="py-3.5 pr-4">
+                    <td className="py-4 pr-4">
                       {student.is_active ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                           <span>Aktif</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                           <span>Nonaktif</span>
                         </span>
                       )}
                     </td>
-                    <td className="py-3.5 pr-6 text-right">
-                      <div className="flex items-center justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <td className="py-4 pr-5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <Link 
                           href={`/students/${student.id}`}
-                          className="p-1.5 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition"
-                          title="Detail Siswa"
+                          className="p-2 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition"
+                          title="Detail Profil Siswa"
                         >
                           <Eye size={16} />
                         </Link>
@@ -342,15 +364,15 @@ export default function StudentsPage() {
                           <>
                             <button 
                               onClick={() => { setEditingStudent(student); setShowForm(true); }}
-                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition"
-                              title="Edit"
+                              className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer"
+                              title="Edit Siswa"
                             >
                               <Edit3 size={16} />
                             </button>
                             <button 
                               onClick={() => handleDelete(student.id, student.name)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
-                              title="Hapus"
+                              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                              title="Hapus Siswa"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -369,13 +391,9 @@ export default function StudentsPage() {
         <div className="block sm:hidden space-y-3.5">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm animate-pulse">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-slate-100 rounded w-32" />
-                    <div className="h-3 bg-slate-100 rounded w-24" />
-                  </div>
-                </div>
+              <div key={i} className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm animate-pulse space-y-2">
+                <div className="h-4.5 bg-slate-100 rounded w-32" />
+                <div className="h-3.5 bg-slate-100 rounded w-24" />
               </div>
             ))
           ) : paginatedStudents.length === 0 ? (
@@ -384,35 +402,36 @@ export default function StudentsPage() {
             </div>
           ) : (
             paginatedStudents.map((student) => (
-              <div key={student.id} className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-2xs flex flex-col gap-3 relative">
+              <div key={student.id} className="bg-white border border-slate-200/80 p-4.5 rounded-2xl shadow-2xs flex flex-col gap-3 relative font-sans">
                 <div className="flex justify-between items-start">
                   <div>
-                    <Link href={`/students/${student.id}`} className="font-headline font-bold text-slate-800 text-sm hover:text-blue-700 transition block mb-0.5">
+                    <Link href={`/students/${student.id}`} className="font-sans font-bold text-slate-900 text-base hover:text-blue-700 transition block mb-1">
                       {student.name}
                     </Link>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md border border-blue-100">
+                      <span className="text-xs font-bold bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-lg border border-blue-100">
                         Kelas {student.class}
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">NISN: {student.nisn || '—'}</span>
+                      <span className="text-xs text-slate-500 font-medium">NISN: {student.nisn || '—'}</span>
                     </div>
                   </div>
                   {student.is_active ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Aktif</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Aktif</span>
                   ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">Nonaktif</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">Nonaktif</span>
                   )}
                 </div>
                 
                 <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Wali Murid</span>
-                    <span className="font-semibold text-slate-700">{student.parent_name || '—'}</span>
+                    <span className="text-slate-400 block text-xs font-medium">Wali Murid</span>
+                    <span className="font-semibold text-slate-800 text-xs sm:text-sm">{student.parent_name || '—'}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Link 
                       href={`/students/${student.id}`}
                       className="p-2 text-blue-700 bg-blue-50 rounded-xl"
+                      title="Lihat Detail"
                     >
                       <Eye size={15} />
                     </Link>
@@ -420,13 +439,15 @@ export default function StudentsPage() {
                       <>
                         <button 
                           onClick={() => { setEditingStudent(student); setShowForm(true); }}
-                          className="p-2 text-amber-700 bg-amber-50 rounded-xl"
+                          className="p-2 text-amber-700 bg-amber-50 rounded-xl cursor-pointer"
+                          title="Edit"
                         >
                           <Edit3 size={15} />
                         </button>
                         <button 
                           onClick={() => handleDelete(student.id, student.name)}
-                          className="p-2 text-rose-700 bg-rose-50 rounded-xl"
+                          className="p-2 text-rose-700 bg-rose-50 rounded-xl cursor-pointer"
+                          title="Hapus"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -447,7 +468,7 @@ export default function StudentsPage() {
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-slate-700 font-bold"
+                className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-slate-700 font-bold cursor-pointer"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -461,7 +482,7 @@ export default function StudentsPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/90 rounded-xl hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/90 rounded-xl hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 Sebelumnya
               </button>
@@ -479,7 +500,7 @@ export default function StudentsPage() {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-xl transition ${
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-xl transition cursor-pointer ${
                           currentPage === page 
                             ? 'bg-blue-600 text-white shadow-sm' 
                             : 'text-slate-600 hover:bg-slate-100'
@@ -501,7 +522,7 @@ export default function StudentsPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/90 rounded-xl hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/90 rounded-xl hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 Selanjutnya
               </button>
@@ -534,13 +555,13 @@ export default function StudentsPage() {
 
       {/* Modal Generate Akses */}
       {showGenerateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-[2rem] p-7 w-full max-w-md shadow-2xl border border-slate-100">
-            <h3 className="font-headline font-black text-xl text-secondary mb-2 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
+          <div className="bg-white rounded-3xl p-7 w-full max-w-md shadow-2xl border border-slate-100">
+            <h3 className="font-sans font-bold text-xl text-slate-900 mb-2 flex items-center gap-2">
               <Key className="text-indigo-600 w-5 h-5" />
               <span>Generate Akses Orang Tua</span>
             </h3>
-            <p className="font-body text-xs text-slate-500 mb-6 leading-relaxed">
+            <p className="font-sans text-xs sm:text-sm text-slate-500 mb-6 leading-relaxed">
               Sistem akan membuat password unik secara acak dan mengunduh file CSV yang berisi data akses untuk dibagikan ke orang tua.
             </p>
             
@@ -549,7 +570,7 @@ export default function StudentsPage() {
               <select
                 value={generateTarget}
                 onChange={(e) => setGenerateTarget(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200/90 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs font-medium text-slate-800 transition outline-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-xs sm:text-sm font-semibold text-slate-800 transition outline-none cursor-pointer"
               >
                 <option value="all">Semua Siswa</option>
                 {classes.map((c: any) => (
@@ -562,14 +583,14 @@ export default function StudentsPage() {
               <button 
                 onClick={() => setShowGenerateModal(false)}
                 disabled={generatingAccess}
-                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-full transition"
+                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-2xl transition cursor-pointer"
               >
                 Batal
               </button>
               <button 
                 onClick={handleGenerateAccess}
                 disabled={generatingAccess}
-                className="btn-tactile px-5 py-2.5 bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 rounded-full transition flex items-center gap-2 disabled:opacity-70 shadow-sm shadow-indigo-900/15 cursor-pointer"
+                className="btn-tactile px-5 py-2.5 bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 rounded-2xl transition flex items-center gap-2 disabled:opacity-70 shadow-sm shadow-indigo-900/15 cursor-pointer"
               >
                 {generatingAccess ? (
                   <>

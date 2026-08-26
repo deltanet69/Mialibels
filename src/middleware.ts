@@ -11,6 +11,7 @@ const BASE_DOMAIN    = 'miattaqwa15.sch.id';
 const ADMIN_SUB      = 'smart';   // smart.miattaqwa15.sch.id
 const PARENT_SUB     = 'parent';  // parent.miattaqwa15.sch.id
 const ABSEN_SUB      = 'absen';   // absen.miattaqwa15.sch.id
+const PPDB_SUB       = 'ppdb';    // ppdb.miattaqwa15.sch.id
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route Groups
@@ -25,6 +26,8 @@ const PUBLIC_PATHS: string[] = [
   '/tentang',
   '/prestasi',
   '/kontak',
+  '/ppdb',
+  '/ppdb-app',
   '/parent/login',
   '/parent/change-password',
 ];
@@ -41,12 +44,18 @@ const PUBLIC_API_PREFIXES: string[] = [
   '/api/banners',
   '/api/testimonials',
   '/api/staffs',         // public staff list for frontend
+  '/api/ppdb/settings',
+  '/api/ppdb/register',
+  '/api/ppdb/upload',
+  '/api/ppdb/status',
+  '/api/ppdb/documents',
 ];
 
 /** Admin portal pages — require valid admin_session */
 const ADMIN_PREFIXES: string[] = [
   '/dashboard',
   '/students',
+  '/academic',
   '/classroom',
   '/guru',
   '/absensi-guru',
@@ -109,12 +118,13 @@ async function verifyJWT(token: string): Promise<{ payload: any } | null> {
   }
 }
 
-/** Returns 'admin', 'parent', or null based on the Host header */
-function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | null {
+/** Returns 'admin', 'parent', 'absen', 'ppdb' or null based on the Host header */
+function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'ppdb' | null {
   const hostname = (req.headers.get('host') ?? '').split(':')[0];
   if (hostname === `${ADMIN_SUB}.${BASE_DOMAIN}` || hostname === `${ADMIN_SUB}.localhost`) return 'admin';
   if (hostname === `${PARENT_SUB}.${BASE_DOMAIN}` || hostname === `${PARENT_SUB}.localhost`) return 'parent';
   if (hostname === `${ABSEN_SUB}.${BASE_DOMAIN}` || hostname === `${ABSEN_SUB}.localhost`) return 'absen';
+  if (hostname === `${PPDB_SUB}.${BASE_DOMAIN}` || hostname === `${PPDB_SUB}.localhost`) return 'ppdb';
   return null;
 }
 
@@ -136,6 +146,17 @@ export async function middleware(request: NextRequest) {
   }
 
   const subdomain = getSubdomain(request);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PPDB SUBDOMAIN — ppdb.miattaqwa15.sch.id
+  // ══════════════════════════════════════════════════════════════════════════
+  if (subdomain === 'ppdb') {
+    if (pathname === '/') {
+      return NextResponse.rewrite(new URL('/ppdb-app', request.url));
+    }
+    // Allow public API and static assets to pass through
+    return NextResponse.next();
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // ABSEN SUBDOMAIN — absen.miattaqwa15.sch.id

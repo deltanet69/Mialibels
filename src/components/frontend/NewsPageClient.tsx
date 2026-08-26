@@ -242,7 +242,7 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
 
       {/* Hero */}
       <AnimatedSection direction="none" delay={0.1}>
-        <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden flex flex-col justify-center min-h-[420px] bg-mesh-radial">
+        <section className="relative pt-32 pb-16 lg:pt-20 lg:pb-20 overflow-hidden flex flex-col justify-center min-h-[420px] bg-mesh-radial">
           <div className="absolute inset-0 z-0">
             <Image src="/images/student_activity.png" alt="Header Background Berita" fill priority className="object-cover opacity-20 object-top" />
           </div>

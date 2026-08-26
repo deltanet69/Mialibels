@@ -14,7 +14,7 @@ export default function AboutPage() {
     <div className="flex flex-col w-full min-h-screen">
       {/* Hero Section */}
       <AnimatedSection direction="none" delay={0.1}>
-        <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[460px] bg-mesh-radial">
+        <section className="relative pt-32 pb-20 lg:pt-30 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[460px] bg-mesh-radial">
           {/* Background Image */}
           <div className="absolute inset-0 z-0 opacity-40">
             <Image
@@ -78,14 +78,14 @@ export default function AboutPage() {
               {/* Right Image */}
               <div className="relative w-full aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white group">
                 <Image
-                  src="/images/classroom_view.png"
+                  src="/mialibels6.jpg"
                   alt="Siswa MI Attaqwa 15"
                   fill
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-transparent" />
                 <div className="absolute bottom-5 left-5 right-5 text-white">
-                  <span className="font-headline font-bold text-lg block drop-shadow-sm">Suasana Belajar Kondusif</span>
+                  <span className="font-headline font-bold text-lg block drop-shadow-sm">MI Attaqwa 15 Babelan</span>
                   <span className="font-body text-xs text-slate-200">Interaktif, Islami, dan Menyenangkan</span>
                 </div>
               </div>
@@ -242,9 +242,9 @@ export default function AboutPage() {
 
                   <ul className="space-y-4">
                     {[
-                      'Akreditasi A (Unggul) dari BAN-SM No. 763/BAN-SM/SK/2019',
+                      'Akreditasi Unggul dari BAN-SM No. 763/BAN-SM/SK/2019',
                       'Madrasah Ibtidaiyah Unggulan tingkat Kabupaten Bekasi',
-                      'Juara Umum Festival Anak Sholeh & Lomba MAPSI Tingkat Kecamatan',
+                      'Juara Umum Festival Anak Sholeh & Lomba MAPSI ',
                       'Partisipasi dan peminat PPDB tertinggi di Kecamatan Babelan'
                     ].map((item, i) => (
                       <li key={i} className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50/70 border border-gray-100">
@@ -275,9 +275,9 @@ export default function AboutPage() {
                     {[
                       'Ruang Kelas Representatif',
                       'Perpustakaan Mini Sekolah',
-                      'Laboratorium Komputer & Digital',
+                      'Lab Komputer & Digital',
                       'Mushola Sekolah',
-                      'Lapangan Olahraga & Upacara',
+                      'Lap Olahraga & Upacara',
                       'Kantin Sehat & Higienis',
                       'Area Bermain Ramah Anak'
                     ].map((item, i) => (

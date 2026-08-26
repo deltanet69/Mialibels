@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+// @ts-ignore
+import ws from 'ws'
 
 // Singleton — satu instance dipakai seluruh aplikasi (server-side)
 // Tidak perlu buat ulang setiap request
@@ -11,6 +13,8 @@ export function getSupabase() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
+        auth: { persistSession: false },
+        realtime: { transport: ws },
         global: {
           fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' })
         }
@@ -27,6 +31,7 @@ export function getAdminSupabase() {
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { 
         auth: { persistSession: false },
+        realtime: { transport: ws },
         global: {
           fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' })
         }

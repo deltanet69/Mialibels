@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import SmoothScrolling from '@/components/providers/SmoothScrolling';
+import AnnouncementPopup from '@/components/frontend/AnnouncementPopup';
 
 export const metadata: Metadata = {
   title: 'MI Attaqwa 15 Babelan | Membangun Generasi Islami',
@@ -21,6 +22,7 @@ export default function FrontendLayout({
           <main className="flex-grow pt-24 pb-12">{children}</main>
           <Footer />
         </SmoothScrolling>
+        <AnnouncementPopup />
       </div>
     </>
   );

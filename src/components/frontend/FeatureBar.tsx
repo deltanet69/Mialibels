@@ -6,8 +6,8 @@ import { Award, Layers, ShieldCheck, Sparkles } from 'lucide-react';
 const features = [
   {
     icon: Award,
-    badge: 'Akreditasi A',
-    title: 'Akreditasi Unggul (A)',
+    badge: 'Akreditasi',
+    title: 'Akreditasi Unggul',
     description: 'Disiplin, agamais, berprestasi, dan teruji secara mutu standar pendidikan nasional BAN-SM.',
     gradient: 'from-teal-500 to-emerald-500',
     lightBg: 'bg-teal-50/80 text-teal-700 border-teal-100',

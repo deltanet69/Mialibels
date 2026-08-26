@@ -29,7 +29,7 @@ export default function AkademikPage() {
       
       {/* Hero Section */}
       <AnimatedSection direction="none" delay={0.1}>
-        <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[460px] bg-mesh-radial">
+        <section className="relative pt-32 pb-20 lg:pt-30 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[460px] bg-mesh-radial">
           {/* Background Image */}
           <div className="absolute inset-0 z-0 opacity-40">
             <Image

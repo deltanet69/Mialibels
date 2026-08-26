@@ -180,6 +180,12 @@ export function SidebarClient({ role, userName }: Props) {
                   AKADEMIK
                 </h4>
                 <div className="flex flex-col gap-1">
+                  <Link href="/academic/ppdb" className={linkClass('/academic/ppdb')} onClick={() => setIsOpen(false)}>
+                    <div className="flex items-center gap-3">
+                      <Sparkles size={18} className="text-amber-500" />
+                      <span>PPDB Baru</span>
+                    </div>
+                  </Link>
                   <Link href="/students" className={linkClass('/students')} onClick={() => setIsOpen(false)}>
                     <div className="flex items-center gap-3">
                       <Users size={18} />

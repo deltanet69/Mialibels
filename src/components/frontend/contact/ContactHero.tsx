@@ -6,7 +6,7 @@ import { Mail, Clock, Sparkles } from 'lucide-react';
 
 export default function ContactHero() {
   return (
-    <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden bg-mesh-radial">
+    <section className="relative pt-32 pb-20 lg:pt-30 lg:pb-28 overflow-hidden bg-mesh-radial">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
