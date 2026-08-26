@@ -8,6 +8,7 @@ export type SessionUser = {
   email: string
   name: string
   role: string
+  staffId?: string
 }
 
 /**
@@ -28,6 +29,7 @@ export async function getSession(): Promise<SessionUser | null> {
       email: payload.email as string,
       name: payload.name as string,
       role: payload.role as string,
+      staffId: payload.staffId as string | undefined,
     }
   } catch {
     return null

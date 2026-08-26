@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
           .from('classroom_schedules')
           .select('*, classroom:classrooms(name)')
           .eq('teacher_id', staffData.id)
-          .order('start_time', { ascending: true });
+          .order('time', { ascending: true });
 
         profileData.schedules = scheduleData || [];
       }

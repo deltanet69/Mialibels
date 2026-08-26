@@ -1,20 +1,10 @@
 import React from 'react';
-import { 
-  UserCircle, 
-  Wallet, 
-  CalendarCheck, 
-  CreditCard,
-  AlertCircle,
-  TrendingUp,
-  CheckCircle2,
-  AlertTriangle,
-  Clock as ClockIcon
-} from 'lucide-react';
-import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { createClient } from '@supabase/supabase-js';
-import { CardDownloader } from '@/components/portal/students/CardDownloader';
+import { ParentDashboardClient } from '@/components/parent/ParentDashboardClient';
+
+export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -26,43 +16,73 @@ function getAdminSupabase() {
   );
 }
 
-// Resolve the actual student UUID from JWT payload — handles stale tokens by falling back to NIS/NISN
-async function resolveStudentId(payload: any): Promise<string | null> {
+// Resolve the actual student UUID and classroom details from JWT payload
+async function resolveStudent(payload: any) {
   const tokenId = payload.sub as string;
   const tokenNis = payload.nis as string | undefined;
   const tokenNisn = payload.nisn as string | undefined;
 
   const supabase = getAdminSupabase();
 
+  let studentData: any = null;
+
   // 1. Try by UUID (fastest path)
-  const { data: byId } = await supabase
-    .from('students')
-    .select('id')
-    .eq('id', tokenId)
-    .maybeSingle();
-  if (byId) return byId.id;
-
-  // 2. Fallback: student_number (NIS internal)
-  if (tokenNis) {
-    const { data: byNis } = await supabase
+  if (tokenId) {
+    const { data } = await supabase
       .from('students')
-      .select('id')
-      .eq('student_number', tokenNis)
+      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone')
+      .eq('id', tokenId)
       .maybeSingle();
-    if (byNis) return byNis.id;
+    studentData = data;
   }
 
-  // 3. Fallback: nisn (NISN national)
-  if (tokenNisn) {
-    const { data: byNisn } = await supabase
+  // 2. Fallback: student_number (NIS)
+  if (!studentData && tokenNis) {
+    const { data } = await supabase
       .from('students')
-      .select('id')
-      .eq('nisn', tokenNisn)
+      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone')
+      .ilike('student_number', tokenNis.trim())
       .maybeSingle();
-    if (byNisn) return byNisn.id;
+    studentData = data;
   }
 
-  return null;
+  // 3. Fallback: nisn (NISN)
+  if (!studentData && tokenNisn) {
+    const { data } = await supabase
+      .from('students')
+      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone')
+      .eq('nisn', tokenNisn.trim())
+      .maybeSingle();
+    studentData = data;
+  }
+
+  if (!studentData) return null;
+
+
+  // Resolve classroom and homeroom teacher accurately
+  let classroom: any = null;
+  if (studentData.class_id) {
+    const { data: cls } = await supabase
+      .from('classrooms')
+      .select('id, name, homeroom_teacher_id, homeroom_teacher:staffs!homeroom_teacher_id(id, name, position, phone, image)')
+      .eq('id', studentData.class_id)
+      .maybeSingle();
+    classroom = cls;
+  }
+
+  if (!classroom && studentData.class) {
+    const { data: cls } = await supabase
+      .from('classrooms')
+      .select('id, name, homeroom_teacher_id, homeroom_teacher:staffs!homeroom_teacher_id(id, name, position, phone, image)')
+      .eq('name', studentData.class)
+      .maybeSingle();
+    classroom = cls;
+  }
+
+  return {
+    ...studentData,
+    classroom
+  };
 }
 
 async function getDashboardData(studentId: string) {
@@ -73,44 +93,86 @@ async function getDashboardData(studentId: string) {
   const month = now.getMonth() + 1;
   const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
   const endOfMonth = new Date(year, month, 0).toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-  const { data: attendance } = await supabase
-    .from('classroom_attendances')
-    .select('id, date, status, reason')
-    .eq('student_id', studentId)
-    .gte('date', startOfMonth)
-    .lte('date', endOfMonth)
-    .order('date', { ascending: false });
+  // Calculate Monday to Friday of current week
+  const curr = new Date();
+  const day = curr.getDay(); // 0=Sun, 1=Mon...
+  const diffToMon = curr.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(curr);
+  monday.setDate(diffToMon);
 
-  const { data: recentAttendance } = await supabase
-    .from('classroom_attendances')
-    .select('id, date, status, reason')
-    .eq('student_id', studentId)
-    .order('date', { ascending: false })
-    .limit(5);
+  const weekDayDates: { dayName: string; dateStr: string; dayNumber: number; isToday: boolean }[] = [];
+  const DAY_NAMES = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
-  const { data: savings } = await supabase
-    .from('tabungan_siswa')
-    .select('balance')
-    .eq('student_id', studentId)
-    .maybeSingle();
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const dStr = d.toISOString().split('T')[0];
+    weekDayDates.push({
+      dayName: DAY_NAMES[i],
+      dateStr: dStr,
+      dayNumber: d.getDate(),
+      isToday: dStr === todayStr
+    });
+  }
 
-  const { data: sppInvoices } = await supabase
-    .from('spp_invoices')
-    .select('id, title, month, year, amount, paid_amount, status, due_date')
-    .eq('student_id', studentId)
-    .order('year', { ascending: false })
-    .order('month', { ascending: false })
-    .limit(3);
+  const mondayStr = weekDayDates[0].dateStr;
+  const fridayStr = weekDayDates[4].dateStr;
 
-  const { data: generalInvoices } = await supabase
-    .from('general_invoices')
-    .select('id, title, total_amount, paid_amount, status, due_date')
-    .eq('student_id', studentId)
-    .in('status', ['UNPAID', 'PARTIAL', 'PENDING_VERIFICATION'])
-    .order('created_at', { ascending: false })
-    .limit(3);
+  const [
+    { data: attendance },
+    { data: recentAttendance },
+    { data: weekAttendance },
+    { data: savings },
+    { data: savingsTransactions },
+    { data: sppInvoices },
+    { data: generalInvoices }
+  ] = await Promise.all([
+    supabase
+      .from('classroom_attendances')
+      .select('id, date, status, reason')
+      .eq('student_id', studentId)
+      .gte('date', startOfMonth)
+      .lte('date', endOfMonth)
+      .order('date', { ascending: false }),
+    supabase
+      .from('classroom_attendances')
+      .select('id, date, status, reason')
+      .eq('student_id', studentId)
+      .order('date', { ascending: false })
+      .limit(5),
+    supabase
+      .from('classroom_attendances')
+      .select('id, date, status, reason')
+      .eq('student_id', studentId)
+      .gte('date', mondayStr)
+      .lte('date', fridayStr),
+    supabase
+      .from('tabungan_siswa')
+      .select('balance')
+      .eq('student_id', studentId)
+      .maybeSingle(),
+    supabase
+      .from('tabungan_transaksi')
+      .select('id, type, amount, balance_after, description, created_at')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('spp_invoices')
+      .select('id, title, month, year, amount, paid_amount, status, due_date')
+      .eq('student_id', studentId)
+      .order('year', { ascending: true })
+      .order('month', { ascending: true }),
+    supabase
+      .from('general_invoices')
+      .select('id, title, items, total_amount, paid_amount, status, due_date, created_at')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false })
+  ]);
 
+  // Attendance summary for month
   const attendanceSummary = { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: attendance?.length || 0 };
   attendance?.forEach((r: any) => {
     const s = (r.status || '').toLowerCase();
@@ -122,289 +184,142 @@ async function getDashboardData(studentId: string) {
 
   const persentaseHadir = attendanceSummary.total > 0
     ? Math.round((attendanceSummary.hadir / attendanceSummary.total) * 100)
-    : 0;
+    : 100;
 
-  const pendingSPP = sppInvoices?.find(
+  // Build week days array with attendance status
+  const weekDays = weekDayDates.map(wd => {
+    const match = weekAttendance?.find((wa: any) => wa.date === wd.dateStr);
+    return {
+      ...wd,
+      status: match ? match.status : null,
+      reason: match ? match.reason : undefined
+    };
+  });
+
+  // Today attendance
+  const todayAttendance = attendance?.find((a: any) => a.date === todayStr) ||
+    weekAttendance?.find((wa: any) => wa.date === todayStr) || null;
+
+  // SPP calculations (chronological order)
+  const allSpp = sppInvoices || [];
+  const unpaidSpps = allSpp.filter(
     (s: any) => s.status === 'UNPAID' || s.status === 'LATE' || s.status === 'PARTIAL'
-  ) || null;
+  );
+  const paidSpps = allSpp.filter((s: any) => s.status === 'PAID');
+  const pendingSPP = unpaidSpps.length > 0 ? unpaidSpps[0] : null;
+  const totalUnpaidSPP = unpaidSpps.reduce((acc, cur: any) => acc + (cur.amount - (cur.paid_amount || 0)), 0);
+  const lastPaidSpp = paidSpps.length > 0 ? paidSpps[paidSpps.length - 1] : null;
+
+  // General Invoices calculations
+  const allGeneral = generalInvoices || [];
+  const unpaidGeneral = allGeneral.filter(
+    (g: any) => g.status === 'UNPAID' || g.status === 'PARTIAL' || g.status === 'PENDING_VERIFICATION'
+  );
+  const totalGeneralAmount = allGeneral.reduce((acc, cur: any) => acc + (cur.total_amount || 0), 0);
+  const totalGeneralPaid = allGeneral.reduce((acc, cur: any) => acc + (cur.paid_amount || 0), 0);
+  const totalUnpaidGeneral = unpaidGeneral.reduce(
+    (acc, cur: any) => acc + ((cur.total_amount || 0) - (cur.paid_amount || 0)), 0
+  );
+
+  // Check exam card requirements (SPP through September is paid)
+  const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
+  const unpaidSeptemberSpp = allSpp.find(inv => {
+    const isTarget = targetMonths.includes(String(inv.month));
+    const isPaid = inv.status === 'PAID';
+    return isTarget && !isPaid;
+  });
+  const sppSeptemberPaid = !unpaidSeptemberSpp;
 
   return {
     attendance: attendanceSummary,
     persentaseHadir,
     recentAttendance: recentAttendance || [],
+    weekDays,
+    todayAttendance,
     balance: savings?.balance || 0,
-    sppInvoices: sppInvoices || [],
+    recentSavingsTransactions: (savingsTransactions || []) as any[],
+    sppInvoices: unpaidSpps.length > 0 ? unpaidSpps.slice(0, 4) : allSpp.slice(0, 4),
+    allSppInvoices: allSpp,
     pendingSPP,
-    generalInvoices: generalInvoices || [],
+    totalUnpaidSPP,
+    unpaidSppCount: unpaidSpps.length,
+    paidSppCount: paidSpps.length,
+    lastPaidSppTitle: lastPaidSpp?.title || null,
+    generalInvoices: allGeneral.slice(0, 5),
+    totalGeneralAmount,
+    totalGeneralPaid,
+    totalUnpaidGeneral,
+    isExamCardReady: sppSeptemberPaid,
+    examCardRequirements: {
+      sppSeptemberPaid,
+      ulumFiftyPercent: true,
+      lksMinimumPaid: true
+    }
   };
 }
 
 export default async function ParentDashboardHome() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get('parent_session')?.value;
-  
-  let studentData = {
-    name: 'Siswa',
-    className: '-',
-    parentName: 'Wali Murid',
-    nis: '',
-    studentId: '',
-  };
 
-  let dashboardData = {
-    attendance: { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: 0 },
-    persentaseHadir: 0,
-    recentAttendance: [] as any[],
-    balance: 0,
-    sppInvoices: [] as any[],
-    pendingSPP: null as any,
-    generalInvoices: [] as any[],
-  };
+  let studentObj: any = null;
 
   if (sessionCookie) {
     try {
       const secret = new TextEncoder().encode(JWT_SECRET);
       const { payload } = await jwtVerify(sessionCookie, secret);
-      studentData = {
-        name: (payload.studentName as string) || 'Siswa',
-        className: (payload.class as string) || '-',
-        parentName: (payload.parentName as string) || 'Wali Murid',
-        nis: (payload.nis as string) || '',
-        studentId: payload.sub as string,
-      };
-      // Resolve actual student ID (handles stale tokens)
-      const resolvedId = await resolveStudentId(payload);
-      if (resolvedId) {
-        studentData.studentId = resolvedId;
-        dashboardData = await getDashboardData(resolvedId);
-      }
-    } catch (e) {
-      // Silent fail — token might be invalid/expired
+      studentObj = await resolveStudent(payload);
+    } catch {
+      // Fallback
     }
   }
 
-  const formatCurrency = (n: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
-
-  const getStatusInfo = (status: string) => {
-    const s = (status || '').toLowerCase();
-    if (s === 'hadir' || s === 'present') return { label: 'Hadir', color: 'bg-emerald-500', textColor: 'text-emerald-700' };
-    if (s === 'sakit' || s === 'sick') return { label: 'Sakit', color: 'bg-amber-400', textColor: 'text-amber-700' };
-    if (s === 'izin' || s === 'permitted') return { label: 'Izin', color: 'bg-blue-400', textColor: 'text-blue-700' };
-    return { label: 'Alpha', color: 'bg-red-500', textColor: 'text-red-700' };
+  const student = {
+    id: studentObj?.id || '',
+    name: studentObj?.name || 'Siswa',
+    className: studentObj?.classroom?.name || studentObj?.class || '-',
+    nisn: studentObj?.nisn || '',
+    studentNumber: studentObj?.student_number || '',
+    parentName: studentObj?.parent_name || 'Wali Murid',
+    parentPhone: studentObj?.parent_phone || '',
+    image: studentObj?.image || undefined,
+    address: studentObj?.address || undefined,
+    homeroomTeacher: studentObj?.classroom?.homeroom_teacher || null
   };
 
-  const getSPPStatusInfo = (status: string) => {
-    if (status === 'PAID') return { label: 'Lunas', color: 'text-emerald-600 bg-emerald-50', icon: CheckCircle2 };
-    if (status === 'UNPAID') return { label: 'Belum Bayar', color: 'text-red-600 bg-red-50', icon: AlertTriangle };
-    if (status === 'LATE') return { label: 'Terlambat', color: 'text-red-700 bg-red-100', icon: AlertCircle };
-    if (status === 'PENDING_VERIFICATION') return { label: 'Verifikasi', color: 'text-blue-600 bg-blue-50', icon: ClockIcon };
-    if (status === 'PARTIAL') return { label: 'Cicilan', color: 'text-amber-600 bg-amber-50', icon: AlertTriangle };
-    return { label: status, color: 'text-slate-600 bg-slate-50', icon: AlertCircle };
-  };
-
-  // Simple date format for current date to match admin real-time clock style (static version for SSR)
-  const today = new Date();
-  const dateString = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(today);
+  const dashboardData = student.id
+    ? await getDashboardData(student.id)
+    : {
+        attendance: { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: 0 },
+        persentaseHadir: 100,
+        recentAttendance: [],
+        weekDays: [],
+        todayAttendance: null,
+        balance: 0,
+        recentSavingsTransactions: [],
+        sppInvoices: [],
+        allSppInvoices: [],
+        pendingSPP: null,
+        totalUnpaidSPP: 0,
+        unpaidSppCount: 0,
+        paidSppCount: 0,
+        lastPaidSppTitle: null,
+        generalInvoices: [],
+        totalGeneralAmount: 0,
+        totalGeneralPaid: 0,
+        totalUnpaidGeneral: 0,
+        isExamCardReady: true,
+        examCardRequirements: {
+          sppSeptemberPaid: true,
+          ulumFiftyPercent: true,
+          lksMinimumPaid: true
+        }
+      };
 
   return (
-    <div className="space-y-6 w-full pb-10">
-      {/* Welcome Message */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-2 font-sans">
-          Halo, {studentData.parentName} <span className="text-2xl"></span>
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Selamat datang di Portal Wali Murid MI Attaqwa 15.
-        </p>
-      </div>
-
-      {/* Top Stats Row (Match Admin DashboardCards structure) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Realtime/Hero Card - Gradient matching Admin */}
-        <div className="lg:col-span-2 bg-gradient-to-r from-blue-500 to-cyan-400 p-6 rounded-2xl shadow-lg shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between min-h-[160px] border border-blue-400/30">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none mix-blend-overlay"></div>
-          <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-white/10 rounded-full blur-2xl -mb-20 pointer-events-none mix-blend-overlay"></div>
-          
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 h-full">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 text-blue-100 mb-2">
-                <UserCircle size={16} />
-                <span className="text-sm font-medium tracking-wider opacity-90">PROFIL SISWA</span>
-              </div>
-              <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-1 font-sans">
-                {studentData.name}
-              </div>
-              <div className="text-blue-100 text-sm flex items-center gap-1.5 opacity-90">
-                Kelas {studentData.className} · NISN {studentData.nis}
-              </div>
-            </div>
-
-            <div className="hidden sm:block w-px h-full bg-white/20"></div>
-
-            <div className="flex-1 w-full flex flex-col gap-4">
-              <div>
-                <div className="flex justify-between items-end mb-1.5">
-                  <span className="text-xs font-medium text-blue-100">Kehadiran Bulan Ini</span>
-                  <span className="text-xs font-bold text-white">{dashboardData.persentaseHadir}%</span>
-                </div>
-                <div className="w-full bg-black/20 rounded-full h-2 overflow-hidden shadow-inner">
-                  <div className="bg-teal-400 h-2 rounded-full shadow-[0_0_10px_rgba(45,212,191,0.6)]" style={{ width: `${dashboardData.persentaseHadir}%` }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Row for Card Download */}
-        <div className="lg:col-span-2 flex items-center justify-between bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex-1 w-full flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">Unduh Kartu Identitas</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Dapatkan Kartu Pelajar dan Kartu Peserta Ujian</p>
-            </div>
-            <div className="w-full md:w-auto">
-              <CardDownloader studentId={studentData.studentId} />
-            </div>
-          </div>
-        </div>
-
-        {/* Tabungan Card */}
-        <Link href="/parent/dashboard/savings" className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:border-blue-300 transition-colors group">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-slate-500 text-sm font-medium mb-1 font-sans">Total Tabungan</h3>
-              <p className="text-2xl font-bold text-slate-800 font-sans">{formatCurrency(dashboardData.balance)}</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100 group-hover:bg-blue-100 transition-colors">
-              <Wallet size={24} />
-            </div>
-          </div>
-          <div className="flex gap-4 border-t border-slate-50 pt-4">
-            <span className="text-md font-semibold text-blue-600 flex items-center gap-1">Lihat Riwayat &rarr;</span>
-          </div>
-        </Link>
-
-        {/* SPP Card */}
-        <Link href="/parent/dashboard/spp" className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:border-amber-300 transition-colors group">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-slate-500 text-sm font-medium mb-1 font-sans">Status SPP</h3>
-              {dashboardData.pendingSPP ? (
-                <div>
-                  <p className="text-xl font-bold text-red-600 font-sans">Ada Tagihan</p>
-                  <p className="text-xs text-slate-500 mt-1 truncate max-w-[120px]">{dashboardData.pendingSPP.title}</p>
-                </div>
-              ) : (
-                <p className="text-xl font-bold text-emerald-600 font-sans">Lunas Semua</p>
-              )}
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm border border-amber-100 group-hover:bg-amber-100 transition-colors">
-              <CreditCard size={24} />
-            </div>
-          </div>
-          <div className="flex gap-4 border-t border-slate-50 pt-4">
-            <span className="text-md font-semibold text-amber-600 flex items-center gap-1">Buka Pembayaran &rarr;</span>
-          </div>
-        </Link>
-
-        {/* Tagihan Umum Card */}
-        <Link href="/parent/dashboard/general" className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:border-purple-300 transition-colors group">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-slate-500 text-sm font-medium mb-1 font-sans">Tagihan Umum</h3>
-              {dashboardData.generalInvoices.length > 0 ? (
-                <div>
-                  <p className="text-xl font-bold text-red-600 font-sans">Ada Tagihan</p>
-                  <p className="text-xs text-slate-500 mt-1 truncate max-w-[120px]">{dashboardData.generalInvoices[0].title}</p>
-                </div>
-              ) : (
-                <p className="text-xl font-bold text-emerald-600 font-sans">Lunas Semua</p>
-              )}
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm border border-purple-100 group-hover:bg-purple-100 transition-colors">
-              <CreditCard size={24} />
-            </div>
-          </div>
-          <div className="flex gap-4 border-t border-slate-50 pt-4">
-            <span className="text-md font-semibold text-purple-600 flex items-center gap-1">Lihat Tagihan &rarr;</span>
-          </div>
-        </Link>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 mt-6">
-        
-        {/* Kehadiran Terkini */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-800 font-sans">Kehadiran Terkini</h3>
-            <Link href="/parent/dashboard/attendance" className="text-md font-bold text-blue-600 hover:text-blue-700">Detail &rarr;</Link>
-          </div>
-          <div className="space-y-4">
-            {dashboardData.recentAttendance.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-md">
-                Belum ada data kehadiran
-              </div>
-            ) : (
-              dashboardData.recentAttendance.map((record: any) => {
-                const statusInfo = getStatusInfo(record.status);
-                return (
-                  <div key={record.id} className="flex items-start gap-4 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
-                    <div className={`w-3 h-3 mt-1.5 rounded-full ${statusInfo.color} shrink-0 shadow-sm`}></div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-slate-800 text-sm">{statusInfo.label}</p>
-                        <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${statusInfo.textColor} bg-opacity-10`}>
-                          {new Date(record.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      {record.reason && (
-                        <p className="text-sm text-slate-500 mt-1 italic">Keterangan: {record.reason}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Tagihan Terbaru */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-800 font-sans">Tagihan Terbaru</h3>
-            <Link href="/parent/dashboard/spp" className="text-md font-bold text-blue-600 hover:text-blue-700">Selengkapnya &rarr;</Link>
-          </div>
-          <div className="space-y-3">
-            {dashboardData.sppInvoices.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">Belum ada tagihan SPP</p>
-            ) : (
-              dashboardData.sppInvoices.slice(0, 4).map((inv: any) => {
-                const sppInfo = getSPPStatusInfo(inv.status);
-                const SppIcon = sppInfo.icon;
-                return (
-                  <div key={inv.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{inv.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Bulan {String(inv.month).padStart(2,'0')}/{inv.year} · <strong>{formatCurrency(inv.amount)}</strong></p>
-                    </div>
-                    <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${sppInfo.color}`}>
-                      <SppIcon size={12} />
-                      <span className="hidden sm:inline">{sppInfo.label}</span>
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <ParentDashboardClient
+      student={student}
+      data={dashboardData}
+    />
   );
 }

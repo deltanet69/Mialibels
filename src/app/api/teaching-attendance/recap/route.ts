@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
@@ -23,9 +23,8 @@ export async function GET(request: NextRequest) {
         schedule:classroom_schedules(
           id, 
           name, 
-          day_of_week, 
-          start_time, 
-          end_time,
+          day, 
+          time,
           classroom:classrooms(name)
         )
       `)

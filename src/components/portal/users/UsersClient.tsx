@@ -14,6 +14,7 @@ type Admin = {
   role: 'superadmin' | 'kepsek' | 'guru' | 'staff' | 'staff_operator'
   is_active: boolean
   created_at: string
+  image?: string | null
 }
 
 type FormData = {
@@ -474,6 +475,8 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
   const [showImportModal, setShowImportModal] = useState(false)
   const [editingUser, setEditingUser] = useState<Admin | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<Admin | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -524,15 +527,21 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
   }
 
   const handleDelete = async (user: Admin) => {
-    if (!confirm(`Yakin ingin menghapus akun "${user.name}"?\n\nAksi ini tidak bisa dibatalkan.`)) return
-    setDeletingId(user.id)
+    setConfirmDeleteUser(user)
+  }
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteUser) return
+    setDeleteError(null)
+    setDeletingId(confirmDeleteUser.id)
     try {
-      const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/users/${confirmDeleteUser.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setUsers(prev => prev.filter(u => u.id !== user.id))
+      setUsers(prev => prev.filter(u => u.id !== confirmDeleteUser.id))
+      setConfirmDeleteUser(null)
     } catch (err: any) {
-      alert(err.message || 'Gagal menghapus user')
+      setDeleteError(err.message || 'Gagal menghapus user')
     } finally {
       setDeletingId(null)
     }
@@ -884,6 +893,46 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
           }}
           onClose={() => setShowImportModal(false)}
         />
+      )}
+
+      {/* Delete Confirm Modal */}
+      {confirmDeleteUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-100">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-4 mx-auto">
+              <AlertTriangle className="w-6 h-6 text-rose-500" />
+            </div>
+            <h3 className="font-bold text-slate-800 text-center text-lg mb-1">Hapus Akun?</h3>
+            <p className="text-sm text-slate-500 text-center mb-1">
+              Akun <span className="font-semibold text-slate-800">{confirmDeleteUser.name}</span> akan dihapus permanen.
+            </p>
+            <p className="text-xs text-rose-500 text-center mb-5 font-medium">Aksi ini tidak bisa dibatalkan.</p>
+
+            {deleteError && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-100 rounded-xl text-xs text-rose-700 font-medium">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setConfirmDeleteUser(null); setDeleteError(null) }}
+                disabled={!!deletingId}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={!!deletingId}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deletingId ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {deletingId ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

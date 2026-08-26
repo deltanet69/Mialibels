@@ -439,10 +439,10 @@ export default function ParentGeneralFinancePage() {
                 <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
                   <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Transfer ke Rekening</p>
                   <div className="flex items-center gap-3 mb-1">
-                    <p className="font-mono font-black text-xl text-purple-900">BSI 7123456789</p>
+                    <p className="font-mono font-black text-xl text-purple-900">BTN 28201500103158</p>
                     <button 
                       onClick={() => {
-                        navigator.clipboard.writeText("7123456789");
+                        navigator.clipboard.writeText("28201500103158");
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
                       }}
@@ -457,7 +457,7 @@ export default function ParentGeneralFinancePage() {
                 <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 text-center">
                   <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">Scan QRIS</p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/qris.jpg" alt="QRIS" className="w-48 h-48 mx-auto rounded-xl shadow-sm border border-slate-200 mb-2 object-cover bg-white" />
+                  <img src="/qr.jpeg" alt="QRIS" className="w-50 h-72 mx-auto rounded-xl shadow-sm border border-slate-200 mb-2 object-cover bg-white" />
                   <p className="text-sm text-slate-600">a.n MI Attaqwa 15</p>
                 </div>
               )}

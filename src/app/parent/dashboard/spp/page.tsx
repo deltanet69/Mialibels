@@ -263,10 +263,10 @@ export default function ParentFinancePage() {
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                 <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">Transfer ke Rekening</p>
                 <div className="flex items-center gap-3 mb-1">
-                  <p className="font-mono font-black text-xl text-blue-900">BSI 7123456789</p>
+                  <p className="font-mono font-black text-xl text-blue-900">BTN 28201500103158</p>
                   <button 
                     onClick={() => {
-                      navigator.clipboard.writeText("7123456789");
+                      navigator.clipboard.writeText("28201500103158");
                       alert("Nomor rekening disalin!");
                     }}
                     className="text-xs font-bold bg-blue-200 text-blue-800 px-2 py-1 rounded hover:bg-blue-300 transition"

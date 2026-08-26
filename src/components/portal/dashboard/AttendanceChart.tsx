@@ -2,11 +2,27 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Calendar, Users, Briefcase, TrendingUp, Sparkles } from 'lucide-react';
+import { Calendar, Users, Briefcase, TrendingUp, Sparkles, CheckCircle2, UserCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
-  const [view, setView] = useState<'siswa' | 'guru'>(guruClassId ? 'siswa' : 'siswa');
+interface AttendanceChartProps {
+  guruClassId?: string;
+  guruClassName?: string;
+  guruStaffId?: string;
+  guruName?: string;
+}
+
+export function AttendanceChart({
+  guruClassId,
+  guruClassName,
+  guruStaffId,
+  guruName
+}: AttendanceChartProps) {
+  // If guruStaffId is provided without guruClassId, lock to 'guru'. If both provided, default to 'guru'
+  const isGuruMode = Boolean(guruStaffId);
+  const isHomeroom = Boolean(guruClassId);
+
+  const [view, setView] = useState<'siswa' | 'guru'>(isGuruMode ? 'guru' : 'siswa');
   const [timeFilter, setTimeFilter] = useState('minggu');
   const [classFilter, setClassFilter] = useState(guruClassId || 'all');
   
@@ -14,16 +30,18 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
 
-  // Fetch unique classes for filter
+  // Fetch unique classes for filter (only needed when in admin mode or selecting classes)
   useEffect(() => {
-    async function fetchClasses() {
-      const { data } = await supabase.from('classrooms').select('id, name').order('name', { ascending: true });
-      if (data) {
-        setClasses((data as any[]).filter((c: any) => c.name && c.name.toLowerCase() !== 'semua kelas'));
+    if (!isGuruMode) {
+      async function fetchClasses() {
+        const { data } = await supabase.from('classrooms').select('id, name').order('name', { ascending: true });
+        if (data) {
+          setClasses((data as any[]).filter((c: any) => c.name && c.name.toLowerCase() !== 'semua kelas'));
+        }
       }
+      fetchClasses();
     }
-    fetchClasses();
-  }, []);
+  }, [isGuruMode]);
 
   // Fetch data when filters change
   useEffect(() => {
@@ -52,7 +70,15 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
         const dateStr = getLocalDateString(startDate);
         const todayStr = getLocalDateString(today);
 
-        const res = await fetch(`/api/dashboard/attendance-chart?view=${view}&classFilter=${classFilter}&startDate=${dateStr}&endDate=${todayStr}`);
+        let url = `/api/dashboard/attendance-chart?view=${view}&startDate=${dateStr}&endDate=${todayStr}`;
+        
+        if (view === 'siswa') {
+          url += `&classFilter=${isHomeroom ? guruClassId : classFilter}`;
+        } else if (view === 'guru' && guruStaffId) {
+          url += `&staffId=${guruStaffId}`;
+        }
+
+        const res = await fetch(url);
         const json = await res.json();
         if (res.ok && json.data) {
           setRawData(json.data);
@@ -67,7 +93,7 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
     }
 
     fetchData();
-  }, [view, timeFilter, classFilter]);
+  }, [view, timeFilter, classFilter, guruStaffId, guruClassId, isHomeroom]);
 
   // Process data for Recharts
   const chartData = useMemo(() => {
@@ -77,6 +103,7 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
 
     rawData.forEach(record => {
       const date = record.date;
+      if (!date) return;
       if (!grouped[date]) {
         grouped[date] = { hadir: 0, izin: 0, sakit: 0, alfa: 0, dateStr: date };
       }
@@ -109,7 +136,7 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
     });
   }, [rawData, timeFilter]);
 
-  // Summary counts for playful badges
+  // Summary counts for badges
   const totals = useMemo(() => {
     return chartData.reduce(
       (acc, cur) => {
@@ -123,42 +150,83 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
     );
   }, [chartData]);
 
+  const totalEntries = totals.hadir + totals.izin + totals.sakit + totals.alfa;
+  const attendanceRate = totalEntries > 0 ? Math.round((totals.hadir / totalEntries) * 100) : 100;
+
+  // Header Title & Subtitle
+  const chartTitle = isGuruMode
+    ? (view === 'guru' ? 'Rekap Presensi Kehadiran Saya' : `Presensi Siswa Kelas ${guruClassName || ''}`)
+    : 'Tren Presensi & Kehadiran';
+
+  const chartSubtitle = isGuruMode
+    ? (view === 'guru' 
+        ? `Pantau riwayat presensi & kehadiran akun ${guruName ? `Bpk/Ibu ${guruName}` : 'Anda'}` 
+        : `Grafik kehadiran harian siswa perwalian Kelas ${guruClassName || ''}`)
+    : 'Grafik pergerakan presensi real-time madrasah';
+
   return (
     <div className="bg-white p-6 sm:p-7 rounded-[2rem] shadow-sm border border-slate-200/80 flex flex-col w-full min-h-[420px]">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
-            <h3 className="font-headline font-bold text-lg text-secondary">Tren Presensi &amp; Kehadiran</h3>
+            <h3 className="font-headline font-bold text-lg text-secondary">{chartTitle}</h3>
           </div>
-          <p className="font-body text-xs sm:text-sm text-slate-500 mt-0.5">Grafik pergerakan presensi real-time madrasah</p>
+          <p className="font-body text-xs sm:text-sm text-slate-500 mt-0.5">{chartSubtitle}</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          {!guruClassId && (
+          {/* Toggle buttons */}
+          {(!isGuruMode || isHomeroom) && (
             <>
-              {/* Toggle Siswa/Guru */}
               <div className="flex p-1 bg-slate-100/90 rounded-2xl w-full sm:w-auto border border-slate-200/60">
-                <button 
-                  onClick={() => setView('siswa')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    view === 'siswa' 
-                      ? 'bg-white text-blue-700 shadow-2xs' 
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <Users size={14} /> <span>Siswa</span>
-                </button>
-                <button 
-                  onClick={() => setView('guru')}
-                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    view === 'guru' 
-                      ? 'bg-white text-blue-700 shadow-2xs' 
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <Briefcase size={14} /> <span>Guru</span>
-                </button>
+                {isGuruMode ? (
+                  <>
+                    <button 
+                      onClick={() => setView('guru')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        view === 'guru' 
+                          ? 'bg-white text-blue-700 shadow-2xs' 
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <UserCheck size={14} /> <span>Presensi Saya</span>
+                    </button>
+                    <button 
+                      onClick={() => setView('siswa')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        view === 'siswa' 
+                          ? 'bg-white text-blue-700 shadow-2xs' 
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <Users size={14} /> <span>Siswa Kelas</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => setView('siswa')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        view === 'siswa' 
+                          ? 'bg-white text-blue-700 shadow-2xs' 
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <Users size={14} /> <span>Siswa</span>
+                    </button>
+                    <button 
+                      onClick={() => setView('guru')}
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        view === 'guru' 
+                          ? 'bg-white text-blue-700 shadow-2xs' 
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      <Briefcase size={14} /> <span>Guru</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
@@ -167,7 +235,7 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
 
           {/* Filters */}
           <div className="flex gap-2 w-full sm:w-auto">
-            {view === 'siswa' && !guruClassId && (
+            {!isGuruMode && view === 'siswa' && (
               <select 
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
@@ -185,7 +253,7 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
               <select 
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value)}
-                className="w-full bg-slate-50/80 border border-slate-200/90 text-slate-700 text-xs font-medium rounded-xl pl-8 pr-4 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full bg-slate-50/80 border border-slate-200/90 text-slate-700 text-xs font-medium rounded-xl pl-8 pr-4 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
               >
                 <option value="hari">Hari Ini</option>
                 <option value="minggu">7 Hari Terakhir</option>
@@ -199,23 +267,30 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
 
       {/* Summary Stat Pills */}
       {chartData.length > 0 && !loading && (
-        <div className="flex items-center gap-3 sm:gap-4 mb-6 flex-wrap">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-xs font-bold">
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-6 flex-wrap">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-blue-600"></span>
             <span>Hadir: {totals.hadir}</span>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-amber-500"></span>
             <span>Izin: {totals.izin}</span>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-sky-50 border border-sky-100 text-sky-800 text-xs font-bold">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-50 border border-sky-100 text-sky-800 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-sky-500"></span>
             <span>Sakit: {totals.sakit}</span>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-rose-50 border border-rose-100 text-rose-800 text-xs font-bold">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 border border-rose-100 text-rose-800 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-rose-500"></span>
             <span>Alfa: {totals.alfa}</span>
           </div>
+
+          {totalEntries > 0 && (
+            <div className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black">
+              <CheckCircle2 size={13} className="text-emerald-600" />
+              <span>Persentase Kehadiran: {attendanceRate}%</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -228,8 +303,12 @@ export function AttendanceChart({ guruClassId }: { guruClassId?: string }) {
         ) : chartData.length === 0 ? (
           <div className="flex-grow flex flex-col items-center justify-center text-slate-400 py-16 gap-2">
             <TrendingUp size={40} className="text-slate-300 mb-1" />
-            <p className="font-headline font-bold text-sm text-slate-600">Belum ada data kehadiran</p>
-            <p className="font-body text-xs text-slate-400">Tidak ada catatan untuk filter waktu/kelas yang dipilih.</p>
+            <p className="font-headline font-bold text-sm text-slate-600">Belum ada catatan presensi pada periode ini</p>
+            <p className="font-body text-xs text-slate-400">
+              {isGuruMode && view === 'guru'
+                ? 'Presensi harian Anda akan otomatis tercatat dan terekap di grafik ini setelah melakukan scan RFID/Check-in.'
+                : 'Tidak ada catatan kehadiran untuk filter waktu/kelas yang dipilih.'}
+            </p>
           </div>
         ) : (
           <div className="flex-grow w-full h-[320px] sm:h-[350px]">

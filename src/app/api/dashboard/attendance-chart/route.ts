@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const dateStr = searchParams.get('startDate');
     const todayStr = searchParams.get('endDate');
 
+    const staffId = searchParams.get('staffId');
+
     if (!dateStr || !todayStr) {
       return NextResponse.json({ error: 'Missing date range' }, { status: 400 });
     }
@@ -26,6 +28,8 @@ export async function GET(request: NextRequest) {
 
     if (view === 'siswa' && classFilter !== 'all') {
       query = query.eq('classroom_id', classFilter);
+    } else if (view !== 'siswa' && staffId) {
+      query = query.eq('staff_id', staffId);
     }
 
     const { data, error } = await query;
