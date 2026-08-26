@@ -15,9 +15,14 @@ const getIndonesianDate = () => {
 
 const formatTime = (isoString?: string | null) => {
   if (!isoString) return '-'
-  const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
-  const d = new Date(validIso)
-  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  try {
+    const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
+    const d = new Date(validIso)
+    if (isNaN(d.getTime())) return isoString
+    return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  } catch (e) {
+    return String(isoString)
+  }
 }
 
 type PopupData = {
@@ -91,9 +96,11 @@ export default function AbsenPage() {
         const presentList = allStaffs.filter((s: any) => s.attendance && s.attendance.check_in_time)
         // Sort by most recently checked in first
         presentList.sort((a: any, b: any) => {
-           const timeA = new Date(a.attendance.check_in_time).getTime()
-           const timeB = new Date(b.attendance.check_in_time).getTime()
-           return timeB - timeA
+           const timeA = new Date(a.attendance?.check_in_time || 0).getTime()
+           const timeB = new Date(b.attendance?.check_in_time || 0).getTime()
+           const validTimeA = isNaN(timeA) ? 0 : timeA
+           const validTimeB = isNaN(timeB) ? 0 : timeB
+           return validTimeB - validTimeA
         })
         
         setPresentStaff(presentList.length)
