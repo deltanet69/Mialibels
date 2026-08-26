@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'Absensi Guru - MI Attaqwa 15',
   description: 'Halaman standby absensi guru MI Attaqwa 15',
