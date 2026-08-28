@@ -161,10 +161,10 @@ function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' |
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Middleware
+// Proxy (formerly Middleware)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── 1. Static assets & Next.js internals ─────────────────────────────────
