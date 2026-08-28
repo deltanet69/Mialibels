@@ -114,7 +114,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
       data.append('file', file)
       data.append('folder', 'ppdb/payments')
 
-      const res = await fetch('/api/ppdb/upload', {
+      const res = await fetch('/api/spmb/upload', {
         method: 'POST',
         body: data
       })
@@ -206,7 +206,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     setError(null)
 
     try {
-      const res = await fetch('/api/ppdb/register', {
+      const res = await fetch('/api/spmb/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -741,7 +741,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
             <div className="bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white p-4 sm:p-6 rounded-2xl shadow-sm space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[14px] font-bold text-blue-200 uppercase tracking-wider">Rekening Resmi PPDB</span>
+                  <span className="text-[14px] font-bold text-blue-200 uppercase tracking-wider">Rekening Resmi SPMB</span>
                   <h3 className="text-lg sm:text-lg font-black text-white">{settings.bank_name || 'Bank BTN'}</h3>
                 </div>
                 <Building2 size={24} className="text-blue-300 shrink-0" />

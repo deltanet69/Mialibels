@@ -47,7 +47,7 @@ const STEPS = [
 ];
 
 export default function PpdbWhyChooseUs() {
-  const ppdbUrl = process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
 
   return (
     <section id="petunjuk-pendaftaran" className="py-14 sm:py-20 lg:py-24 bg-white relative scroll-mt-20">
@@ -63,7 +63,7 @@ export default function PpdbWhyChooseUs() {
             4 LANGKAH MUDAH PENDAFTARAN SPMB
           </h2>
           <p className="font-body text-gray-500 text-sm sm:text-base md:text-lg px-2 leading-relaxed">
-            Panduan lengkap alur pendaftaran peserta didik baru MI Attaqwa 15 Babelan secara online dari awal hingga verifikasi berkas.
+            Panduan lengkap alur sistem penerimaan murid baru MI Attaqwa 15 Babelan secara online dari awal hingga verifikasi berkas.
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export default function PpdbWhyChooseUs() {
             </p>
           </div>
           <a
-            href={ppdbUrl}
+            href={spmbUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-tactile inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full font-body text-xs sm:text-sm font-bold bg-btn-secondary text-white shadow-md hover:brightness-110 transition-all shrink-0 w-full sm:w-auto"

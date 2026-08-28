@@ -7,7 +7,7 @@ const SYARAT_ITEMS = [
   {
     title: 'Batas Usia Minimal',
     highlight: '6 Tahun 5 Bulan',
-    desc: 'Calon peserta didik baru kelas 1 MI wajib berusia minimal 6 tahun 5 bulan terhitung per tanggal 1 Juli 2027.',
+    desc: 'Calon murid baru kelas 1 MI wajib berusia minimal 6 tahun 5 bulan terhitung per tanggal 1 Juli 2027.',
     icon: UserCheck,
     color: 'text-teal-600',
     bg: 'bg-teal-50 border-teal-100'
@@ -80,7 +80,7 @@ export default function PpdbRequirements() {
                   <h3 className="font-headline font-black text-xl sm:text-2xl text-secondary">
                     Syarat Umum Calon Siswa
                   </h3>
-                  <p className="font-body text-sm text-gray-600 font-medium">Ketentuan dasar penerimaan peserta didik baru</p>
+                  <p className="font-body text-sm text-gray-600 font-medium">Ketentuan dasar sistem penerimaan murid baru</p>
                 </div>
               </div>
               

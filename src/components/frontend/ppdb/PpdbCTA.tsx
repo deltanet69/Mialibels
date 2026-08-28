@@ -45,7 +45,7 @@ export default function PpdbCTA() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <a
-                href={process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id'}
+                href={process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 sm:px-10 py-3.5 sm:py-4 rounded-full font-body text-sm sm:text-base font-bold bg-btn-secondary text-white shadow-xl shadow-orange-950/30 hover:shadow-2xl hover:brightness-110 transition-all text-center"

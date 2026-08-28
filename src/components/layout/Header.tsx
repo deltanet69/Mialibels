@@ -11,7 +11,7 @@ const navLinks = [
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel', href: '/news' },
-  { label: 'SPMB', href: '/ppdb', highlight: true },
+  { label: 'SPMB', href: '/spmb', highlight: true },
 ];
 
 export default function Header() {

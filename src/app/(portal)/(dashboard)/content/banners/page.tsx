@@ -13,7 +13,8 @@ import { BannerForm } from '@/components/portal/banners/BannerForm'
 const PAGE_NAMES: Record<string, string> = {
   '/': 'Beranda',
   '/news': 'Berita',
-  '/ppdb': 'PPDB',
+  '/spmb': 'SPMB',
+  '/ppdb': 'SPMB',
   '/about': 'Profil',
   '/akademik': 'Akademik',
   '/contact': 'Kontak',

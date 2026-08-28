@@ -40,7 +40,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
     setSelectedReg(null)
 
     try {
-      const res = await fetch('/api/ppdb/status', {
+      const res = await fetch('/api/spmb/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: searchQuery })
@@ -85,7 +85,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
       data.append('file', file)
       data.append('folder', 'ppdb/documents')
 
-      const res = await fetch('/api/ppdb/upload', {
+      const res = await fetch('/api/spmb/upload', {
         method: 'POST',
         body: data
       })
@@ -109,7 +109,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
     setDocSaveSuccess(false)
 
     try {
-      const res = await fetch('/api/ppdb/documents', {
+      const res = await fetch('/api/spmb/documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,13 +141,13 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
       <div className="bg-white p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-4">
         <div>
           <span className="text-[10px] sm:text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
-            Pelacakan Status PPDB
+            Pelacakan Status SPMB
           </span>
           <h2 className="text-base sm:text-xl font-bold text-slate-900 break-words">
             Cek Status &amp; Unggah Berkas Lanjutan
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-            Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>PPDB27-0001</code>) atau <strong>Nomor WhatsApp Ayah</strong> yang didaftarkan.
+            Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>SPMB27-0001</code>) atau <strong>Nomor WhatsApp Ayah</strong> yang didaftarkan.
           </p>
         </div>
 
@@ -278,7 +278,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs space-y-1">
               <span className="font-bold text-amber-900 flex items-center gap-1.5">
                 <AlertCircle size={14} />
-                <span>Catatan Panitia PPDB:</span>
+                <span>Catatan Panitia SPMB:</span>
               </span>
               <p className="text-amber-800 leading-relaxed pl-5">
                 {selectedReg.admin_notes}
@@ -397,7 +397,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
               Ada pertanyaan seputar hasil verifikasi atau kelulusan?
             </span>
             <a
-              href={`https://wa.me/${waNum}?text=Halo%20Panitia%20PPDB,%20saya%20ingin%20konfirmasi%20pendaftaran%20${selectedReg.registration_number}%20a.n%20${encodeURIComponent(selectedReg.student_name)}`}
+              href={`https://wa.me/${waNum}?text=Halo%20Panitia%20SPMB,%20saya%20ingin%20konfirmasi%20pendaftaran%20${selectedReg.registration_number}%20a.n%20${encodeURIComponent(selectedReg.student_name)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold transition text-center"

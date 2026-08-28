@@ -210,7 +210,7 @@ export default function AkademikPage() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link 
-                href="/ppdb" 
+                href="/spmb" 
                 className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-btn-secondary text-white shadow-lg shadow-orange-950/20 hover:shadow-xl hover:brightness-110 transition-all"
               >
                 <span>Informasi SPMB &amp; Biaya</span>

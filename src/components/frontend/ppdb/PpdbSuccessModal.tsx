@@ -33,7 +33,7 @@ export default function PpdbSuccessModal({ data, temporaryPassword, whatsappCont
 
   const cleanPhone = whatsappContact.replace(/[^0-9]/g, '')
   const waText = encodeURIComponent(
-    `Assalamu'alaikum Panitia PPDB MI Attaqwa 15 Babelan. Saya orang tua dari ${data.student_name}, telah melakukan pendaftaran PPDB online dengan Nomor Registrasi: ${data.registration_number} (Batch ${data.batch}). Mohon konfirmasi verifikasinya. Terima kasih.`
+    `Assalamu'alaikum Panitia SPMB MI Attaqwa 15 Babelan. Saya orang tua dari ${data.student_name}, telah melakukan pendaftaran SPMB online dengan Nomor Registrasi: ${data.registration_number} (Batch ${data.batch}). Mohon konfirmasi verifikasinya. Terima kasih.`
   )
   const waUrl = `https://wa.me/${cleanPhone}?text=${waText}`
 
@@ -62,7 +62,7 @@ export default function PpdbSuccessModal({ data, temporaryPassword, whatsappCont
             Alhamdulillah!
           </h2>
           <p className="text-emerald-100 text-xs sm:text-sm mt-1 max-w-sm mx-auto">
-            Data calon siswa telah masuk ke sistem PPDB MI Attaqwa 15 Babelan.
+            Data calon siswa telah masuk ke sistem SPMB MI Attaqwa 15 Babelan.
           </p>
         </div>
 
@@ -72,7 +72,7 @@ export default function PpdbSuccessModal({ data, temporaryPassword, whatsappCont
           {/* Registration Number Card */}
           <div className="bg-emerald-50/80 border-2 border-dashed border-emerald-300 rounded-2xl p-4 sm:p-5 text-center relative group">
             <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
-              Nomor Registrasi PPDB
+              Nomor Registrasi SPMB
             </span>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <span className="font-mono text-xl sm:text-2xl md:text-3xl font-black text-emerald-900 tracking-wider break-all">
@@ -124,7 +124,7 @@ export default function PpdbSuccessModal({ data, temporaryPassword, whatsappCont
           <div className="flex items-start gap-2.5 sm:gap-3 p-3 sm:p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl text-xs text-blue-900">
             <ShieldCheck size={18} className="text-blue-600 shrink-0 mt-0.5" />
             <p className="leading-relaxed text-[11px] sm:text-xs">
-              Panitia PPDB akan memverifikasi bukti pembayaran dalam <strong>1x24 jam</strong>. Email konfirmasi telah kami kirimkan ke email orang tua.
+              Panitia SPMB akan memverifikasi bukti pembayaran dalam <strong>1x24 jam</strong>. Email konfirmasi telah kami kirimkan ke email orang tua.
             </p>
           </div>
 

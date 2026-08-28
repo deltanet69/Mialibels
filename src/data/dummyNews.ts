@@ -62,16 +62,16 @@ export const dummyNews: NewsArticle[] = [
   },
   {
     id: '4',
-    slug: 'pembukaan-ppdb-tahun-ajaran-baru',
-    title: 'Segera Daftar! Gelombang Pertama PPDB MI Attaqwa 15 Resmi Dibuka',
-    excerpt: 'Kabar gembira bagi ayah/bunda. Penerimaan Peserta Didik Baru (PPDB) MI Attaqwa 15 Tahun Ajaran 2027/2028 kini telah dibuka dengan promo khusus.',
-    content: `<p>MI Attaqwa 15 secara resmi telah membuka Penerimaan Peserta Didik Baru (PPDB) untuk Tahun Ajaran 2027/2028. Pendaftaran gelombang pertama ini memberikan kesempatan khusus bagi calon wali murid untuk mendapatkan keringanan biaya pangkal.</p>
+    slug: 'pembukaan-spmb-tahun-ajaran-baru',
+    title: 'Segera Daftar! Gelombang Pertama SPMB MI Attaqwa 15 Resmi Dibuka',
+    excerpt: 'Kabar gembira bagi ayah/bunda. Sistem Penerimaan Murid Baru (SPMB) MI Attaqwa 15 Tahun Ajaran 2027/2028 kini telah dibuka dengan promo khusus.',
+    content: `<p>MI Attaqwa 15 secara resmi telah membuka Sistem Penerimaan Murid Baru (SPMB) untuk Tahun Ajaran 2027/2028. Pendaftaran gelombang pertama ini memberikan kesempatan khusus bagi calon wali murid untuk mendapatkan keringanan biaya pangkal.</p>
     <p>Persyaratan yang dibutuhkan cukup mudah. Calon siswa diharapkan telah berusia minimal 6 tahun pada bulan Juli tahun depan, membawa salinan Akta Kelahiran, Kartu Keluarga, dan pas foto.</p>
     <p>Kami menyadari antusiasme yang tinggi dari masyarakat sekitar Babelan setiap tahunnya. Oleh karena itu, kuota untuk gelombang pertama sangat terbatas demi menjaga rasio ideal kelas (25 siswa per rombongan belajar).</p>
     <p>Jangan lewatkan kesempatan emas ini, mari bergabung dengan keluarga besar MI Attaqwa 15 untuk memberikan pendidikan yang terbaik bagi buah hati tercinta.</p>`,
     category: 'Berita Sekolah',
     date: '20 Mei 2026',
-    author: 'Panitia PPDB',
+    author: 'Panitia SPMB',
     imageUrl: '/images/flyer_ppdb.png',
     isFeatured: false,
     readTime: '2 Menit'

@@ -66,13 +66,13 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Error updating PPDB settings:', error)
-      return NextResponse.json({ error: 'Gagal memperbarui pengaturan PPDB: ' + error.message }, { status: 500 })
+      console.error('Error updating SPMB settings:', error)
+      return NextResponse.json({ error: 'Gagal memperbarui pengaturan SPMB: ' + error.message }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Pengaturan PPDB berhasil disimpan.',
+      message: 'Pengaturan SPMB berhasil disimpan.',
       data: updated
     })
   } catch (error: any) {

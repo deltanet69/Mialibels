@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'mialibels_jwt_secret_fallback_key_2026');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Domain / Subdomain Config
@@ -11,7 +11,8 @@ const BASE_DOMAIN    = 'miattaqwa15.sch.id';
 const ADMIN_SUB      = 'smart';   // smart.miattaqwa15.sch.id
 const PARENT_SUB     = 'parent';  // parent.miattaqwa15.sch.id
 const ABSEN_SUB      = 'absen';   // absen.miattaqwa15.sch.id
-const PPDB_SUB       = 'ppdb';    // ppdb.miattaqwa15.sch.id
+const SPMB_SUB       = 'spmb';    // spmb.miattaqwa15.sch.id
+const PPDB_SUB       = 'ppdb';    // ppdb.miattaqwa15.sch.id (legacy alias)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route Groups
@@ -26,6 +27,8 @@ const PUBLIC_PATHS: string[] = [
   '/tentang',
   '/prestasi',
   '/kontak',
+  '/spmb',
+  '/spmb-app',
   '/ppdb',
   '/ppdb-app',
   '/parent/login',
@@ -44,6 +47,11 @@ const PUBLIC_API_PREFIXES: string[] = [
   '/api/banners',
   '/api/testimonials',
   '/api/staffs',         // public staff list for frontend
+  '/api/spmb/settings',
+  '/api/spmb/register',
+  '/api/spmb/upload',
+  '/api/spmb/status',
+  '/api/spmb/documents',
   '/api/ppdb/settings',
   '/api/ppdb/register',
   '/api/ppdb/upload',
@@ -118,13 +126,14 @@ async function verifyJWT(token: string): Promise<{ payload: any } | null> {
   }
 }
 
-/** Returns 'admin', 'parent', 'absen', 'ppdb' or null based on the Host header */
-function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'ppdb' | null {
+/** Returns 'admin', 'parent', 'absen', 'spmb' or null based on the Host header */
+function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' | null {
   const hostname = (req.headers.get('host') ?? '').split(':')[0];
   if (hostname === `${ADMIN_SUB}.${BASE_DOMAIN}` || hostname === `${ADMIN_SUB}.localhost`) return 'admin';
   if (hostname === `${PARENT_SUB}.${BASE_DOMAIN}` || hostname === `${PARENT_SUB}.localhost`) return 'parent';
   if (hostname === `${ABSEN_SUB}.${BASE_DOMAIN}` || hostname === `${ABSEN_SUB}.localhost`) return 'absen';
-  if (hostname === `${PPDB_SUB}.${BASE_DOMAIN}` || hostname === `${PPDB_SUB}.localhost`) return 'ppdb';
+  if (hostname === `${SPMB_SUB}.${BASE_DOMAIN}` || hostname === `${SPMB_SUB}.localhost`) return 'spmb';
+  if (hostname === `${PPDB_SUB}.${BASE_DOMAIN}` || hostname === `${PPDB_SUB}.localhost`) return 'spmb';
   return null;
 }
 
@@ -148,11 +157,11 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomain(request);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PPDB SUBDOMAIN — ppdb.miattaqwa15.sch.id
+  // SPMB SUBDOMAIN — spmb.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
-  if (subdomain === 'ppdb') {
+  if (subdomain === 'spmb') {
     if (pathname === '/') {
-      return NextResponse.rewrite(new URL('/ppdb-app', request.url));
+      return NextResponse.rewrite(new URL('/spmb-app', request.url));
     }
     // Allow public API and static assets to pass through
     return NextResponse.next();

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ChevronRight, CalendarDays, GraduationCap, Sparkles, CheckCircle2, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function PpdbHero() {
-  const ppdbUrl = process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
 
   return (
     <section className="relative pt-10 pb-20 sm:pt-36 sm:pb-20 lg:pt-20 lg:pb-20 overflow-hidden bg-mesh-radial">
@@ -61,7 +61,7 @@ export default function PpdbHero() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-2 sm:px-0">
           <a
-            href={ppdbUrl}
+            href={spmbUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-tactile inline-flex items-center justify-center gap-2 px-8 sm:px-10 py-3.5 sm:py-4 rounded-full font-body text-sm sm:text-base font-bold bg-btn-secondary text-white shadow-xl shadow-orange-950/20 hover:shadow-2xl hover:brightness-110 transition-all text-center w-full sm:w-auto"

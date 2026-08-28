@@ -21,13 +21,13 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/ppdb/settings?_t=' + Date.now())
+        const res = await fetch('/api/spmb/settings?_t=' + Date.now())
         const json = await res.json()
         if (json.success) {
           setSettings(json.data)
         }
       } catch (err) {
-        console.error('Error fetching PPDB settings:', err)
+        console.error('Error fetching SPMB settings:', err)
       } finally {
         setLoading(false)
       }
@@ -71,7 +71,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     <div className="font-sans min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white pb-20">
       
       {/* ════════════════════════════════════════════════════════════════════
-          TOP BRANDING & ADMISSION NAVBAR (Dedicated for PPDB Portal)
+          TOP BRANDING & ADMISSION NAVBAR (Dedicated for SPMB Portal)
          ════════════════════════════════════════════════════════════════════ */}
       <header className="sticky top-0 z-40  backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
@@ -85,7 +85,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs font-semibold text-slate-500 mt-0.5">
-                Portal PPDB Online Tahun Ajaran {currentSettings.academic_year}
+                Portal SPMB Online Tahun Ajaran {currentSettings.academic_year}
               </p>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             </div>
 
             <a
-              href={`https://wa.me/${waNumber}?text=Halo%20Panitia%20PPDB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran%20siswa%20baru.`}
+              href={`https://wa.me/${waNumber}?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran%20murid%20baru.`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-tactile inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer"
@@ -128,7 +128,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
             <Sparkles size={14} className="text-amber-400" />
-            <span>Penerimaan Peserta Didik Baru (PPDB) Online</span>
+            <span>Sistem Penerimaan Murid Baru (SPMB) Online</span>
           </div>
 
           {/* Heading with normal font-sans */}
@@ -172,7 +172,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
               </button>
             ) : (
               <div className="px-5 py-2.5 rounded-xl bg-rose-500/20 border border-rose-400/30 text-rose-200 font-bold text-xs">
-                {isFull ? `Kuota Gelombang ${activeBatch} Telah Penuh` : 'Pendaftaran PPDB Sedang Ditutup'}
+                {isFull ? `Kuota Gelombang ${activeBatch} Telah Penuh` : 'Pendaftaran SPMB Sedang Ditutup'}
               </div>
             )}
 
@@ -207,12 +207,12 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                   <AlertCircle size={28} />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                  {isFull ? `Kuota Gelombang ${activeBatch} Telah Penuh` : 'Pendaftaran PPDB Sedang Ditutup'}
+                  {isFull ? `Kuota Gelombang ${activeBatch} Telah Penuh` : 'Pendaftaran SPMB Sedang Ditutup'}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                   {isFull 
-                    ? `Mohon maaf, saat ini pendaftaran peserta didik baru MI Attaqwa 15 Babelan untuk Gelombang ${activeBatch} telah mencapai batas kuota maksimal.` 
-                    : 'Mohon maaf, saat ini pendaftaran peserta didik baru MI Attaqwa 15 Babelan sedang tidak dibuka.'}
+                    ? `Mohon maaf, saat ini pendaftaran murid baru MI Attaqwa 15 Babelan untuk Gelombang ${activeBatch} telah mencapai batas kuota maksimal.` 
+                    : 'Mohon maaf, saat ini pendaftaran murid baru MI Attaqwa 15 Babelan sedang tidak dibuka.'}
                 </p>
                 <div className="pt-2">
                   <a
@@ -222,7 +222,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                     className="btn-tactile inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20"
                   >
                     <Phone size={15} />
-                    <span>Hubungi Panitia PPDB</span>
+                    <span>Hubungi Panitia SPMB</span>
                   </a>
                 </div>
               </div>
@@ -235,12 +235,12 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
       </main>
 
       {/* ════════════════════════════════════════════════════════════════════
-          MINIMAL CLEAN PPDB FOOTER
+          MINIMAL CLEAN SPMB FOOTER
          ════════════════════════════════════════════════════════════════════ */}
       <footer className="mt-20 border-t border-slate-200/80 bg-white py-8 px-4 text-center">
         <div className="max-w-5xl mx-auto space-y-2">
           <p className="text-xs sm:text-sm font-bold text-slate-800">
-            Panitia Penerimaan Peserta Didik Baru (PPDB) &bull; MI Attaqwa 15 Babelan
+            Panitia Sistem Penerimaan Murid Baru (SPMB) &bull; MI Attaqwa 15 Babelan
           </p>
           <p className="text-xs text-slate-400">
             Jl. Raya Babelan Kota, Kec. Babelan, Kab. Bekasi &bull; Kontak: +{waNumber}

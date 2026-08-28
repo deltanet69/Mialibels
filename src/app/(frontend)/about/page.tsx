@@ -144,7 +144,7 @@ const FASILITAS_ABOUT = [
 ];
 
 export default function AboutPage() {
-  const ppdbUrl = process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
 
   return (
     <div className="flex flex-col w-full min-h-screen">
@@ -549,7 +549,7 @@ export default function AboutPage() {
 
                 <div className="mt-6 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100 flex items-center justify-between text-xs text-teal-900 font-semibold">
                   <span>Seluruh fasilitas terawat &amp; berstandar Kemenag</span>
-                  <Link href="/ppdb" className="text-primary hover:underline flex items-center gap-1 text-xs">
+                  <Link href="/spmb" className="text-primary hover:underline flex items-center gap-1 text-xs">
                     <span>Lihat Detail</span>
                     <ArrowRight className="w-3 h-3" />
                   </Link>
@@ -604,7 +604,7 @@ export default function AboutPage() {
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                   <a
-                    href={ppdbUrl}
+                    href={spmbUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 sm:px-10 py-3.5 sm:py-4 rounded-full font-body text-sm sm:text-base font-bold bg-btn-secondary text-white shadow-xl shadow-orange-950/30 hover:shadow-2xl hover:brightness-110 transition-all text-center"

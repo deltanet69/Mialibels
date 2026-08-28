@@ -16,7 +16,7 @@ type BannerFormProps = {
 const AVAILABLE_PAGES = [
   { path: '/', label: 'Beranda (Home)', icon: Home, desc: 'Halaman utama website' },
   { path: '/news', label: 'Berita & Artikel', icon: Layers, desc: 'Pusat publikasi madrasah' },
-  { path: '/ppdb', label: 'PPDB Online', icon: Sparkles, desc: 'Penerimaan santri baru' },
+  { path: '/spmb', label: 'SPMB Online', icon: Sparkles, desc: 'Penerimaan murid baru' },
   { path: '/about', label: 'Profil Madrasah', icon: Globe, desc: 'Visi misi & sejarah' },
   { path: '/akademik', label: 'Akademik & Kurikulum', icon: Layers, desc: 'Program & keunggulan' },
   { path: '/contact', label: 'Hubungi Kami', icon: Globe, desc: 'Kontak & pesan saran' },
@@ -346,7 +346,7 @@ export function BannerForm({ initialData, onSuccess, onClose }: BannerFormProps)
                       name="link"
                       value={formData.link}
                       onChange={handleChange}
-                      placeholder="Contoh: /ppdb atau https://..."
+                      placeholder="Contoh: /spmb atau https://..."
                       className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition text-xs sm:text-sm font-mono text-slate-800 placeholder:text-slate-400 outline-none"
                     />
                     <span className="text-[11px] text-slate-400">

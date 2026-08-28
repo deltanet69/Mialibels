@@ -4,7 +4,7 @@ import React from 'react';
 import { Users, Calendar, ArrowRight, Flame, Clock, CheckCircle2, AlertCircle, ShieldAlert, Sparkles, GraduationCap, School } from 'lucide-react';
 
 export default function PpdbSchedule() {
-  const ppdbUrl = process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
 
   return (
     <section className="py-14 sm:py-20 lg:py-24 bg-[#F4F7FC]">
@@ -47,7 +47,7 @@ export default function PpdbSchedule() {
 
                 <div>
                   <h3 className="font-headline font-black text-3xl sm:text-4xl text-white tracking-tight leading-tight mb-2">
-                    Penerimaan Siswa Baru 2027/2028
+                    Penerimaan Murid Baru 2027/2028
                   </h3>
                   <p className="font-body text-slate-200 text-xs sm:text-sm leading-relaxed">
                     Sistem pendaftaran satu pintu terpadu untuk memastikan seleksi yang adil, transparan, dan terukur.
@@ -73,7 +73,7 @@ export default function PpdbSchedule() {
               {/* Action Button */}
               <div className="relative z-10 pt-6">
                 <a
-                  href={ppdbUrl}
+                  href={spmbUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-tactile w-full inline-flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-body text-sm font-bold bg-btn-secondary text-white shadow-xl shadow-orange-950/30 hover:brightness-110 transition-all text-center"

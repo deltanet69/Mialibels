@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (!ppdbSettings.is_active) {
       return NextResponse.json({
-        error: 'Pendaftaran PPDB Tahun Ajaran ' + ppdbSettings.academic_year + ' saat ini sedang tidak dibuka / ditutup.'
+        error: 'Pendaftaran SPMB Tahun Ajaran ' + ppdbSettings.academic_year + ' saat ini sedang tidak dibuka / ditutup.'
       }, { status: 400 })
     }
 
@@ -122,18 +122,18 @@ export async function POST(request: NextRequest) {
 
     if (count !== null && count >= batchQuota) {
       return NextResponse.json({
-        error: `Kuota Batch ${activeBatch} (${batchQuota} pendaftar) telah penuh. Harap hubungi panitia PPDB atau menunggu pembukaan gelombang berikutnya.`
+        error: `Kuota Batch ${activeBatch} (${batchQuota} pendaftar) telah penuh. Harap hubungi panitia SPMB atau menunggu pembukaan gelombang berikutnya.`
       }, { status: 400 })
     }
 
-    // 5. Generate Unique Registration Number (e.g. PPDB27-0101)
+    // 5. Generate Unique Registration Number (e.g. SPMB27-0101)
     const { count: totalRegCount } = await supabase
       .from('ppdb_registrations')
       .select('*', { count: 'exact', head: true })
       .eq('academic_year', ppdbSettings.academic_year)
 
     const sequence = (totalRegCount || 0) + 1
-    const regNumber = `PPDB27-${String(sequence).padStart(4, '0')}`
+    const regNumber = `SPMB27-${String(sequence).padStart(4, '0')}`
 
     // 6. Generate temporary parent portal password
     const tempPassword = `MIA${Math.floor(100000 + Math.random() * 900000)}`
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         const parentHtml = `
           <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; color: #1e293b;">
             <div style="background: linear-gradient(135deg, #001d3d 0%, #003566 100%); padding: 36px 30px; text-align: center;">
-              <span style="display: inline-block; background-color: #ffd60a; color: #001d3d; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">PPDB ONLINE T.A ${ppdbSettings.academic_year}</span>
+              <span style="display: inline-block; background-color: #ffd60a; color: #001d3d; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">SPMB ONLINE T.A ${ppdbSettings.academic_year}</span>
               <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Bukti Pendaftaran Siswa Baru</h1>
               <p style="color: #93c5fd; margin: 8px 0 0 0; font-size: 14px;">MI Attaqwa 15 Babelan Kota, Kab. Bekasi</p>
             </div>
@@ -211,12 +211,12 @@ export async function POST(request: NextRequest) {
                 Yth. Bapak/Ibu <strong>${father_name}</strong> / <strong>${mother_name}</strong>,
               </p>
               <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
-                Alhamdulillah, berkas formulir pendaftaran calon peserta didik baru atas nama <strong>${student_name}</strong> telah berhasil kami terima.
+                Alhamdulillah, berkas formulir pendaftaran calon murid baru atas nama <strong>${student_name}</strong> telah berhasil kami terima.
               </p>
               
               <!-- Registration Card -->
               <div style="background-color: #f0fdf4; border: 1.5px dashed #22c55e; border-radius: 16px; padding: 22px; margin-bottom: 24px; text-align: center;">
-                <span style="font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">NOMOR REGISTRASI PPDB</span>
+                <span style="font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">NOMOR REGISTRASI SPMB</span>
                 <span style="font-size: 28px; font-weight: 900; color: #166534; letter-spacing: 2px; font-family: monospace;">${regNumber}</span>
                 <div style="margin-top: 8px; font-size: 12px; color: #16a34a; font-weight: 600;">
                   Gelombang: Batch ${activeBatch} &bull; Biaya Pendaftaran: Rp ${(Number(ppdbSettings.registration_fee) || 200000).toLocaleString('id-ID')}
@@ -248,18 +248,18 @@ export async function POST(request: NextRequest) {
               <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
                 <span style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Akses Pengecekan Status:</span>
                 <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-                  Bapak/Ibu dapat memantau status kelulusan berkas &amp; melengkapi dokumen melalui menu <strong>Cek Status PPDB</strong> di website kami menggunakan Nomor Registrasi: <strong>${regNumber}</strong> atau No. HP Ayah: <strong>${father_phone}</strong>.
+                  Bapak/Ibu dapat memantau status kelulusan berkas &amp; melengkapi dokumen melalui menu <strong>Cek Status SPMB</strong> di website kami menggunakan Nomor Registrasi: <strong>${regNumber}</strong> atau No. HP Ayah: <strong>${father_phone}</strong>.
                 </p>
               </div>
 
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569; line-height: 1.6;">
-                Panitia PPDB akan memverifikasi berkas pembayaran Anda dalam 1x24 jam. Jika disetujui, Anda dapat mengunggah berkas Akta, KK, dan KTP di portal PPDB.
+                Panitia SPMB akan memverifikasi berkas pembayaran Anda dalam 1x24 jam. Jika disetujui, Anda dapat mengunggah berkas Akta, KK, dan KTP di portal SPMB.
               </p>
             </div>
             
             <div style="background-color: #f1f5f9; padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
               <p style="margin: 0; font-size: 12px; color: #64748b;">
-                Butuh bantuan? Hubungi WhatsApp Panitia PPDB: <strong>${ppdbSettings.whatsapp_contact || '+62 812-3456-7890'}</strong>
+                Butuh bantuan? Hubungi WhatsApp Panitia SPMB: <strong>${ppdbSettings.whatsapp_contact || '+62 812-3456-7890'}</strong>
               </p>
               <p style="margin: 6px 0 0 0; font-size: 11px; color: #94a3b8;">
                 &copy; ${new Date().getFullYear()} MI Attaqwa 15 Babelan. All rights reserved.
@@ -270,37 +270,37 @@ export async function POST(request: NextRequest) {
 
         // Send to parent
         await resend.emails.send({
-          from: 'Panitia PPDB MI Attaqwa 15 <' + senderEmail + '>',
+          from: 'Panitia SPMB MI Attaqwa 15 <' + senderEmail + '>',
           to: father_email,
-          subject: `[PPDB ${ppdbSettings.academic_year}] Pendaftaran Berhasil - ${regNumber} (${student_name})`,
+          subject: `[SPMB ${ppdbSettings.academic_year}] Pendaftaran Berhasil - ${regNumber} (${student_name})`,
           html: parentHtml
         })
 
         // Notify school admin
         await resend.emails.send({
-          from: 'Notifikasi PPDB <' + senderEmail + '>',
+          from: 'Notifikasi SPMB <' + senderEmail + '>',
           to: adminEmail,
-          subject: `[Pendaftar PPDB Baru] ${regNumber} - ${student_name} (Batch ${activeBatch})`,
+          subject: `[Pendaftar SPMB Baru] ${regNumber} - ${student_name} (Batch ${activeBatch})`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; max-width: 500px;">
-              <h2>Pendaftar PPDB Baru Masuk</h2>
+              <h2>Pendaftar SPMB Baru Masuk</h2>
               <p><strong>Nomor Registrasi:</strong> ${regNumber}</p>
               <p><strong>Nama Calon Siswa:</strong> ${student_name}</p>
               <p><strong>Gelombang:</strong> Batch ${activeBatch}</p>
               <p><strong>Orang Tua:</strong> ${father_name} (${father_phone})</p>
               <p><strong>Metode Pembayaran:</strong> ${payment_method}</p>
-              <p>Silakan verifikasi bukti transfer di Dashboard Admin [AKADEMIK] &gt; PPDB Baru.</p>
+              <p>Silakan verifikasi bukti transfer di Dashboard Admin [AKADEMIK] &gt; SPMB Baru.</p>
             </div>
           `
         })
       } catch (emailErr) {
-        console.error('Failed to send PPDB notification email:', emailErr)
+        console.error('Failed to send SPMB notification email:', emailErr)
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Pendaftaran PPDB berhasil dikirimkan.',
+      message: 'Pendaftaran SPMB berhasil dikirimkan.',
       data: {
         id: newReg.id,
         registration_number: regNumber,
