@@ -126,14 +126,56 @@ async function verifyJWT(token: string): Promise<{ payload: any } | null> {
   }
 }
 
-/** Returns 'admin', 'parent', 'absen', 'spmb' or null based on the Host header */
+/** Returns 'admin', 'parent', 'absen', 'spmb' or null based on the Host / x-forwarded-host header */
 function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' | null {
-  const hostname = (req.headers.get('host') ?? '').split(':')[0];
-  if (hostname === `${ADMIN_SUB}.${BASE_DOMAIN}` || hostname === `${ADMIN_SUB}.localhost`) return 'admin';
-  if (hostname === `${PARENT_SUB}.${BASE_DOMAIN}` || hostname === `${PARENT_SUB}.localhost`) return 'parent';
-  if (hostname === `${ABSEN_SUB}.${BASE_DOMAIN}` || hostname === `${ABSEN_SUB}.localhost`) return 'absen';
-  if (hostname === `${SPMB_SUB}.${BASE_DOMAIN}` || hostname === `${SPMB_SUB}.localhost`) return 'spmb';
-  if (hostname === `${PPDB_SUB}.${BASE_DOMAIN}` || hostname === `${PPDB_SUB}.localhost`) return 'spmb';
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  const hostHeader = req.headers.get('host');
+  const nextHostname = req.nextUrl.hostname;
+
+  // Prioritize x-forwarded-host (set by reverse proxies like Hostinger/Cloudflare), then host, then nextUrl.hostname
+  const raw = forwardedHost || hostHeader || nextHostname || '';
+  const first = raw.split(',')[0].trim();
+  const hostname = first.split(':')[0].toLowerCase().trim();
+
+  // SPMB Subdomain (e.g. spmb.miattaqwa15.sch.id, spmb.localhost)
+  if (
+    hostname.startsWith('spmb.') ||
+    hostname === `${SPMB_SUB}.${BASE_DOMAIN}` ||
+    hostname === `${SPMB_SUB}.localhost` ||
+    hostname.startsWith('ppdb.') ||
+    hostname === `${PPDB_SUB}.${BASE_DOMAIN}` ||
+    hostname === `${PPDB_SUB}.localhost`
+  ) {
+    return 'spmb';
+  }
+
+  // Parent Subdomain (e.g. parent.miattaqwa15.sch.id, parent.localhost)
+  if (
+    hostname.startsWith('parent.') ||
+    hostname === `${PARENT_SUB}.${BASE_DOMAIN}` ||
+    hostname === `${PARENT_SUB}.localhost`
+  ) {
+    return 'parent';
+  }
+
+  // Smart/Admin Subdomain (e.g. smart.miattaqwa15.sch.id, smart.localhost)
+  if (
+    hostname.startsWith('smart.') ||
+    hostname === `${ADMIN_SUB}.${BASE_DOMAIN}` ||
+    hostname === `${ADMIN_SUB}.localhost`
+  ) {
+    return 'admin';
+  }
+
+  // Absen Subdomain (e.g. absen.miattaqwa15.sch.id, absen.localhost)
+  if (
+    hostname.startsWith('absen.') ||
+    hostname === `${ABSEN_SUB}.${BASE_DOMAIN}` ||
+    hostname === `${ABSEN_SUB}.localhost`
+  ) {
+    return 'absen';
+  }
+
   return null;
 }
 
@@ -160,7 +202,13 @@ export async function middleware(request: NextRequest) {
   // SPMB SUBDOMAIN — spmb.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'spmb') {
-    if (pathname === '/') {
+    if (
+      pathname === '/' ||
+      pathname === '/spmb' ||
+      pathname === '/ppdb' ||
+      pathname === '/spmb-app' ||
+      pathname === '/ppdb-app'
+    ) {
       return NextResponse.rewrite(new URL('/spmb-app', request.url));
     }
     // Allow public API and static assets to pass through
@@ -236,7 +284,15 @@ export async function middleware(request: NextRequest) {
   // PARENT SUBDOMAIN — parent.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'parent') {
-    if (pathname === '/') {
+    if (pathname === '/' || pathname === '/parent') {
+      return NextResponse.redirect(new URL('/parent/dashboard', request.url));
+    }
+
+    if (pathname === '/login') {
+      return NextResponse.redirect(new URL('/parent/login', request.url));
+    }
+
+    if (pathname === '/dashboard') {
       return NextResponse.redirect(new URL('/parent/dashboard', request.url));
     }
 

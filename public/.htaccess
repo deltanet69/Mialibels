@@ -1,0 +1,24 @@
+<IfModule mod_headers.c>
+  # 1. Disable caching on HTML documents so browsers always get the newest bundle hashes
+  <FilesMatch "\.(html|htm|php)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # 2. Immutable caching for hashed JS/CSS assets in Next.js
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # 3. Cache images and fonts
+  <FilesMatch "\.(jpg|jpeg|png|gif|ico|svg|webp|avif|woff|woff2|ttf|otf)$">
+    Header set Cache-Control "public, max-age=604800, stale-while-revalidate=86400"
+  </FilesMatch>
+</IfModule>
+
+# Disable LiteSpeed Cache for dynamic Next.js routes
+<IfModule LiteSpeed>
+  CacheDisable public
+  CacheDisable private
+</IfModule>

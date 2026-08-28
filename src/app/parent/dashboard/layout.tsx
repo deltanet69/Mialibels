@@ -5,7 +5,7 @@ import { ParentSidebarProvider } from '@/components/parent/ParentSidebarProvider
 import { cookies } from 'next/headers'
 import { jwtVerify } from 'jose'
 
-const JWT_SECRET = process.env.JWT_SECRET!
+const JWT_SECRET = process.env.JWT_SECRET || 'mialibels_jwt_secret_fallback_key_2026'
 
 import { redirect } from 'next/navigation'
 
