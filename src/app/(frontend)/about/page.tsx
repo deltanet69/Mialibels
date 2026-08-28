@@ -23,6 +23,7 @@ import {
   Quote,
   GraduationCap
 } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 import AnimatedSection from '@/components/frontend/AnimatedSection';
 
 export const metadata = {
@@ -549,7 +550,7 @@ export default function AboutPage() {
 
                 <div className="mt-6 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100 flex items-center justify-between text-xs text-teal-900 font-semibold">
                   <span>Seluruh fasilitas terawat &amp; berstandar Kemenag</span>
-                  <Link href="/spmb" className="text-primary hover:underline flex items-center gap-1 text-xs">
+                  <Link href={getSpmbUrl()} className="text-primary hover:underline flex items-center gap-1 text-xs">
                     <span>Lihat Detail</span>
                     <ArrowRight className="w-3 h-3" />
                   </Link>

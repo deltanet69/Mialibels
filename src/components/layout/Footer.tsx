@@ -34,13 +34,14 @@ const socialLinks = [
   { name: 'Instagram', href: 'https://www.instagram.com/miattaqwa15/?hl=id', icon: InstagramIcon, hoverClass: 'hover:bg-gradient-to-tr hover:from-amber-500 hover:via-pink-500 hover:to-purple-600 hover:border-pink-500 hover:text-white' },
   { name: 'Youtube', href: 'https://www.youtube.com/@miattaqwa15', icon: YoutubeIcon, hoverClass: 'hover:bg-[#FF0000] hover:border-[#FF0000] hover:text-white' },
 ];
+import { getSpmbUrl } from '@/lib/urls';
 
 const menuLinks = [
   { label: 'Home', href: '/' },
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel & Berita', href: '/news' },
-  { label: 'SPMB 2027/2028', href: '/spmb' },
+  { label: 'SPMB 2027/2028', href: getSpmbUrl() },
 ];
 
 export default function Footer() {

@@ -5,13 +5,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, PhoneCall, Sparkles, ChevronRight } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 
 const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel', href: '/news' },
-  { label: 'SPMB', href: '/spmb', highlight: true },
+  { label: 'SPMB', href: getSpmbUrl(), highlight: true },
 ];
 
 export default function Header() {

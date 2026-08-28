@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
             value: 'no-cache, no-store, max-age=0, must-revalidate',
           },
           {
+            key: 'X-LiteSpeed-Cache-Control',
+            value: 'no-cache',
+          },
+          {
             key: 'Pragma',
             value: 'no-cache',
           },

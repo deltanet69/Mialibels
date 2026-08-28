@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Send, Smartphone, CheckCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 
 export default function CtaBanner() {
   return (
@@ -66,7 +67,7 @@ export default function CtaBanner() {
             {/* High-Impact CTA Button */}
             <div className="pt-4">
               <Link
-                href="/spmb"
+                href={getSpmbUrl()}
                 className="btn-tactile inline-flex items-center justify-center gap-3 px-12 py-4 rounded-full font-body text-base font-extrabold bg-gradient-to-r from-btn-secondary via-orange-500 to-amber-500 text-white shadow-xl shadow-orange-950/30 hover:shadow-2xl hover:brightness-110 transition-all"
               >
                 <Send className="w-5 h-5" />

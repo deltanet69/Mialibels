@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Award, ArrowRight, Sparkles, ShieldCheck, Users, BookOpen } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 
 export default function HeroSection() {
   return (
@@ -71,7 +72,7 @@ export default function HeroSection() {
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1 shrink-0" />
               </Link>
               <Link
-                href="/spmb"
+                href={getSpmbUrl()}
                 className="btn-tactile inline-flex items-center justify-center gap-2 px-8 sm:px-12 py-3.5 sm:py-4 rounded-full font-body text-sm sm:text-base font-bold text-btn-secondary bg-white/90 backdrop-blur-md border-2 border-btn-secondary/30 shadow-md shadow-orange-950/5 hover:bg-orange-50 hover:border-btn-secondary transition-all text-center w-full sm:w-auto"
               >
                 <span>SPMB 2027/2028</span>

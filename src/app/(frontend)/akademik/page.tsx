@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import AnimatedSection from '@/components/frontend/AnimatedSection';
+import { getSpmbUrl } from '@/lib/urls';
 
 export const metadata = {
   title: 'Akademik | MI Attaqwa 15 Babelan',
@@ -209,9 +210,9 @@ export default function AkademikPage() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link 
-                href="/spmb" 
-                className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-btn-secondary text-white shadow-lg shadow-orange-950/20 hover:shadow-xl hover:brightness-110 transition-all"
+              <Link
+                href={getSpmbUrl()} 
+                className="btn-tactile inline-flex items-center justify-center gap-2 bg-gradient-to-r from-btn-secondary via-orange-500 to-amber-500 text-white px-8 py-3.5 sm:py-4 rounded-full font-body text-sm font-bold shadow-xl shadow-orange-950/20 hover:shadow-2xl hover:brightness-110 transition-all w-full sm:w-auto"
               >
                 <span>Informasi SPMB &amp; Biaya</span>
                 <ArrowRight className="w-5 h-5 ml-1" />

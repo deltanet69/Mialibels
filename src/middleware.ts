@@ -126,55 +126,36 @@ async function verifyJWT(token: string): Promise<{ payload: any } | null> {
   }
 }
 
-/** Returns 'admin', 'parent', 'absen', 'spmb' or null based on the Host / x-forwarded-host header */
 function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' | null {
-  const forwardedHost = req.headers.get('x-forwarded-host');
-  const hostHeader = req.headers.get('host');
-  const nextHostname = req.nextUrl.hostname;
+  const forwardedHost = req.headers.get('x-forwarded-host') || '';
+  const forwardedServer = req.headers.get('x-forwarded-server') || '';
+  const hostHeader = req.headers.get('host') || '';
+  const nextHostname = req.nextUrl.hostname || '';
 
-  // Prioritize x-forwarded-host (set by reverse proxies like Hostinger/Cloudflare), then host, then nextUrl.hostname
-  const raw = forwardedHost || hostHeader || nextHostname || '';
-  const first = raw.split(',')[0].trim();
-  const hostname = first.split(':')[0].toLowerCase().trim();
-
-  // SPMB Subdomain (e.g. spmb.miattaqwa15.sch.id, spmb.localhost)
-  if (
-    hostname.startsWith('spmb.') ||
-    hostname === `${SPMB_SUB}.${BASE_DOMAIN}` ||
-    hostname === `${SPMB_SUB}.localhost` ||
-    hostname.startsWith('ppdb.') ||
-    hostname === `${PPDB_SUB}.${BASE_DOMAIN}` ||
-    hostname === `${PPDB_SUB}.localhost`
-  ) {
-    return 'spmb';
+  const hosts = [forwardedHost, forwardedServer, hostHeader, nextHostname];
+  
+  for (const h of hosts) {
+    if (!h) continue;
+    const hostname = h.split(',')[0].split(':')[0].toLowerCase().trim();
+    
+    if (hostname.startsWith('spmb.') || hostname.startsWith('ppdb.')) return 'spmb';
+    if (hostname.startsWith('parent.')) return 'parent';
+    if (hostname.startsWith('smart.') || hostname.startsWith('admin.')) return 'admin';
+    if (hostname.startsWith('absen.')) return 'absen';
   }
 
-  // Parent Subdomain (e.g. parent.miattaqwa15.sch.id, parent.localhost)
-  if (
-    hostname.startsWith('parent.') ||
-    hostname === `${PARENT_SUB}.${BASE_DOMAIN}` ||
-    hostname === `${PARENT_SUB}.localhost`
-  ) {
-    return 'parent';
-  }
+  // Fallback check on combined raw strings (in case Proxy strips exact hostname but leaves it in referer/origin etc)
+  const rawInfo = [
+    ...hosts,
+    req.headers.get('referer') || '',
+    req.headers.get('origin') || ''
+  ].join(' ').toLowerCase();
 
-  // Smart/Admin Subdomain (e.g. smart.miattaqwa15.sch.id, smart.localhost)
-  if (
-    hostname.startsWith('smart.') ||
-    hostname === `${ADMIN_SUB}.${BASE_DOMAIN}` ||
-    hostname === `${ADMIN_SUB}.localhost`
-  ) {
-    return 'admin';
-  }
-
-  // Absen Subdomain (e.g. absen.miattaqwa15.sch.id, absen.localhost)
-  if (
-    hostname.startsWith('absen.') ||
-    hostname === `${ABSEN_SUB}.${BASE_DOMAIN}` ||
-    hostname === `${ABSEN_SUB}.localhost`
-  ) {
-    return 'absen';
-  }
+  // Make sure it matches subdomain and not just the main domain path
+  if (rawInfo.includes('spmb.miattaqwa15') || rawInfo.includes('spmb.localhost')) return 'spmb';
+  if (rawInfo.includes('parent.miattaqwa15') || rawInfo.includes('parent.localhost')) return 'parent';
+  if (rawInfo.includes('smart.miattaqwa15') || rawInfo.includes('smart.localhost')) return 'admin';
+  if (rawInfo.includes('absen.miattaqwa15') || rawInfo.includes('absen.localhost')) return 'absen';
 
   return null;
 }
