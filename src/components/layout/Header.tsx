@@ -11,7 +11,7 @@ const navLinks = [
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel', href: '/news' },
-  { label: 'PPDB', href: '/ppdb', highlight: true },
+  { label: 'SPMB', href: '/ppdb', highlight: true },
 ];
 
 export default function Header() {
@@ -25,10 +25,10 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Tutup drawer saat resize ke desktop
+  // Tutup drawer saat resize ke desktop (lg >= 1024px)
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) setIsOpen(false);
+      if (window.innerWidth >= 1024) setIsOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -37,18 +37,18 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-50 w-full max-w-[100vw] transition-all duration-500 overflow-x-clip ${
           scrolled
-            ? 'py-3 sm:py-3.5 bg-white/85 backdrop-blur-xl shadow-lg shadow-blue-950/5 border-b border-white/60'
-            : 'py-4 sm:py-5 bg-transparent'
+            ? 'py-2.5 sm:py-3.5 bg-white/85 backdrop-blur-xl shadow-lg shadow-blue-950/5 border-b border-white/60'
+            : 'py-3 sm:py-5 bg-transparent'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex items-center justify-between h-14 sm:h-16 w-full">
 
             {/* ===== LOGO ===== */}
-            <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-              <div className="relative w-[145px] h-[42px] sm:w-[175px] sm:h-[48px] flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0 min-w-0">
+              <div className="relative w-[130px] xs:w-[150px] sm:w-[170px] lg:w-[155px] xl:w-[175px] h-[38px] sm:h-[46px] flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
                 <Image
                   src="/logomi.png"
                   alt="Logo MI Attaqwa 15"
@@ -59,15 +59,15 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* ===== DESKTOP NAV ===== */}
-            <nav className="hidden md:flex items-center gap-1.5 p-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/80 shadow-sm">
+            {/* ===== DESKTOP NAV (Visible on lg >= 1024px) ===== */}
+            <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 p-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/80 shadow-sm">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
                   <Link
                     key={link.label}
                     href={link.href}
-                    className={`relative px-4 py-2 rounded-full font-body text-sm font-semibold transition-all duration-300 ${
+                    className={`relative px-3 xl:px-4 py-1.5 xl:py-2 rounded-full font-body text-xs xl:text-sm font-semibold transition-all duration-300 ${
                       isActive
                         ? 'text-white bg-primary shadow-md shadow-teal-700/20'
                         : link.highlight
@@ -86,24 +86,24 @@ export default function Header() {
               })}
             </nav>
 
-            {/* ===== DESKTOP BUTTON ===== */}
-            <div className="hidden md:flex items-center flex-shrink-0">
+            {/* ===== DESKTOP BUTTON (Visible on lg >= 1024px) ===== */}
+            <div className="hidden lg:flex items-center flex-shrink-0">
               <Link
                 href="/contact"
-                className="btn-tactile inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-body text-sm font-bold bg-btn-primary text-white shadow-md shadow-blue-950/15 hover:bg-[#001d3d] hover:shadow-lg transition-all duration-300"
+                className="btn-tactile inline-flex items-center justify-center gap-2 px-4 xl:px-5 py-2 xl:py-2.5 rounded-full font-body text-xs xl:text-sm font-bold bg-btn-primary text-white shadow-md shadow-blue-950/15 hover:bg-[#001d3d] hover:shadow-lg transition-all duration-300"
               >
-                <PhoneCall className="w-4 h-4 text-accent" />
+                <PhoneCall className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-accent" />
                 <span>Kontak Kami</span>
               </Link>
             </div>
 
-            {/* ===== MOBILE HAMBURGER ===== */}
+            {/* ===== MOBILE & TABLET HAMBURGER (Visible up to lg < 1024px) ===== */}
             <button
               onClick={() => setIsOpen(true)}
-              className="md:hidden p-2.5 rounded-2xl bg-white/80 backdrop-blur-md border border-white/80 text-secondary hover:text-primary hover:bg-white shadow-sm transition-all duration-200 focus:outline-none"
+              className="lg:hidden flex-shrink-0 p-2 sm:p-2.5 rounded-2xl bg-white/85 backdrop-blur-md border border-white/80 text-secondary hover:text-primary hover:bg-white shadow-sm transition-all duration-200 focus:outline-none cursor-pointer"
               aria-label="Buka menu"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
           </div>
@@ -113,7 +113,7 @@ export default function Header() {
       {/* ===== MOBILE DRAWER ===== */}
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-[60] bg-slate-950/40 backdrop-blur-sm md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[60] bg-slate-950/40 backdrop-blur-sm lg:hidden transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsOpen(false)}
@@ -122,7 +122,7 @@ export default function Header() {
 
       {/* Drawer Panel */}
       <div
-        className={`fixed top-0 right-0 bottom-0 z-[70] w-[320px] max-w-[85vw] bg-white/95 backdrop-blur-2xl shadow-2xl flex flex-col md:hidden transition-transform duration-300 ease-out border-l border-white/50 ${
+        className={`fixed top-0 right-0 bottom-0 z-[70] w-[300px] sm:w-[340px] max-w-[85vw] bg-white/95 backdrop-blur-2xl shadow-2xl flex flex-col lg:hidden transition-transform duration-300 ease-out border-l border-white/50 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

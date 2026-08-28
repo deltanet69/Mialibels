@@ -11,8 +11,8 @@ import PpdbFaq from '@/components/frontend/ppdb/PpdbFaq';
 import PpdbCTA from '@/components/frontend/ppdb/PpdbCTA';
 
 export const metadata: Metadata = {
-  title: 'PPDB 2027/2028 | MI Attaqwa 15 Babelan',
-  description: 'Pendaftaran Peserta Didik Baru (PPDB) MI Attaqwa 15 Babelan Tahun Ajaran 2027/2028. Dapatkan informasi syarat pendaftaran, jadwal, dan fasilitas kami.',
+  title: 'SPMB 2027/2028 | MI Attaqwa 15 Babelan',
+  description: 'Sistem Penerimaan Murid Baru (SPMB) MI Attaqwa 15 Babelan Tahun Ajaran 2027/2028. Dapatkan informasi syarat pendaftaran, skema gelombang, jadwal, dan alur pendaftaran.',
 };
 
 export default function PpdbPage() {

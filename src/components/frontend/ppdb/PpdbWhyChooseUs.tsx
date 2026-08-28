@@ -1,81 +1,129 @@
 'use client';
 
 import React from 'react';
-import { Award, BookOpen, HeartHandshake, PiggyBank, Sparkles } from 'lucide-react';
+import { FileEdit, CreditCard, UserCheck, FileCheck2, BookOpen, ArrowRight } from 'lucide-react';
 
-const REASONS = [
+const STEPS = [
   {
-    title: 'Akreditasi A (Unggul)',
-    description: 'Telah terakreditasi A secara resmi BAN-SM, menjamin mutu kurikulum dan proses belajar mengajar prima.',
-    icon: Award,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-100'
+    step: '01',
+    title: 'Isi Formulir Online',
+    description: 'Lengkapi identitas calon siswa (usia min. 6 th 5 bln per 1 Juli 2027) dan data lengkap orang tua/wali melalui portal SPMB.',
+    icon: FileEdit,
+    badgeColor: 'bg-blue-600 text-white',
+    cardBg: 'bg-blue-50/40 border-blue-100 hover:border-blue-300',
+    iconColor: 'text-blue-600',
+    iconBg: 'bg-blue-100/70 border-blue-200'
   },
   {
-    title: 'Kurikulum Integratif',
-    description: 'Memadukan standar nasional, kurikulum Kemenag KMA 1503/2025, dan kepesantrenan Attaqwa.',
-    icon: BookOpen,
-    color: 'text-teal-600',
-    bgColor: 'bg-teal-50',
-    borderColor: 'border-teal-100'
+    step: '02',
+    title: 'Transfer & Upload Struk',
+    description: 'Transfer biaya formulir Rp 300.000 ke Bank BTN (00129-01-30-00015-9 a.n MI ATTAQWA 15 BABELAN) / QRIS dan unggah bukti transfer.',
+    icon: CreditCard,
+    badgeColor: 'bg-amber-500 text-white',
+    cardBg: 'bg-amber-50/40 border-amber-100 hover:border-amber-300',
+    iconColor: 'text-amber-600',
+    iconBg: 'bg-amber-100/70 border-amber-200'
   },
   {
-    title: 'Lingkungan Religius',
-    description: 'Pembiasaan ibadah rutin: shalat dhuha & dzuhur berjamaah, hafalan Juz 30, dan adab islami sehari-hari.',
-    icon: HeartHandshake,
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-50',
-    borderColor: 'border-emerald-100'
+    step: '03',
+    title: 'Verifikasi Berkas Siswa',
+    description: 'Panitia memverifikasi berkas pembayaran & menjadwalkan wawancara orang tua serta pemetaan karakter anak.',
+    icon: UserCheck,
+    badgeColor: 'bg-emerald-600 text-white',
+    cardBg: 'bg-emerald-50/40 border-emerald-100 hover:border-emerald-300',
+    iconColor: 'text-emerald-600',
+    iconBg: 'bg-emerald-100/70 border-emerald-200'
   },
   {
-    title: 'Biaya Terjangkau',
-    description: 'Biaya pendidikan transparan dan rasional dengan fasilitas sarana belajar modern serta berkualitas.',
-    icon: PiggyBank,
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-100'
+    step: '04',
+    title: 'Daftar Ulang & Berkas',
+    description: 'Setelah disetujui (Approved), serahkan dokumen fisik (Akta, KK, KTP, Pas Foto) untuk konfirmasi kursi & pengukuran seragam.',
+    icon: FileCheck2,
+    badgeColor: 'bg-indigo-600 text-white',
+    cardBg: 'bg-indigo-50/40 border-indigo-100 hover:border-indigo-300',
+    iconColor: 'text-indigo-600',
+    iconBg: 'bg-indigo-100/70 border-indigo-200'
   }
 ];
 
 export default function PpdbWhyChooseUs() {
+  const ppdbUrl = process.env.NODE_ENV === 'development' ? 'http://ppdb.localhost:3000' : 'https://ppdb.miattaqwa15.sch.id';
+
   return (
-    <section className="py-20 lg:py-24 bg-white relative">
+    <section id="petunjuk-pendaftaran" className="py-14 sm:py-20 lg:py-24 bg-white relative scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-4">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span>Alasan Utama</span>
+        
+        {/* Header */}
+        <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-3.5 sm:mb-4">
+            <BookOpen className="w-3.5 h-3.5 text-accent" />
+            <span>Petunjuk Pendaftaran</span>
           </div>
-          <h2 className="font-headline font-black text-3xl md:text-4xl text-secondary mb-4">
-            MENGAPA MEMILIH MI ATTAQWA 15?
+          <h2 className="font-headline font-black text-2xl xs:text-3xl md:text-4xl text-secondary mb-3 sm:mb-4 break-words">
+            4 LANGKAH MUDAH PENDAFTARAN SPMB
           </h2>
-          <p className="font-body text-gray-500 text-base sm:text-lg">
-            Komitmen kami memberikan layanan pendidikan dasar Islam terbaik untuk mewujudkan generasi cerdas dan berakhlak mulia.
+          <p className="font-body text-gray-500 text-sm sm:text-base md:text-lg px-2 leading-relaxed">
+            Panduan lengkap alur pendaftaran peserta didik baru MI Attaqwa 15 Babelan secara online dari awal hingga verifikasi berkas.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7">
-          {REASONS.map((reason, index) => {
-            const Icon = reason.icon;
+        {/* 4 Step Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 lg:gap-4">
+          {STEPS.map((item, index) => {
+            const Icon = item.icon;
             return (
               <div 
                 key={index} 
-                className="flex flex-col items-center text-center p-8 rounded-[2rem] bg-white border border-gray-100/90 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group"
+                className={`relative flex flex-col justify-between p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] bg-white border shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group ${item.cardBg}`}
               >
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border transition-transform duration-300 group-hover:scale-110 shadow-2xs ${reason.bgColor} ${reason.borderColor}`}>
-                  <Icon className={`w-8 h-8 ${reason.color}`} />
+                <div>
+                  {/* Step Badge & Icon Header */}
+                  <div className="flex items-center justify-between mb-5">
+                    <span className={`font-headline font-black text-xs px-3 py-1 rounded-full shadow-2xs ${item.badgeColor}`}>
+                      LANGKAH {item.step}
+                    </span>
+                  </div>
+
+                  {/* Title & Description */}
+                  <h3 className="font-headline font-bold text-lg sm:text-xl text-secondary mb-2.5 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="font-body text-gray-600 leading-relaxed text-xs sm:text-sm">
+                    {item.description}
+                  </p>
                 </div>
-                <h3 className="font-headline font-bold text-xl text-secondary mb-3">
-                  {reason.title}
-                </h3>
-                <p className="font-body text-gray-500 leading-relaxed text-sm">
-                  {reason.description}
-                </p>
+
+                {/* Bottom Step Indicator */}
+                <div className="mt-6 pt-3.5 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-gray-400">
+                  <span>Tahap {index + 1} dari 4</span>
+                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 text-primary" />
+                </div>
               </div>
             );
           })}
         </div>
+
+        {/* Direct Link Banner */}
+        <div className="mt-10 sm:mt-12 p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#002957] to-[#004d40] text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="text-center sm:text-left">
+            <h4 className="font-headline font-bold text-lg sm:text-xl text-white mb-1">
+              Siap Mendaftarkan Putra-Putri Anda?
+            </h4>
+            <p className="font-body text-xs sm:text-sm text-teal-100">
+              Isi formulir SPMB online sekarang dalam waktu kurang dari 5 menit.
+            </p>
+          </div>
+          <a
+            href={ppdbUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-tactile inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full font-body text-xs sm:text-sm font-bold bg-btn-secondary text-white shadow-md hover:brightness-110 transition-all shrink-0 w-full sm:w-auto"
+          >
+            <span>Buka Formulir Pendaftaran</span>
+            <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+
       </div>
     </section>
   );

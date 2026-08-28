@@ -68,6 +68,27 @@ export async function PUT(
       updateData.parent_password = await hash(body.parent_password, 10)
     }
 
+    // Ensure class_id stays in sync with classroom name when class is updated
+    if (updateData.class !== undefined) {
+      if (updateData.class) {
+        let cleanClass = updateData.class.replace(/^kelas\s+/i, '').trim().toUpperCase()
+        cleanClass = cleanClass.replace(/^(\d+)\s+([A-Z])$/, '$1$2')
+        updateData.class = cleanClass
+
+        const { data: clsData } = await supabase
+          .from('classrooms')
+          .select('id')
+          .ilike('name', cleanClass)
+          .maybeSingle()
+
+        if (clsData) {
+          updateData.class_id = clsData.id
+        }
+      } else {
+        updateData.class_id = null
+      }
+    }
+
     let { data: student, error } = await supabase
       .from('students')
       .update(updateData)

@@ -242,14 +242,13 @@ export default function NewsPageClient({ allNews }: { allNews: NewsArticle[] }) 
 
       {/* Hero */}
       <AnimatedSection direction="none" delay={0.1}>
-        <section className="relative pt-32 pb-16 lg:pt-20 lg:pb-20 overflow-hidden flex flex-col justify-center min-h-[420px] bg-mesh-radial">
+        <section className="relative pt-10 pb-10 lg:pt-10 lg:pb-30 overflow-hidden flex flex-col justify-center bg-mesh-radial">
           <div className="absolute inset-0 z-0">
             <Image src="/images/student_activity.png" alt="Header Background Berita" fill priority className="object-cover opacity-20 object-top" />
           </div>
           <div className="absolute inset-0 bg-gradient-to-b from-[#F4F7FC]/90 via-[#F4F7FC]/80 to-[#F4F7FC] z-0" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <div className="inline-flex items-center gap-2 py-2 px-5 rounded-full glass-pill text-primary-dark font-body text-xs sm:text-sm font-bold tracking-wider uppercase mb-5">
-              <Newspaper className="w-3.5 h-3.5 text-btn-secondary" />
               <span>Pusat Informasi &amp; Publikasi</span>
             </div>
             <h1 className="font-headline font-black text-4xl sm:text-5xl lg:text-6xl mb-4 leading-tight text-secondary">

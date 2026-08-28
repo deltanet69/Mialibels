@@ -229,11 +229,11 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
       {/* ════════════════════════════════════════════════════════════════════
           STEPPER PROGRESS BAR (Mobile-First & Clear)
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-2xs">
+      <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-2xs">
         <div className="flex items-center justify-between relative">
           
           {/* Progress Connecting Line */}
-          <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-1 bg-slate-100 -z-0">
+          <div className="absolute left-6 right-6 sm:left-8 sm:right-8 top-4 sm:top-1/2 -translate-y-1/2 h-1 bg-slate-100 -z-0">
             <div 
               className="h-full bg-blue-600 transition-all duration-300"
               style={{ width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%' }}
@@ -241,47 +241,47 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
           </div>
 
           {/* Step 1 Pill */}
-          <div className="relative z-10 flex flex-col items-center gap-1.5">
-            <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
+          <div className="relative z-10 flex flex-col items-center gap-1">
+            <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
               currentStep > 1 
                 ? 'bg-blue-600 text-white shadow-sm' 
                 : currentStep === 1 
                   ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-sm' 
                   : 'bg-white border-2 border-slate-200 text-slate-400'
             }`}>
-              {currentStep > 1 ? <Check size={16} className="stroke-[3]" /> : <User size={16} />}
+              {currentStep > 1 ? <Check size={14} className="stroke-[3] sm:w-4 sm:h-4" /> : <User size={14} className="sm:w-4 sm:h-4" />}
             </div>
-            <span className={`text-[11px] sm:text-xs font-bold ${currentStep >= 1 ? 'text-slate-900' : 'text-slate-400'}`}>
+            <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${currentStep >= 1 ? 'text-slate-900' : 'text-slate-400'}`}>
               1. Calon Siswa
             </span>
           </div>
 
           {/* Step 2 Pill */}
-          <div className="relative z-10 flex flex-col items-center gap-1.5">
-            <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
+          <div className="relative z-10 flex flex-col items-center gap-1">
+            <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
               currentStep > 2 
                 ? 'bg-blue-600 text-white shadow-sm' 
                 : currentStep === 2 
                   ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-sm' 
                   : 'bg-white border-2 border-slate-200 text-slate-400'
             }`}>
-              {currentStep > 2 ? <Check size={16} className="stroke-[3]" /> : <Users size={16} />}
+              {currentStep > 2 ? <Check size={14} className="stroke-[3] sm:w-4 sm:h-4" /> : <Users size={14} className="sm:w-4 sm:h-4" />}
             </div>
-            <span className={`text-[11px] sm:text-xs font-bold ${currentStep >= 2 ? 'text-slate-900' : 'text-slate-400'}`}>
+            <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${currentStep >= 2 ? 'text-slate-900' : 'text-slate-400'}`}>
               2. Orang Tua
             </span>
           </div>
 
           {/* Step 3 Pill */}
-          <div className="relative z-10 flex flex-col items-center gap-1.5">
-            <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
+          <div className="relative z-10 flex flex-col items-center gap-1">
+            <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all ${
               currentStep === 3 
                 ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-sm' 
                 : 'bg-white border-2 border-slate-200 text-slate-400'
             }`}>
-              <CreditCard size={16} />
+              <CreditCard size={14} className="sm:w-4 sm:h-4" />
             </div>
-            <span className={`text-[11px] sm:text-xs font-bold ${currentStep === 3 ? 'text-slate-900' : 'text-slate-400'}`}>
+            <span className={`text-[10px] sm:text-xs font-bold text-center leading-tight ${currentStep === 3 ? 'text-slate-900' : 'text-slate-400'}`}>
               3. Pembayaran
             </span>
           </div>
@@ -291,16 +291,16 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
       {/* Error Alert Box */}
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-xs sm:text-sm text-rose-800 animate-in fade-in duration-200">
-          <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
-          <div className="flex-1 font-semibold">{error}</div>
+        <div className="p-3.5 sm:p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm text-rose-800 animate-in fade-in duration-200">
+          <AlertTriangle size={17} className="text-rose-600 shrink-0 mt-0.5" />
+          <div className="flex-1 font-semibold break-words">{error}</div>
         </div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
           MAIN FORM CONTAINER
          ════════════════════════════════════════════════════════════════════ */}
-      <form onSubmit={handleSubmit} className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200/80 shadow-2xs space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-5 sm:space-y-6">
         
         {/* ════════════════════════════════════════════════════════════════════
             STEP 1: DATA CALON SISWA
@@ -308,13 +308,13 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
         {currentStep === 1 && (
           <div className="space-y-5">
             <div className="border-b border-slate-100 pb-3">
-              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
+              <span className="text-[14px] font-bold text-blue-700 uppercase tracking-wider block mb-6">
                 Langkah 1 Dari 3
               </span>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                 Informasi Calon Siswa
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-sm text-slate-600 mt-0.5">
                 Pastikan data nama dan tanggal lahir sesuai dengan Akta Kelahiran resmi.
               </p>
             </div>
@@ -323,7 +323,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               
               {/* Nama Lengkap */}
               <div className="sm:col-span-2 space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-sm font-bold text-slate-700">
                   Nama Lengkap Calon Siswa <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -333,13 +333,13 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   onChange={handleChange}
                   placeholder="Contoh: Muhammad Rayhan Pratama"
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
               {/* Nama Panggilan */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-sm font-bold text-slate-700">
                   Nama Panggilan
                 </label>
                 <input
@@ -348,20 +348,20 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   value={formData.student_nickname}
                   onChange={handleChange}
                   placeholder="Contoh: Rayhan"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
               {/* Jenis Kelamin */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-sm font-bold text-slate-700">
                   Jenis Kelamin <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  name="gender"
+                  name="gender" 
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none cursor-pointer"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none cursor-pointer"
                 >
                   <option value="Laki-laki">Laki-laki</option>
                   <option value="Perempuan">Perempuan</option>
@@ -370,7 +370,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
               {/* Tempat Lahir */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-sm font-bold text-slate-700">
                   Tempat Lahir <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -380,13 +380,13 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   onChange={handleChange}
                   placeholder="Contoh: Bekasi"
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
               {/* Tanggal Lahir */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-sm font-bold text-slate-700">
                   Tanggal Lahir <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -395,45 +395,40 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   value={formData.birth_date}
                   onChange={handleChange}
                   required
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
               {/* Age Feedback Notification Box */}
               {calculatedAge && (
-                <div className={`sm:col-span-2 p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+                <div className={`sm:col-span-2 p-3 sm:p-3.5 rounded-xl border text-xs flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 sm:gap-3 ${
                   calculatedAge.isValid 
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
                     : 'bg-rose-50 border-rose-200 text-rose-900'
                 }`}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start xs:items-center gap-2">
                     {calculatedAge.isValid ? (
-                      <CheckCircle2 size={17} className="text-emerald-600 shrink-0" />
+                      <CheckCircle2 size={28} className="text-emerald-600 shrink-0 mt-0.5 xs:mt-0" />
                     ) : (
-                      <AlertTriangle size={17} className="text-rose-600 shrink-0" />
+                      <AlertTriangle size={28} className="text-rose-600 shrink-0 mt-0.5 xs:mt-0" />
                     )}
                     <div>
-                      <span className="font-bold">
+                      <span className="font-bold break-words">
                         Usia per 1 Juli 2027: {calculatedAge.years} Thn {calculatedAge.months} Bln
                       </span>
-                      <p className="text-[11px] opacity-80">
+                      <p className="text-[12px] opacity-80 mt-0.5">
                         {calculatedAge.isValid 
-                          ? '✅ Memenuhi syarat usia minimum (6 thn 6 bln).' 
-                          : '⚠️ Belum memenuhi syarat minimum (6 thn 6 bln).'}
+                          ? 'Memenuhi syarat usia minimum (6 thn 6 bln).' 
+                          : 'Belum memenuhi syarat minimum (6 thn 6 bln).'}
                       </p>
                     </div>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase shrink-0 ${
-                    calculatedAge.isValid ? 'bg-emerald-200/60 text-emerald-800' : 'bg-rose-200/60 text-rose-800'
-                  }`}>
-                    {calculatedAge.isValid ? 'Valid' : 'Kurang Usia'}
-                  </span>
                 </div>
               )}
 
               {/* Berat Badan */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-md font-bold text-slate-700">
                   Berat Badan (kg) <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -445,13 +440,13 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   required
                   min={10}
                   max={100}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
               {/* Tinggi Badan */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-md font-bold text-slate-700">
                   Tinggi Badan (cm) <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -463,20 +458,20 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   required
                   min={50}
                   max={200}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
               {/* Golongan Darah */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-md font-bold text-slate-700">
                   Golongan Darah
                 </label>
                 <select
                   name="blood_type"
                   value={formData.blood_type}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none cursor-pointer"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none cursor-pointer"
                 >
                   <option value="A">A</option>
                   <option value="B">B</option>
@@ -488,7 +483,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
               {/* Asal TK / RA */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-md font-bold text-slate-700">
                   Asal TK / RA / PAUD
                 </label>
                 <input
@@ -497,7 +492,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   value={formData.previous_school}
                   onChange={handleChange}
                   placeholder="Contoh: RA Attaqwa 15"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                 />
               </div>
 
@@ -508,7 +503,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               <button
                 type="button"
                 onClick={handleNext}
-                className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-blue-600/25 transition cursor-pointer"
+                className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-md sm:text-md font-bold shadow-sm shadow-blue-600/25 transition cursor-pointer"
               >
                 <span>Lanjut ke Langkah 2: Data Orang Tua</span>
                 <ArrowRight size={16} />
@@ -523,25 +518,25 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
         {currentStep === 2 && (
           <div className="space-y-5">
             <div className="border-b border-slate-100 pb-3">
-              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
+              <span className="text-[14px] font-bold text-blue-700 uppercase tracking-wider block mb-5">
                 Langkah 2 Dari 3
               </span>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                 Informasi Orang Tua / Wali
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-sm text-slate-600 mt-0.5">
                 Pastikan nomor WhatsApp dan Email aktif untuk menerima notifikasi status kelulusan.
               </p>
             </div>
 
             {/* Data Ayah */}
             <div className="space-y-3 pt-1">
-              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider block pb-1 border-b border-slate-100">
-                👨 Data Identitas Ayah
+              <span className="text-md font-bold text-blue-900 uppercase tracking-wider block pb-1 border-b border-slate-100">
+                Data Identitas Ayah
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     Nama Lengkap Ayah <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -551,12 +546,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: Rahmat Hidayat"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     NIK Ayah (16 Digit) <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -567,12 +562,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     placeholder="327501..."
                     maxLength={16}
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     Pekerjaan Ayah <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -582,12 +577,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: Karyawan Swasta / Wiraswasta"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     No. WhatsApp Ayah <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -597,12 +592,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: 081234567890"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     Email Aktif Ayah / Keluarga <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -612,7 +607,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: rahmat@gmail.com"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
               </div>
@@ -620,12 +615,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
             {/* Data Ibu */}
             <div className="space-y-3 pt-3">
-              <span className="text-xs font-bold text-teal-900 uppercase tracking-wider block pb-1 border-b border-slate-100">
-                👩 Data Identitas Ibu
+              <span className="text-md font-bold text-teal-900 uppercase tracking-wider block pb-1 border-b border-slate-100">
+                Data Identitas Ibu
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     Nama Lengkap Ibu <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -635,12 +630,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: Siti Aminah"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     NIK Ibu (16 Digit) <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -651,12 +646,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     placeholder="327501..."
                     maxLength={16}
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     Pekerjaan Ibu <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -666,12 +661,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: Ibu Rumah Tangga / Guru"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-md font-bold text-slate-700">
                     No. WhatsApp Ibu <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -681,7 +676,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     onChange={handleChange}
                     placeholder="Contoh: 081298765432"
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
                   />
                 </div>
               </div>
@@ -689,7 +684,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
             {/* Alamat Domisili */}
             <div className="space-y-1 pt-2">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-md font-bold text-slate-700">
                 Alamat Tempat Tinggal Sekarang
               </label>
               <textarea
@@ -698,7 +693,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 onChange={handleChange}
                 placeholder="Contoh: Jl. Raya Babelan No. 15, RT 02/RW 03, Babelan Kota"
                 rows={2}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-md sm:text-md font-semibold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition outline-none"
               />
             </div>
 
@@ -707,7 +702,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               <button
                 type="button"
                 onClick={handlePrev}
-                className="btn-tactile flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer"
+                className="btn-tactile flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-md sm:text-md font-bold transition cursor-pointer"
               >
                 <ArrowLeft size={16} />
                 <span>Kembali</span>
@@ -716,7 +711,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               <button
                 type="button"
                 onClick={handleNext}
-                className="btn-tactile flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-blue-600/25 transition cursor-pointer"
+                className="btn-tactile flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-md sm:text-md font-bold shadow-sm shadow-blue-600/25 transition cursor-pointer"
               >
                 <span>Lanjut ke Langkah 3: Pembayaran</span>
                 <ArrowRight size={16} />
@@ -731,57 +726,57 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
         {currentStep === 3 && (
           <div className="space-y-5">
             <div className="border-b border-slate-100 pb-3">
-              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
+              <span className="text-[14px] font-bold text-blue-700 uppercase tracking-wider block mb-5">
                 Langkah 3 Dari 3
               </span>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                 Biaya Formulir &amp; Bukti Pembayaran
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Transfer biaya pendaftaran sebesar <strong>Rp {(Number(settings.registration_fee) || 200000).toLocaleString('id-ID')}</strong> ke rekening resmi madrasah.
+              <p className="text-sm text-slate-600 mt-0.5">
+                Transfer biaya pendaftaran sebesar <strong>Rp {(Number(settings.registration_fee) || 300000).toLocaleString('id-ID')}</strong> ke rekening resmi madrasah.
               </p>
             </div>
 
             {/* Bank Card Info */}
-            <div className="bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-sm space-y-4">
+            <div className="bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white p-4 sm:p-6 rounded-2xl shadow-sm space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[11px] font-bold text-blue-200 uppercase tracking-wider">Rekening Resmi PPDB</span>
-                  <h3 className="text-lg font-black text-white">{settings.bank_name || 'Bank BTN'}</h3>
+                  <span className="text-[14px] font-bold text-blue-200 uppercase tracking-wider">Rekening Resmi PPDB</span>
+                  <h3 className="text-lg sm:text-lg font-black text-white">{settings.bank_name || 'Bank BTN'}</h3>
                 </div>
-                <Building2 size={24} className="text-blue-300" />
+                <Building2 size={24} className="text-blue-300 shrink-0" />
               </div>
 
-              <div className="bg-white/10 backdrop-blur-sm p-3.5 rounded-xl border border-white/15 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-blue-200 uppercase tracking-wider block">Nomor Rekening</span>
-                  <span className="font-mono text-base sm:text-lg font-bold text-amber-300">
+              <div className="bg-white/10 backdrop-blur-sm p-3 sm:p-3.5 rounded-xl border border-white/15 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[12px] text-blue-200 uppercase tracking-wider block">Nomor Rekening</span>
+                  <span className="font-mono text-xl sm:text-2xl font-bold text-yellow-200 truncate block">
                     {settings.bank_account_number || '00129-01-30-00015-9'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleCopyBank}
-                  className="btn-tactile px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5"
+                  className="btn-tactile px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shrink-0"
                 >
-                  <Copy size={13} />
+                  <Copy size={14} />
                   <span>{copiedBank ? 'Tersalin!' : 'Salin'}</span>
                 </button>
               </div>
 
-              <div className="flex justify-between text-xs text-blue-200 border-t border-white/10 pt-2">
-                <span>Atas Nama: <strong>{settings.bank_account_holder || 'MI ATTAQWA 15 BABELAN'}</strong></span>
-                <span>Nominal: <strong>Rp {(Number(settings.registration_fee) || 200000).toLocaleString('id-ID')}</strong></span>
+              <div className="flex flex-col xs:flex-row xs:justify-between text-md text-blue-200 border-t border-white/10 pt-2 gap-1 xs:gap-2">
+                <span className="break-words">Atas Nama: <strong>{settings.bank_account_holder || 'MI ATTAQWA 15 BABELAN'}</strong></span>
+                <span className="shrink-0">Nominal: <strong>Rp {(Number(settings.registration_fee) || 300000).toLocaleString('id-ID')}</strong></span>
               </div>
             </div>
 
             {/* Upload Struk Area */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700">
+              <label className="block text-md font-bold text-slate-700">
                 Upload Foto Struk / Bukti Transfer <span className="text-rose-500">*</span>
               </label>
 
-              <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-5 text-center transition bg-slate-50/60 relative">
+              <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-4 sm:p-5 text-center transition bg-slate-50/60 relative">
                 {uploadingProof ? (
                   <div className="py-6 flex flex-col items-center gap-2 text-blue-600">
                     <Loader2 size={28} className="animate-spin" />
@@ -790,7 +785,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 ) : formData.payment_proof_url ? (
                   <div className="py-2 flex flex-col items-center gap-2">
                     <CheckCircle2 size={32} className="text-emerald-500" />
-                    <span className="text-xs font-bold text-emerald-800">Bukti Pembayaran Berhasil Diunggah!</span>
+                    <span className="text-sm font-bold text-emerald-800 break-words">Bukti Pembayaran Berhasil Diunggah!</span>
                     <a
                       href={formData.payment_proof_url}
                       target="_blank"
@@ -812,10 +807,10 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 ) : (
                   <label className="cursor-pointer flex flex-col items-center gap-2 py-4">
                     <UploadCloud size={32} className="text-slate-400" />
-                    <span className="text-xs font-bold text-slate-700">
+                    <span className="text-md font-bold text-slate-700 break-words px-2">
                       Ketuk untuk Memilih Foto Struk / Bukti Bayar
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-md text-slate-400">
                       Format JPG, PNG, atau WEBP (Maks 10MB)
                     </span>
                     <input
@@ -835,7 +830,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 type="button"
                 onClick={handlePrev}
                 disabled={loading}
-                className="btn-tactile flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer"
+                className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer"
               >
                 <ArrowLeft size={16} />
                 <span>Kembali</span>
@@ -844,7 +839,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               <button
                 type="submit"
                 disabled={loading || uploadingProof}
-                className="btn-tactile flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/25 transition cursor-pointer"
+                className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/25 transition cursor-pointer"
               >
                 {loading ? (
                   <>

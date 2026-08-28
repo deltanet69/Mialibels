@@ -6,7 +6,7 @@ import { Mail, Clock, Sparkles } from 'lucide-react';
 
 export default function ContactHero() {
   return (
-    <section className="relative pt-32 pb-20 lg:pt-30 lg:pb-28 overflow-hidden bg-mesh-radial">
+    <section className="relative pt-10 pb-20 lg:pt-10 lg:pb-20 overflow-hidden bg-mesh-radial">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -40,7 +40,7 @@ export default function ContactHero() {
         </p>
 
         {/* Jam Kerja TU */}
-        <div className="mt-8 inline-flex items-center gap-3.5 bg-white/90 backdrop-blur-md px-6 py-3.5 rounded-full border border-gray-100 shadow-2xs">
+        {/* <div className="mt-8 inline-flex items-center gap-3.5 bg-white/90 backdrop-blur-md px-6 py-3.5 rounded-full border border-gray-100 shadow-2xs">
           <div className="w-9 h-9 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
             <Clock className="w-4 h-4 text-teal-700" />
           </div>
@@ -48,7 +48,7 @@ export default function ContactHero() {
             <p className="font-headline font-bold text-xs text-secondary">Jam Pelayanan Tata Usaha (TU)</p>
             <p className="font-body text-xs text-gray-500 font-medium mt-0.5">Senin – Jumat : 08.00 – 14.00 WIB</p>
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );

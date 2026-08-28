@@ -16,10 +16,10 @@ export default function FrontendLayout({
 }) {
   return (
     <>
-      <div className="min-h-full flex flex-col bg-[#EFF3FB]">
+      <div className="min-h-full flex flex-col bg-[#EFF3FB] w-full max-w-[100vw] overflow-x-hidden relative">
         <SmoothScrolling>
           <Header />
-          <main className="flex-grow pt-24 pb-12">{children}</main>
+          <main className="flex-grow pt-20 sm:pt-24 pb-12 w-full max-w-[100vw] overflow-x-hidden">{children}</main>
           <Footer />
         </SmoothScrolling>
         <AnnouncementPopup />

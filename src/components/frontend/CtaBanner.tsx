@@ -26,7 +26,7 @@ export default function CtaBanner() {
           <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-orange-500/20 rounded-full blur-3xl pointer-events-none" />
 
           {/* Content Wrapper */}
-          <div className="relative z-10 max-w-4xl flex flex-col items-center space-y-6">
+          <div className="relative z-10 max-w-5xl flex flex-col items-center space-y-6">
             
             {/* Playful Tag */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-accent font-body text-xs sm:text-sm font-bold tracking-widest uppercase shadow-sm">
@@ -35,7 +35,7 @@ export default function CtaBanner() {
             </div>
 
             {/* Heading */}
-            <h2 className="font-headline font-black text-3xl sm:text-4xl md:text-5xl text-white leading-tight">
+            <h2 className="font-headline font-black text-4xl sm:text-4xl md:text-5xl text-white leading-tight">
               Sistem Informasi & Manajemen <br className="hidden sm:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-200 to-amber-300">
                 Madrasah Berbasis Digital Modern
@@ -43,7 +43,7 @@ export default function CtaBanner() {
             </h2>
 
             {/* Description */}
-            <p className="font-body text-slate-200 text-base sm:text-lg max-w-2xl leading-relaxed font-normal">
+            <p className="font-body text-slate-200 text-base sm:text-lg max-w-4xl leading-relaxed font-normal">
               Mempermudah orang tua dalam monitoring kehadiran siswa secara realtime, pencatatan tabungan transparan, dan laporan capaian akademik siswa.
             </p>
 
@@ -67,10 +67,10 @@ export default function CtaBanner() {
             <div className="pt-4">
               <Link
                 href="/ppdb"
-                className="btn-tactile inline-flex items-center justify-center gap-3 px-10 py-4.5 rounded-full font-body text-base font-extrabold bg-gradient-to-r from-btn-secondary via-orange-500 to-amber-500 text-white shadow-xl shadow-orange-950/30 hover:shadow-2xl hover:brightness-110 transition-all"
+                className="btn-tactile inline-flex items-center justify-center gap-3 px-12 py-4 rounded-full font-body text-base font-extrabold bg-gradient-to-r from-btn-secondary via-orange-500 to-amber-500 text-white shadow-xl shadow-orange-950/30 hover:shadow-2xl hover:brightness-110 transition-all"
               >
                 <Send className="w-5 h-5" />
-                <span>Daftar PPDB Online Sekarang</span>
+                <span>Daftar SPMB Online</span>
               </Link>
             </div>
 

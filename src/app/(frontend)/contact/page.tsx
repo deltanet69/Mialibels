@@ -9,7 +9,7 @@ import ContactMap from '@/components/frontend/contact/ContactMap';
 
 export const metadata: Metadata = {
   title: 'Hubungi Kami | MI Attaqwa 15 Babelan',
-  description: 'Hubungi MI Attaqwa 15 Babelan Kota. Dapatkan informasi terkait PPDB, akademik, atau kirim pesan melalui formulir kontak resmi kami.',
+  description: 'Hubungi MI Attaqwa 15 Babelan Kota. Dapatkan informasi terkait SPMB, akademik, atau kirim pesan melalui formulir kontak resmi kami.',
 };
 
 export default function ContactPage() {
@@ -23,13 +23,13 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
             
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-5 max-w-2xl lg:max-w-none mx-auto w-full">
               <AnimatedSection direction="right" delay={0.2}>
                 <ContactInfo />
               </AnimatedSection>
             </div>
             
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-7 max-w-2xl lg:max-w-none mx-auto w-full">
               <AnimatedSection direction="left" delay={0.3}>
                 <ContactForm />
               </AnimatedSection>

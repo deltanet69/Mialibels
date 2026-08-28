@@ -92,18 +92,18 @@ export default function AnnouncementPopup() {
   if (!isOpen || !activeBanner) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 font-sans animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 font-sans animate-in fade-in duration-300 overflow-y-auto">
       
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
         onClick={handleClose}
         aria-hidden="true"
       />
 
       {/* Modal Dialog */}
       <div 
-        className="relative bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-lg border border-white/20 z-10 animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh] my-auto"
+        className="relative bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl w-full max-w-lg border border-slate-200/80 z-10 animate-in zoom-in-95 duration-300 flex flex-col max-h-[min(92dvh,92vh)] my-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="popup-title"
@@ -111,65 +111,67 @@ export default function AnnouncementPopup() {
         {/* Floating Close Button */}
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 z-30 w-9 h-9 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-md transition-transform hover:scale-105 shadow-md cursor-pointer"
+          className="absolute top-2.5 right-2.5 z-30 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white flex items-center justify-center backdrop-blur-md transition-transform hover:scale-105 shadow-md cursor-pointer shrink-0"
           aria-label="Tutup Pengumuman"
           title="Tutup (Esc)"
         >
-          <X size={18} />
+          <X size={16} className="sm:w-[18px] sm:h-[18px]" />
         </button>
 
         {/* Scrollable Container */}
-        <div className="overflow-y-auto custom-scrollbar flex flex-col">
+        <div className="overflow-y-auto custom-scrollbar flex flex-col flex-1">
           
-          {/* Banner Media Container with dynamic aspect ratio */}
-          <div className="relative w-full bg-slate-950 flex items-center justify-center overflow-hidden min-h-[220px] max-h-[420px]">
+          {/* Banner Media Container with responsive max height */}
+          <div className="relative w-full bg-slate-950 flex items-center justify-center overflow-hidden max-h-[28vh] sm:max-h-[360px] min-h-[130px] shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={activeBanner.image}
               alt={activeBanner.title}
-              className="w-full h-full object-contain max-h-[420px]"
+              className="w-full h-full object-contain max-h-[28vh] sm:max-h-[360px]"
             />
           </div>
 
           {/* Banner Details */}
-          <div className="p-5 sm:p-6 space-y-3.5 bg-white">
-            <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 uppercase tracking-wider">
-                <Megaphone size={12} />
-                <span>Pengumuman</span>
-              </span>
-              <span className="text-[11px] font-semibold text-slate-400">
-                MI Attaqwa 15 Babelan
-              </span>
+          <div className="p-4 sm:p-6 space-y-3 bg-white flex-1 flex flex-col justify-between">
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] sm:text-xs font-bold border border-blue-100 uppercase tracking-wider">
+                  <Megaphone size={11} />
+                  <span>Pengumuman</span>
+                </span>
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400">
+                  MI Attaqwa 15 Babelan
+                </span>
+              </div>
+
+              <h3 id="popup-title" className="font-sans font-extrabold text-base sm:text-lg md:text-xl text-slate-900 leading-snug tracking-tight break-words">
+                {activeBanner.title}
+              </h3>
+
+              {activeBanner.description && (
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed break-words">
+                  {activeBanner.description}
+                </p>
+              )}
             </div>
 
-            <h3 id="popup-title" className="font-sans font-extrabold text-lg sm:text-xl text-slate-900 leading-snug tracking-tight">
-              {activeBanner.title}
-            </h3>
-
-            {activeBanner.description && (
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                {activeBanner.description}
-              </p>
-            )}
-
             {/* Action CTA & Close Button */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center gap-2.5">
+            <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               {activeBanner.link && (
                 <Link
                   href={activeBanner.link}
                   onClick={handleClose}
-                  className="w-full sm:flex-1 py-3 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition cursor-pointer"
+                  className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 transition cursor-pointer text-center"
                 >
                   <span>Lihat Selengkapnya</span>
-                  <ArrowUpRight size={15} />
+                  <ArrowUpRight size={14} />
                 </Link>
               )}
 
               <button
                 type="button"
                 onClick={handleClose}
-                className={`w-full py-3 px-5 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer ${
+                className={`w-full py-2.5 sm:py-3 px-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer text-center ${
                   activeBanner.link ? 'sm:w-auto' : ''
                 }`}
               >

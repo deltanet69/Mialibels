@@ -40,7 +40,7 @@ const menuLinks = [
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel & Berita', href: '/news' },
-  { label: 'PPDB 2027/2028', href: '/ppdb' },
+  { label: 'SPMB 2027/2028', href: '/ppdb' },
 ];
 
 export default function Footer() {

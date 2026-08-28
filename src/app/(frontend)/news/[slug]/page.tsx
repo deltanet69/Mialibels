@@ -39,16 +39,12 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
   const relatedArticles = await getRelatedNews(article.id, 3);
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-[#F4F7FC] pt-28 pb-20">
+    <div className="flex flex-col w-full min-h-screen bg-[#F4F7FC] pt-5 pb-5">
       
       {/* Breadcrumbs */}
       <AnimatedSection direction="down" delay={0.1}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4">
-          <nav className="flex items-center text-xs sm:text-sm font-body text-gray-500 gap-2 bg-white/80 backdrop-blur-md px-4 py-2.5 rounded-full border border-gray-100 shadow-2xs w-fit">
-            <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">
-              <Home className="w-3.5 h-3.5" />
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
+          <nav className="flex items-center text-xs sm:text-sm font-body text-gray-500 gap-2 ml-2 w-fit">
             <Link href="/news" className="hover:text-primary transition-colors font-medium">
               Artikel &amp; Berita
             </Link>
@@ -62,8 +58,8 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
 
       {/* Article Header */}
       <AnimatedSection direction="up" delay={0.2}>
-        <header className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-4 mb-8 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-5">
+        <header className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-4 mb-8 text-left sm:text-left">
+          <div className="inline-flex items-start gap-1.5 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-5">
             <Sparkles className="w-3.5 h-3.5 text-accent" />
             <span>{article.category}</span>
           </div>
@@ -72,7 +68,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
           </h1>
           
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-5 text-gray-400 font-body text-xs sm:text-sm font-semibold border-y border-gray-200/70 py-3.5">
+          <div className="flex flex-wrap items-center justify-start sm:justify-start gap-5 text-gray-400 font-body text-xs sm:text-sm font-semibold border-y border-gray-200/70 py-3.5">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-700">
                 <User className="w-3.5 h-3.5" />
@@ -94,7 +90,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
       {/* Hero Image */}
       <AnimatedSection direction="up" delay={0.3}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full mb-10">
-          <div className="relative w-full aspect-[16/9] rounded-[2.5rem] overflow-hidden shadow-xl bg-slate-100 border-4 border-white">
+          <div className="relative w-full aspect-[16/9] rounded-[48px] overflow-hidden border-4 border-white">
             <Image 
               src={article.imageUrl} 
               alt={article.title} 
@@ -108,8 +104,8 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
 
       {/* Article Content */}
       <AnimatedSection direction="up">
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="bg-white p-8 sm:p-12 rounded-[2.5rem] shadow-sm border border-gray-100">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full bg-white">
+          <div className="p-2 pt-8 pb-15 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <article 
               className="max-w-none font-body text-gray-700 text-base sm:text-lg leading-relaxed break-words overflow-hidden
                 [&_p]:mb-6
@@ -159,7 +155,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
       {/* Related Articles */}
       {relatedArticles.length > 0 && (
         <AnimatedSection direction="up">
-          <section className="mt-16 py-12">
+          <section className="mt-10 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between mb-8">
                 <div>

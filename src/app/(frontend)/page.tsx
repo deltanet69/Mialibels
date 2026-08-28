@@ -9,7 +9,7 @@ import AnimatedSection from '@/components/frontend/AnimatedSection';
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full max-w-[100vw] overflow-x-hidden">
       <AnimatedSection direction="none" delay={0.2}>
         <HeroSection />
       </AnimatedSection>

@@ -43,10 +43,10 @@ export default function AboutSection() {
       <div className="absolute top-1/2 left-0 w-96 h-96 bg-teal-300/10 rounded-full blur-3xl -translate-y-1/2 -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
           
           {/* Left Column: Image Collage with Floating Stats */}
-          <div className="lg:col-span-6 flex flex-col space-y-6 relative">
+          <div className="lg:col-span-6 flex flex-col space-y-6 relative max-w-[540px] lg:max-w-none mx-auto w-full">
             
             {/* Main Classroom Image */}
             <div className="relative w-full aspect-[16/10] rounded-[2rem] overflow-hidden shadow-xl border-4 border-white group">
@@ -75,15 +75,15 @@ export default function AboutSection() {
             </div>
 
             {/* Floating Milestone Badge */}
-            <div className="absolute -bottom-4 right-2 sm:right-6 z-20 glass-pill p-4 sm:p-5 rounded-2xl shadow-xl border border-teal-200 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center font-headline font-black text-xl shadow-md">
+            <div className="absolute -bottom-3 sm:-bottom-4 right-2 sm:right-6 z-20 glass-pill p-3 sm:p-5 rounded-2xl shadow-xl border border-teal-200 flex items-center gap-2.5 sm:gap-4 max-w-[calc(100%-16px)]">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center font-headline font-black text-lg sm:text-xl shadow-md shrink-0">
                 50+
               </div>
               <div className="flex flex-col">
-                <span className="font-headline font-bold text-secondary text-sm sm:text-base leading-tight">
+                <span className="font-headline font-bold text-secondary text-xs sm:text-base leading-tight">
                   Tahun Pengabdian
                 </span>
-                <span className="font-body text-teal-700 text-xs font-semibold">
+                <span className="font-body text-teal-700 text-[11px] sm:text-xs font-semibold">
                   Mencetak Generasi Berakhlak
                 </span>
               </div>
@@ -92,16 +92,15 @@ export default function AboutSection() {
           </div>
 
           {/* Right Column: Text Content & Playful Value Cards */}
-          <div className="lg:col-span-6 flex flex-col items-start space-y-6 lg:pl-6">
+          <div className="lg:col-span-6 flex flex-col items-start space-y-6 lg:pl-6 max-w-[600px] lg:max-w-none mx-auto w-full">
             
             {/* Tag */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
               <span>Tentang Madrasah Kami</span>
             </div>
 
             {/* Title */}
-            <h2 className="font-headline font-black text-3xl sm:text-4xl lg:text-5xl text-secondary leading-tight">
+            <h2 className="font-headline font-black text-4xl sm:text-5xl lg:text-5xl text-secondary leading-tight">
               Mendidik dengan Hati, <br className="hidden sm:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-700 to-emerald-600">
                 Membangun Karakter Juara
@@ -132,10 +131,10 @@ export default function AboutSection() {
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="font-headline font-bold text-sm text-secondary">
+                        <h4 className="font-body font-bold text-md">
                           {val.title}
                         </h4>
-                        <p className="font-body text-gray-500 text-xs leading-snug mt-0.5">
+                        <p className="font-body text-gray-500 text-sm leading-snug mt-0.5">
                           {val.desc}
                         </p>
                       </div>

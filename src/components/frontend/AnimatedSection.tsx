@@ -27,18 +27,23 @@ export default function AnimatedSection({
       let x = 0;
       let y = 0;
 
+      // Use gentle translation on small viewports to guarantee no layout overflow
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const xOffset = isMobile ? 20 : 50;
+      const yOffset = isMobile ? 30 : 50;
+
       switch (direction) {
         case 'up':
-          y = 50;
+          y = yOffset;
           break;
         case 'down':
-          y = -50;
+          y = -yOffset;
           break;
         case 'left':
-          x = 50;
+          x = xOffset;
           break;
         case 'right':
-          x = -50;
+          x = -xOffset;
           break;
         default:
           break;
@@ -62,7 +67,7 @@ export default function AnimatedSection({
   );
 
   return (
-    <div ref={containerRef} className={`will-change-transform ${className}`}>
+    <div ref={containerRef} className={`will-change-transform w-full max-w-[100vw] overflow-x-clip ${className}`}>
       {children}
     </div>
   );

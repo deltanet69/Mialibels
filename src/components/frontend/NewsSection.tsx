@@ -107,7 +107,6 @@ export default function NewsSection() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
           <div className="flex flex-col space-y-3">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider w-fit">
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
               <span>Kabar & Artikel Madrasah</span>
             </div>
             <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">

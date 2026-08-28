@@ -133,25 +133,25 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
   const waNum = (whatsappContact || '6281234567890').replace(/[^0-9]/g, '')
 
   return (
-    <div className="font-sans w-full max-w-3xl mx-auto space-y-6">
+    <div className="font-sans w-full max-w-6xl mx-auto space-y-6">
       
       {/* ════════════════════════════════════════════════════════════════════
           SEARCH CARD
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/80 shadow-2xs space-y-4">
+      <div className="bg-white p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-4">
         <div>
-          <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
+          <span className="text-[10px] sm:text-[11px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
             Pelacakan Status PPDB
           </span>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+          <h2 className="text-base sm:text-xl font-bold text-slate-900 break-words">
             Cek Status &amp; Unggah Berkas Lanjutan
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
             Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>PPDB27-0001</code>) atau <strong>Nomor WhatsApp Ayah</strong> yang didaftarkan.
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -166,7 +166,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
           <button
             type="submit"
             disabled={loading || !searchQuery.trim()}
-            className="btn-tactile flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-blue-600/20 transition cursor-pointer"
+            className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-blue-600/20 transition cursor-pointer"
           >
             {loading ? (
               <>
@@ -182,7 +182,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
         {error && (
           <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2.5 text-xs text-rose-800">
             <AlertCircle size={16} className="text-rose-600 shrink-0" />
-            <span>{error}</span>
+            <span className="break-words">{error}</span>
           </div>
         )}
       </div>
@@ -191,8 +191,8 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
           SEARCH RESULTS
          ════════════════════════════════════════════════════════════════════ */}
       {results && results.length > 1 && !selectedReg && (
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs space-y-3">
-          <h3 className="text-sm font-bold text-slate-800">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-3">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-800">
             Ditemukan {results.length} Data Pendaftaran:
           </h3>
           <div className="space-y-2">
@@ -203,18 +203,18 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
                   setSelectedReg(r)
                   initDocs(r)
                 }}
-                className="p-3.5 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-300 rounded-2xl cursor-pointer transition flex items-center justify-between"
+                className="p-3 sm:p-3.5 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-300 rounded-xl sm:rounded-2xl cursor-pointer transition flex flex-col xs:flex-row xs:items-center justify-between gap-2"
               >
                 <div>
                   <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                     {r.registration_number}
                   </span>
-                  <h4 className="font-bold text-sm text-slate-900 mt-1">{r.student_name}</h4>
+                  <h4 className="font-bold text-sm text-slate-900 mt-1 break-words">{r.student_name}</h4>
                   <p className="text-xs text-slate-500">Ayah: {r.father_name}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between xs:justify-end gap-2 w-full xs:w-auto">
                   <StatusBadge status={r.status} />
-                  <ArrowRight size={16} className="text-slate-400" />
+                  <ArrowRight size={16} className="text-slate-400 shrink-0" />
                 </div>
               </div>
             ))}
@@ -226,7 +226,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
           SELECTED REGISTRATION DETAILS & TIMELINE
          ════════════════════════════════════════════════════════════════════ */}
       {selectedReg && (
-        <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/80 shadow-2xs space-y-6">
+        <div className="bg-white p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs space-y-5 sm:space-y-6">
           
           {/* Header Card */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
@@ -234,7 +234,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
               <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
                 {selectedReg.registration_number}
               </span>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
+              <h3 className="text-base sm:text-xl font-bold text-slate-900 mt-1 break-words">
                 {selectedReg.student_name}
               </h3>
               <p className="text-xs text-slate-500">
@@ -246,8 +246,8 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
           </div>
 
           {/* 3-Step Progress Timeline */}
-          <div className="p-4 bg-slate-50 rounded-2xl space-y-3">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+          <div className="p-3 sm:p-4 bg-slate-50 rounded-xl sm:rounded-2xl space-y-2.5 sm:space-y-3">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
               Progres Tahapan Pendaftaran:
             </span>
 
@@ -367,12 +367,12 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
                 />
               </div>
 
-              <div className="pt-3 flex justify-end">
+              <div className="pt-3 flex flex-col sm:flex-row justify-end">
                 <button
                   type="button"
                   onClick={handleSaveDocs}
                   disabled={savingDocs || !docs.document_birth_certificate}
-                  className="btn-tactile flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer"
+                  className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer"
                 >
                   {savingDocs ? (
                     <>
@@ -392,17 +392,17 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
           ) : null}
 
           {/* Contact WA Help Footer */}
-          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-xs text-slate-500 text-center sm:text-left">
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <span className="text-xs text-slate-500">
               Ada pertanyaan seputar hasil verifikasi atau kelulusan?
             </span>
             <a
               href={`https://wa.me/${waNum}?text=Halo%20Panitia%20PPDB,%20saya%20ingin%20konfirmasi%20pendaftaran%20${selectedReg.registration_number}%20a.n%20${encodeURIComponent(selectedReg.student_name)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-tactile inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold transition"
+              className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-xl text-xs font-bold transition text-center"
             >
-              <Phone size={13} />
+              <Phone size={13} className="shrink-0" />
               <span>Hubungi Panitia via WhatsApp</span>
             </a>
           </div>
@@ -417,15 +417,15 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
 function StatusBadge({ status }: { status: string }) {
   if (status === 'approved') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
         <CheckCircle2 size={13} />
-        <span>Approved / Disetujui</span>
+        <span>Disetujui</span>
       </span>
     )
   }
   if (status === 'documents_submitted') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
         <FileText size={13} />
         <span>Berkas Terunggah</span>
       </span>
@@ -433,14 +433,14 @@ function StatusBadge({ status }: { status: string }) {
   }
   if (status === 'rejected') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
         <XCircle size={13} />
         <span>Perlu Perbaikan</span>
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+    <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
       <Clock size={13} />
       <span>Menunggu Verifikasi</span>
     </span>
@@ -449,14 +449,14 @@ function StatusBadge({ status }: { status: string }) {
 
 function TimelineStep({ step, title, isCompleted, isActive }: { step: number; title: string; isCompleted: boolean; isActive: boolean }) {
   return (
-    <div className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 ${
+    <div className={`p-2 sm:p-2.5 rounded-xl border flex flex-col items-center gap-1 min-w-0 ${
       isCompleted 
         ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' 
         : isActive 
           ? 'bg-blue-50/70 border-blue-200 text-blue-900 font-bold' 
           : 'bg-white border-slate-200 text-slate-400'
     }`}>
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
         isCompleted 
           ? 'bg-emerald-600 text-white' 
           : isActive 
@@ -465,7 +465,7 @@ function TimelineStep({ step, title, isCompleted, isActive }: { step: number; ti
       }`}>
         {isCompleted ? '✓' : step}
       </div>
-      <span className="text-[11px] font-semibold leading-tight">{title}</span>
+      <span className="text-[10px] sm:text-[11px] font-semibold leading-tight text-center break-words">{title}</span>
     </div>
   )
 }
@@ -479,17 +479,17 @@ function DocUploadCard({ title, required, docKey, url, uploading, onUpload }: {
   onUpload: (file: File) => void
 }) {
   return (
-    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-      <div className="flex justify-between items-start">
-        <span className="text-xs font-bold text-slate-800">
+    <div className="p-3 sm:p-3.5 bg-slate-50 border border-slate-200 rounded-xl sm:rounded-2xl space-y-2">
+      <div className="flex justify-between items-start gap-2">
+        <span className="text-xs font-bold text-slate-800 break-words flex-1">
           {title} {required && <span className="text-rose-500">*</span>}
         </span>
         {url ? (
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md shrink-0">
             Terunggah
           </span>
         ) : (
-          <span className="text-[10px] text-slate-400">Belum ada</span>
+          <span className="text-[10px] text-slate-400 shrink-0">Belum ada</span>
         )}
       </div>
 
@@ -499,17 +499,17 @@ function DocUploadCard({ title, required, docKey, url, uploading, onUpload }: {
           <span>Mengunggah...</span>
         </div>
       ) : url ? (
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 gap-2">
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1"
+            className="text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1 truncate"
           >
-            <ExternalLink size={12} />
-            <span>Buka File</span>
+            <ExternalLink size={12} className="shrink-0" />
+            <span className="truncate">Buka File</span>
           </a>
-          <label className="text-[11px] text-slate-500 hover:text-slate-700 cursor-pointer underline">
+          <label className="text-[11px] text-slate-500 hover:text-slate-700 cursor-pointer underline shrink-0">
             Ganti
             <input
               type="file"

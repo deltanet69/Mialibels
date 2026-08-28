@@ -29,7 +29,7 @@ export default function AkademikPage() {
       
       {/* Hero Section */}
       <AnimatedSection direction="none" delay={0.1}>
-        <section className="relative pt-32 pb-20 lg:pt-30 lg:pb-28 overflow-hidden flex flex-col justify-center min-h-[460px] bg-mesh-radial">
+        <section className="relative pt-10 pb-20 lg:pt-10 lg:pb-10 overflow-hidden flex flex-col justify-center bg-mesh-radial">
           {/* Background Image */}
           <div className="absolute inset-0 z-0 opacity-40">
             <Image
@@ -67,11 +67,10 @@ export default function AkademikPage() {
       <AnimatedSection direction="up">
         <section className="py-20 lg:py-28 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
               {/* Left Content */}
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-2xl lg:max-w-none mx-auto w-full">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider">
-                  <BookOpen className="w-3.5 h-3.5 text-primary" />
                   <span>Sekilas Kurikulum</span>
                 </div>
                 <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary leading-tight">
@@ -89,7 +88,7 @@ export default function AkademikPage() {
               </div>
               
               {/* Right Cards List */}
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-2xl lg:max-w-none mx-auto w-full">
                 {[
                   {
                     title: 'Kurikulum Nasional',
@@ -132,7 +131,6 @@ export default function AkademikPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center mb-16">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-primary-dark font-body text-xs font-bold uppercase tracking-wider mb-4">
-                <Sparkles className="w-3.5 h-3.5 text-accent" />
                 <span>Keunggulan Pembelajaran</span>
               </div>
               <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary">
@@ -199,7 +197,7 @@ export default function AkademikPage() {
       {/* CTA Section */}
       <AnimatedSection direction="up">
         <section className="py-20 lg:py-28 bg-white text-center">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="font-headline font-black text-3xl sm:text-4xl text-secondary mb-5 leading-tight">
               Ingin Putra-Putri Anda Meraih Pendidikan yang <br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-700 to-emerald-600">
@@ -215,7 +213,7 @@ export default function AkademikPage() {
                 href="/ppdb" 
                 className="btn-tactile w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full font-body text-base font-bold bg-btn-secondary text-white shadow-lg shadow-orange-950/20 hover:shadow-xl hover:brightness-110 transition-all"
               >
-                <span>Informasi PPDB & Biaya</span>
+                <span>Informasi SPMB &amp; Biaya</span>
                 <ArrowRight className="w-5 h-5 ml-1" />
               </Link>
               

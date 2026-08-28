@@ -15,7 +15,8 @@
   --color-btn-primary: #002957;
   --color-btn-secondary: #F26430;
 
-  --font-headline: var(--font-oswald), sans-serif;
+  --font-headline: var(--font-archivo), sans-serif;
+  --font-primary: var(--font-archivo), sans-serif;
   --font-body: var(--font-open-sans), sans-serif;
 }
 
@@ -24,11 +25,20 @@
   --foreground: #1E293B;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
 body {
   background-color: var(--color-web-bg);
   color: var(--color-text-main);
   font-family: var(--font-body);
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  position: relative;
 }
 
 h1,

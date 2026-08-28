@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Open_Sans, Oswald } from 'next/font/google'
+import { Open_Sans, Archivo } from 'next/font/google'
 import './globals.css'
 
 const openSans = Open_Sans({
@@ -8,9 +8,9 @@ const openSans = Open_Sans({
   display: 'swap',
 })
 
-const oswald = Oswald({
+const archivo = Archivo({
   subsets: ['latin'],
-  variable: '--font-oswald',
+  variable: '--font-archivo',
   display: 'swap',
 })
 
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id" className={`${openSans.variable} ${oswald.variable} antialiased`}>
+    <html lang="id" className={`${openSans.variable} ${archivo.variable} antialiased`}>
       <body>
         {children}
       </body>

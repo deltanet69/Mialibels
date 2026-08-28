@@ -133,7 +133,7 @@ export default function ContactForm() {
               required
               value={formData.subject}
               onChange={handleChange}
-              placeholder="Contoh: Informasi PPDB / Biaya"
+              placeholder="Contoh: Informasi SPMB / Biaya"
               className="w-full px-4 py-3.5 bg-slate-50/80 border border-gray-200/90 rounded-2xl focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition outline-none font-body text-gray-800 text-sm"
             />
           </div>

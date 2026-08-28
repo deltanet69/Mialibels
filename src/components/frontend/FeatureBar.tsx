@@ -55,7 +55,7 @@ export default function FeatureBar() {
                   </span>
                 </div>
 
-                <h3 className="font-headline font-bold text-xl text-secondary group-hover:text-primary transition-colors duration-300 mb-2">
+                <h3 className="font-primary font-bold text-xl text-secondary group-hover:text-primary transition-colors duration-300 mb-2">
                   {feat.title}
                 </h3>
                 <p className="font-body text-gray-500 text-sm leading-relaxed">

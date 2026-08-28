@@ -43,7 +43,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     batch_1_quota: 75,
     batch_2_quota: 75,
     batch_3_quota: 75,
-    registration_fee: 200000,
+    registration_fee: 300000,
     bank_name: 'Bank BTN',
     bank_account_number: '00129-01-30-00015-9',
     bank_account_holder: 'MI ATTAQWA 15 BABELAN',
@@ -73,21 +73,11 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
       {/* ════════════════════════════════════════════════════════════════════
           TOP BRANDING & ADMISSION NAVBAR (Dedicated for PPDB Portal)
          ════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
+      <header className="sticky top-0 z-40  backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
           
           {/* Logo & School Identity */}
           <div className="flex items-center gap-3">
-            {/* <div className="relative w-10 h-10 sm:w-12 sm:h-12 shrink-0">
-              <Image
-                src="/logomi.png"
-                alt="Logo MI Attaqwa 15"
-                fill
-                sizes="48px"
-                className="object-contain"
-                priority
-              />
-            </div> */}
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-sm sm:text-base text-slate-900 tracking-tight leading-none">
@@ -130,8 +120,10 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        
 
-        <div className="max-w-4xl mx-auto relative z-10 text-center space-y-5">
+        <div className="max-w-6xl mx-auto relative z-10 text-center space-y-5">
+          
           
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
@@ -160,7 +152,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             </div>
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
               <GraduationCap size={14} className="text-amber-400 shrink-0" />
-              <span>Biaya Rp {(Number(currentSettings.registration_fee) || 200000).toLocaleString('id-ID')}</span>
+              <span>Biaya Rp {(Number(currentSettings.registration_fee) || 300000).toLocaleString('id-ID')}</span>
             </div>
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
               <ShieldCheck size={14} className="text-teal-400 shrink-0" />
@@ -173,7 +165,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             {currentSettings.is_active && !isFull ? (
               <button
                 onClick={() => scrollToForm('register')}
-                className="btn-tactile w-full xs:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 px-6 sm:px-8 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition cursor-pointer"
+                className="btn-tactile w-[600px] xs:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 px-6 sm:px-8 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition cursor-pointer"
               >
                 <span>Isi Formulir Pendaftaran</span>
                 <ArrowRight size={16} />
@@ -186,7 +178,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
 
             <button
               onClick={() => scrollToForm('status')}
-              className="btn-tactile w-full xs:w-auto flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm border border-white/20 backdrop-blur-md transition cursor-pointer"
+              className="btn-tactile w-[600px] xs:w-auto flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm border border-white/20 backdrop-blur-md transition cursor-pointer"
             >
               <span>Cek Status / Upload Berkas</span>
             </button>
@@ -200,47 +192,17 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
          ════════════════════════════════════════════════════════════════════ */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-14 mt-8 sm:mt-10">
         
-        {/* 1. Batch Quota Section */}
-        <section>
-          <PpdbBatchQuotas settings={currentSettings} onRegisterClick={() => scrollToForm('register')} />
-        </section>
-
+        
         {/* 2. Interactive Tab Navigation (Form vs Status Checker) */}
-        <section ref={formRef} className="space-y-6 scroll-mt-24">
-          
-          {/* Segmented Tab Control */}
-          <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col xs:flex-row gap-1.5 max-w-lg mx-auto">
-            <button
-              onClick={() => setActiveTab('register')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-                activeTab === 'register'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <FileCheck size={16} />
-              <span>Formulir Pendaftaran</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('status')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer ${
-                activeTab === 'status'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <SearchIcon size={16} />
-              <span>Cek Status &amp; Berkas</span>
-            </button>
-          </div>
+        <section ref={formRef} className="space-y-6 scroll-mt-24"> 
+           
 
           {/* Active Tab View */}
           {activeTab === 'register' ? (
             currentSettings.is_active && !isFull ? (
               <PpdbRegistrationForm settings={currentSettings} />
             ) : (
-              <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-200/80 shadow-2xs text-center max-w-xl mx-auto space-y-4">
+              <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-200/80 shadow-2xs text-center max-w-6xl mx-auto space-y-4">
                 <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
                   <AlertCircle size={28} />
                 </div>
@@ -270,103 +232,6 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
           )}
 
         </section>
-
-        {/* 3. Alur Pendaftaran Section */}
-        <section className="space-y-6">
-          <div className="text-center max-w-lg mx-auto space-y-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
-              <BookOpen size={13} />
-              <span>Petunjuk Pendaftaran</span>
-            </span>
-            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-              4 Langkah Mudah Pendaftaran
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500">
-              Panduan tahapan dari pengisian formulir hingga verifikasi berkas madrasah.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            {/* Step 1 */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 font-extrabold flex items-center justify-center text-xs">
-                01
-              </div>
-              <h4 className="font-bold text-base sm:text-base text-slate-900">Isi Formulir Online</h4>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Lengkapi identitas calon siswa (usia min. 6 th 6 bln per 1 Juli 2027) dan data orang tua.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 font-extrabold flex items-center justify-center text-xs">
-                02
-              </div>
-              <h4 className="font-bold text-sm sm:text-base text-slate-900">Transfer &amp; Upload Struk</h4>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Transfer biaya formulir Rp 200.000 ke Bank BTN / QRIS dan unggah struk bukti bayar.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 font-extrabold flex items-center justify-center text-xs">
-                03
-              </div>
-              <h4 className="font-bold text-sm sm:text-base text-slate-900">Verifikasi Panitia</h4>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Panitia memverifikasi pembayaran dan data. Notifikasi persetujuan dikirim via email &amp; portal.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 font-extrabold flex items-center justify-center text-xs">
-                04
-              </div>
-              <h4 className="font-bold text-sm sm:text-base text-slate-900">Unggah Berkas Fisik</h4>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Setelah disetujui (Approved), unggah dokumen Akta, KK, KTP, dan Pas Foto di menu Cek Status.
-              </p>
-            </div>
-
-          </div>
-        </section>
-
-        {/* 4. FAQ Accordion */}
-        <section className="space-y-5 max-w-3xl mx-auto">
-          <div className="text-center space-y-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold uppercase tracking-wider">
-              <HelpCircle size={13} />
-              <span>FAQ</span>
-            </span>
-            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-              Pertanyaan yang Sering Diajukan
-            </h3>
-          </div>
-
-          <div className="space-y-3">
-            <FaqItem
-              question="Berapa batas usia minimum calon siswa kelas 1 MI?"
-              answer="Sesuai ketentuan Kementerian Agama dan regulasi madrasah, calon siswa wajib berusia minimal 6 tahun 6 bulan terhitung per tanggal 1 Juli tahun ajaran baru 2027."
-            />
-            <FaqItem
-              question="Berapa kuota penerimaan siswa baru setiap gelombang?"
-              answer="Kuota dibatasi maksimal 75 peserta didik per gelombang (Batch 1, Batch 2, dan Batch 3). Pendaftaran akan otomatis ditutup bila kuota pada gelombang tersebut telah terpenuhi."
-            />
-            <FaqItem
-              question="Bagaimana cara mengetahui bahwa pendaftaran saya disetujui?"
-              answer="Anda dapat mengecek status secara berkala di halaman ini pada tab 'Cek Status & Unggah Berkas'. Selain itu, sistem akan mengirimkan email konfirmasi resmi dan notifikasi WhatsApp."
-            />
-            <FaqItem
-              question="Apakah uang pendaftaran dapat dikembalikan jika mengundurkan diri?"
-              answer="Biaya formulir pendaftaran dan tes observasi sebesar Rp 200.000 bersifat non-refundable (tidak dapat dikembalikan)."
-            />
-          </div>
-        </section>
-
       </main>
 
       {/* ════════════════════════════════════════════════════════════════════
