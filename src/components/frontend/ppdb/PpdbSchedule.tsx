@@ -4,7 +4,7 @@ import React from 'react';
 import { Users, Calendar, ArrowRight, Flame, Clock, CheckCircle2, AlertCircle, ShieldAlert, Sparkles, GraduationCap, School } from 'lucide-react';
 
 export default function PpdbSchedule() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : '#';
 
   return (
     <section className="py-14 sm:py-20 lg:py-24 bg-[#F4F7FC]">

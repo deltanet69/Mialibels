@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ChevronRight, CalendarDays, GraduationCap, Sparkles, CheckCircle2, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function PpdbHero() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : '#';
 
   return (
     <section className="relative pt-10 pb-20 sm:pt-36 sm:pb-20 lg:pt-20 lg:pb-20 overflow-hidden bg-mesh-radial">

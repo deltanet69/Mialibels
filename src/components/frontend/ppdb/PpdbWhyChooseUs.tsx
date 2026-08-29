@@ -47,7 +47,7 @@ const STEPS = [
 ];
 
 export default function PpdbWhyChooseUs() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
+  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : '#';
 
   return (
     <section id="petunjuk-pendaftaran" className="py-14 sm:py-20 lg:py-24 bg-white relative scroll-mt-20">
