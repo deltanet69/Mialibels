@@ -1,4 +1,9 @@
 import React from 'react';
+
+// Force this page to be dynamic so middleware (subdomain routing) always runs
+// Without this, the CDN caches the static HTML and spmb.miattaqwa15.sch.id
+// shows the frontend instead of the SPMB form.
+export const dynamic = 'force-dynamic';
 import HeroSection from '@/components/frontend/HeroSection';
 import FeatureBar from '@/components/frontend/FeatureBar';
 import AboutSection from '@/components/frontend/AboutSection';

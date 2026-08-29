@@ -164,7 +164,7 @@ function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' |
 // Proxy (formerly Middleware)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── 1. Static assets & Next.js internals ─────────────────────────────────
@@ -186,11 +186,9 @@ export async function proxy(request: NextRequest) {
     if (
       pathname === '/' ||
       pathname === '/spmb' ||
-      pathname === '/ppdb' ||
-      pathname === '/spmb-app' ||
-      pathname === '/ppdb-app'
+      pathname === '/ppdb'
     ) {
-      return NextResponse.rewrite(new URL('/spmb-app', request.url));
+      return NextResponse.redirect(new URL('/spmb-app', request.url));
     }
     // Allow public API and static assets to pass through
     return NextResponse.next();
@@ -266,6 +264,8 @@ export async function proxy(request: NextRequest) {
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'parent') {
     if (pathname === '/' || pathname === '/parent') {
+      const token = request.cookies.get('parent_session')?.value;
+      if (!token) return NextResponse.redirect(new URL('/parent/login', request.url));
       return NextResponse.redirect(new URL('/parent/dashboard', request.url));
     }
 
@@ -300,9 +300,7 @@ export async function proxy(request: NextRequest) {
     // All other parent pages — require parent_session
     const token = request.cookies.get('parent_session')?.value;
     if (!token) {
-      const url = new URL('/parent/login', request.url);
-      url.searchParams.set('from', pathname);
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL('/parent/login', request.url));
     }
     const verified = await verifyJWT(token);
     if (!verified) {
@@ -397,9 +395,7 @@ export async function proxy(request: NextRequest) {
     const token = request.cookies.get('parent_session')?.value;
 
     if (!token) {
-      const loginUrl = new URL('/parent/login', request.url);
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL('/parent/login', request.url));
     }
 
     const verified = await verifyJWT(token);
