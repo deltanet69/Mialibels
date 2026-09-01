@@ -106,8 +106,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
 
         if (errorMsg) {
           alert(errorMsg);
-          if (type === 'siswa') setGeneratingSiswa(false);
-          else setGeneratingUjian(false);
+          setGeneratingUjian(false);
           return;
         }
       }
@@ -119,7 +118,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
       
-      const templateSrc = type === 'siswa' ? '/kartu/kartutemplate.png' : '/kartu/kartuujian_template.png';
+      const templateSrc = type === 'siswa' ? '/kartu/kartutemplate.png' : '/kartuujian.png';
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
@@ -233,114 +232,48 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
           ctx.textBaseline = 'top';
         }
       } else {
-        // Kartu Peserta Ujian: Ukuran Khusus 12cm x 10cm (2400 x 2000 px, ratio 1.2 : 1)
-        canvas.width = 2400;
-        canvas.height = 2000;
+        // Kartu Peserta Ujian / Asesmen Kokurikuler (2834 x 2362 px)
+        canvas.width = 2834;
+        canvas.height = 2362;
 
         // Draw background template
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         ctx.textBaseline = 'top';
+        ctx.fillStyle = '#FFFFFF';
 
-        // Draw Title
-        ctx.font = 'bold 64px "Inter", "Segoe UI", sans-serif';
-        ctx.fillStyle = '#172554';
-        ctx.fillText('KARTU PESERTA UJIAN', 680, 520);
+        // Coordinates aligned with the blue box labels in public/kartuujian.png
+        // 1. Nama Siswa :
+        // 2. Kelas       :
+        // 3. Ruang       :
+        const startX = 580;
+        const startY = 442;
+        const spacing = 74;
 
-        // Draw Labels
-        ctx.font = 'bold 46px "Inter", "Segoe UI", sans-serif';
-        ctx.fillStyle = '#334155';
-        const labels = ['Nama Lengkap', 'NISN', 'Kelas', 'Ruang Kelas'];
-        const startY = 660;
-        const spacing = 130;
-
-        labels.forEach((label, i) => {
-          const y = startY + (i * spacing);
-          ctx.fillText(label, 680, y);
-          ctx.fillText(':', 1140, y);
-        });
-
-        // Draw Values
-        ctx.fillStyle = '#0f172a';
         const rawClass = studentData.class || '-';
-        const ruangVal = rawClass !== '-' 
-          ? (rawClass.toLowerCase().includes('ruang') ? rawClass : `Ruang ${rawClass}`)
-          : '-';
+        const cleanClass = rawClass.replace(/^kelas\s+/i, '');
+        const ruangVal = studentData.exam_room || (rawClass !== '-' 
+          ? (rawClass.toLowerCase().includes('ruang') ? rawClass : `Ruang ${cleanClass}`)
+          : '-');
 
         const values = [
-          studentData.name || '-',
-          studentData.nisn || studentData.student_number || '-',
+          (studentData.name || '-').toUpperCase(),
           rawClass,
           ruangVal,
         ];
 
-        // Draw values with auto font scaling for long text
+        // Draw values in crisp bold white text with automatic font scaling for long names
         values.forEach((value, i) => {
           const y = startY + (i * spacing);
-          let fontSize = 46;
-          ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", sans-serif`;
-          const maxValWidth = 1100;
-          while (ctx.measureText(value).width > maxValWidth && fontSize > 28) {
+          let fontSize = 48;
+          ctx.font = `bold ${fontSize}px "Inter", "Segoe UI", Arial, sans-serif`;
+          const maxValWidth = 880;
+          while (ctx.measureText(value).width > maxValWidth && fontSize > 24) {
             fontSize -= 2;
-            ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", sans-serif`;
+            ctx.font = `bold ${fontSize}px "Inter", "Segoe UI", Arial, sans-serif`;
           }
-          ctx.fillText(value, 1200, y + (46 - fontSize) / 2);
+          ctx.fillText(value, startX, y + (48 - fontSize) / 2);
         });
-
-        // Draw Photo Placeholder or Photo (3x4 aspect ratio box)
-        const photoX = 150;
-        const photoY = 520;
-        const photoW = 460;
-        const photoH = 613;
-
-        let photoLoaded = false;
-        if (photoUrl) {
-          try {
-            const photo = new window.Image();
-            photo.crossOrigin = 'anonymous';
-            await new Promise((resolve, reject) => {
-              photo.onload = () => { photoLoaded = true; resolve(true); };
-              photo.onerror = () => resolve(false);
-              photo.src = photoUrl;
-            });
-            if (photoLoaded) {
-              ctx.drawImage(photo, photoX, photoY, photoW, photoH);
-            }
-          } catch (e) {
-            photoLoaded = false;
-          }
-        }
-
-        if (!photoLoaded) {
-          ctx.fillStyle = '#e2e8f0';
-          if (typeof ctx.roundRect === 'function') {
-            ctx.beginPath();
-            ctx.roundRect(photoX, photoY, photoW, photoH, 12);
-            ctx.fill();
-          } else {
-            ctx.fillRect(photoX, photoY, photoW, photoH);
-          }
-          
-          ctx.fillStyle = '#64748b';
-          ctx.font = 'bold 40px "Inter", "Segoe UI", sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('FOTO', photoX + photoW / 2, photoY + photoH / 2 - 15);
-          
-          ctx.fillStyle = '#94a3b8';
-          ctx.font = 'normal 34px "Inter", "Segoe UI", sans-serif';
-          ctx.fillText('3 x 4', photoX + photoW / 2, photoY + photoH / 2 + 35);
-          
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-        }
-
-        // Subtitle under photo
-        ctx.fillStyle = '#475569';
-        ctx.font = 'bold 24px "Inter", "Segoe UI", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('MI ATTAQWA 15 BABELAN', photoX + photoW / 2, photoY + photoH + 20);
-        ctx.textAlign = 'left';
       }
 
       // Generate Download

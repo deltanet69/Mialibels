@@ -12,6 +12,7 @@ export function NavbarClient({ user }: { user: any }) {
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [toasts, setToasts] = useState<any[]>([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -68,8 +69,6 @@ export function NavbarClient({ user }: { user: any }) {
     };
   }, []);
 
-  const [toasts, setToasts] = useState<any[]>([]);
-
   const initials = user?.name 
     ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
     : 'U';
@@ -112,7 +111,7 @@ export function NavbarClient({ user }: { user: any }) {
         </Link>
 
         {/* Help / Tour Dropdown/Button for Parent */}
-        {role === 'parent' && (
+        {user?.role === 'parent' && (
           <button 
              onClick={() => window.dispatchEvent(new Event('start-parent-tour'))}
              className="relative p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 hover:text-blue-600"

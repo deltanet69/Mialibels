@@ -1,12 +1,65 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles, Users, X, User } from 'lucide-react'
+import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles, Users, X, User, CheckCircle2, AlertTriangle, FileCheck2 } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { BulkPhotoUpload } from '@/components/portal/students/BulkPhotoUpload'
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import { getDirectImageUrl } from '@/lib/imageUtils'
 import Link from 'next/link'
+
+// Exam eligibility helper
+export function checkExamEligibility(student: any) {
+  const rawClass = student.class || '';
+  const isFullday = !!rawClass.match(/A$/i);
+  const isClass6 = rawClass.startsWith('6');
+
+  const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
+  const sppInvoices = student.spp_invoices || [];
+  const unpaidSeptemberSpp = sppInvoices.find((inv: any) => {
+    const isTarget = targetMonths.includes(String(inv.month));
+    const isPaid = inv.status === 'PAID';
+    return isTarget && !isPaid;
+  });
+  const sppOk = !unpaidSeptemberSpp;
+
+  const generalInvoices = student.general_invoices || [];
+  const getPaid = (key: string) => {
+    return generalInvoices
+      .flatMap((inv: any) => inv.items || [])
+      .filter((item: any) => (item.name || '').toLowerCase().includes(key.toLowerCase()))
+      .reduce((sum: number, item: any) => sum + (Number(item.paid_amount) || 0), 0);
+  };
+
+  const paidBuku = getPaid('buku');
+  const paidUlum = getPaid('ulangan');
+  const paidAkhirTahun = getPaid('akhir tahun');
+
+  const minBuku = isFullday ? 700000 : 300000;
+  const minUlum = 110000;
+  const minAkhirTahun = 600000;
+
+  const bukuOk = paidBuku >= minBuku;
+  const ulumOk = paidUlum >= minUlum;
+  const akhirTahunOk = !isClass6 || paidAkhirTahun >= minAkhirTahun;
+
+  const isEligible = sppOk && bukuOk && ulumOk && akhirTahunOk;
+
+  const issues: string[] = [];
+  if (!sppOk) issues.push('Infaq Sept belum lunas');
+  if (!bukuOk) issues.push(`Buku kurang Rp ${(minBuku - paidBuku).toLocaleString('id-ID')}`);
+  if (!ulumOk) issues.push(`ULUM kurang Rp ${(minUlum - paidUlum).toLocaleString('id-ID')}`);
+  if (!akhirTahunOk) issues.push(`Akhir Tahun kurang Rp ${(minAkhirTahun - paidAkhirTahun).toLocaleString('id-ID')}`);
+
+  return {
+    isEligible,
+    issues,
+    sppOk,
+    bukuOk,
+    ulumOk,
+    akhirTahunOk
+  };
+}
 
 // Skeleton row component
 function SkeletonRow() {
@@ -19,6 +72,7 @@ function SkeletonRow() {
         <div className="h-4.5 bg-slate-100 rounded-lg w-28 mb-1" />
         <div className="h-3.5 bg-slate-100 rounded-lg w-20" />
       </td>
+      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-20" /></td>
       <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-16" /></td>
       <td className="py-4 pr-6 text-right"><div className="h-8 bg-slate-100 rounded-xl w-20 ml-auto" /></td>
     </tr>
@@ -31,6 +85,7 @@ export default function StudentsPage() {
 
   const [search, setSearch] = useState('')
   const [classFilter, setClassFilter] = useState('all')
+  const [examFilter, setExamFilter] = useState('all')
   
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -81,11 +136,28 @@ export default function StudentsPage() {
     return uniqueClasses.sort()
   }, [allStudents])
 
+  const examStats = useMemo(() => {
+    let eligible = 0;
+    let notEligible = 0;
+    allStudents.forEach(s => {
+      const { isEligible } = checkExamEligibility(s);
+      if (isEligible) eligible++;
+      else notEligible++;
+    });
+    return { eligible, notEligible };
+  }, [allStudents]);
+
   const filteredStudents = useMemo(() => {
     let filtered = allStudents
 
     if (classFilter !== 'all') {
       filtered = filtered.filter(s => s.class === classFilter)
+    }
+
+    if (examFilter === 'eligible') {
+      filtered = filtered.filter(s => checkExamEligibility(s).isEligible)
+    } else if (examFilter === 'not_eligible') {
+      filtered = filtered.filter(s => !checkExamEligibility(s).isEligible)
     }
 
     if (search.trim()) {
@@ -111,11 +183,11 @@ export default function StudentsPage() {
     })
 
     return filtered
-  }, [allStudents, search, classFilter])
+  }, [allStudents, search, classFilter, examFilter])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, classFilter, itemsPerPage])
+  }, [search, classFilter, examFilter, itemsPerPage])
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage)
   const paginatedStudents = useMemo(() => {
@@ -271,8 +343,8 @@ export default function StudentsPage() {
       <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-sm border border-slate-200/80 space-y-6">
         
         {/* Search & Filter Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto flex-1">
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input 
@@ -285,7 +357,7 @@ export default function StudentsPage() {
               {search && (
                 <button 
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -303,6 +375,16 @@ export default function StudentsPage() {
               ))}
             </select>
 
+            <select
+              value={examFilter}
+              onChange={(e) => setExamFilter(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition text-xs sm:text-sm font-semibold text-slate-700 outline-none cursor-pointer"
+            >
+              <option value="all">Semua Status Kartu Ujian</option>
+              <option value="eligible">Eligible ({examStats.eligible})</option>
+              <option value="not_eligible">Not Eligible ({examStats.notEligible})</option>
+            </select>
+
             {!loading && (
               <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 whitespace-nowrap shrink-0 ml-auto sm:ml-0">
                 {filteredStudents.length} Siswa Ditemukan
@@ -313,14 +395,15 @@ export default function StudentsPage() {
 
         {/* Desktop Table Layout */}
         <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[720px]">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-4 pr-4 pl-5">NISN</th>
                 <th className="py-4 pr-4">Nama Lengkap Siswa</th>
                 <th className="py-4 pr-4">Kelas</th>
                 <th className="py-4 pr-4">Wali Murid</th>
-                <th className="py-4 pr-4">Status</th>
+                <th className="py-4 pr-4">Status Siswa</th>
+                <th className="py-4 pr-4">Kartu Ujian</th>
                 <th className="py-4 pr-5 text-right">Aksi</th>
               </tr>
             </thead>
@@ -329,8 +412,8 @@ export default function StudentsPage() {
                 Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
               ) : paginatedStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-400 text-xs sm:text-sm">
-                    {search || classFilter !== 'all' ? `Tidak ada siswa yang sesuai pencarian.` : 'Tidak ada data siswa.'}
+                  <td colSpan={7} className="text-center py-12 text-slate-400 text-xs sm:text-sm">
+                    {search || classFilter !== 'all' || examFilter !== 'all' ? `Tidak ada siswa yang sesuai filter pencarian.` : 'Tidak ada data siswa.'}
                   </td>
                 </tr>
               ) : (
@@ -389,6 +472,40 @@ export default function StudentsPage() {
                         </span>
                       )}
                     </td>
+                    {/* Kartu Ujian [Eligible / Not Eligible] */}
+                    <td className="py-4 pr-4">
+                      {(() => {
+                        const { isEligible, issues } = checkExamEligibility(student);
+                        if (isEligible) {
+                          return (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                              <CheckCircle2 size={13} className="text-emerald-600" />
+                              <span>Eligible</span>
+                            </span>
+                          );
+                        }
+                        return (
+                          <div className="relative inline-block group/tooltip">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs cursor-help">
+                              <AlertTriangle size={13} className="text-rose-600" />
+                              <span>Not Eligible</span>
+                            </span>
+                            {/* Hover Tooltip */}
+                            <div className="hidden group-hover/tooltip:block absolute left-0 bottom-full mb-1.5 z-30 w-52 p-2.5 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl border border-slate-700 pointer-events-none">
+                              <p className="font-bold text-rose-300 mb-1 flex items-center gap-1">
+                                <AlertTriangle size={12} />
+                                <span>Kekurangan Syarat:</span>
+                              </p>
+                              <ul className="list-disc list-inside space-y-0.5 text-slate-200 text-[10px] leading-tight">
+                                {issues.map((iss, idx) => (
+                                  <li key={idx}>{iss}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="py-4 pr-5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <Link 
@@ -436,65 +553,84 @@ export default function StudentsPage() {
             ))
           ) : paginatedStudents.length === 0 ? (
             <div className="text-center py-10 text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-100">
-              {search || classFilter !== 'all' ? `Tidak ada siswa yang sesuai pencarian.` : 'Tidak ada data siswa.'}
+              {search || classFilter !== 'all' || examFilter !== 'all' ? `Tidak ada siswa yang sesuai filter pencarian.` : 'Tidak ada data siswa.'}
             </div>
           ) : (
-            paginatedStudents.map((student) => (
-              <div key={student.id} className="bg-white border border-slate-200/80 p-4.5 rounded-2xl shadow-2xs flex flex-col gap-3 relative font-sans">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Link href={`/students/${student.id}`} className="font-sans font-bold text-slate-900 text-base hover:text-blue-700 transition block mb-1">
-                      {student.name}
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-lg border border-blue-100">
-                        Kelas {student.class}
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium">NISN: {student.nisn || '—'}</span>
+            paginatedStudents.map((student) => {
+              const { isEligible, issues } = checkExamEligibility(student);
+              return (
+                <div key={student.id} className="bg-white border border-slate-200/80 p-4.5 rounded-2xl shadow-2xs flex flex-col gap-3 relative font-sans">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Link href={`/students/${student.id}`} className="font-sans font-bold text-slate-900 text-base hover:text-blue-700 transition block mb-1">
+                        {student.name}
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-lg border border-blue-100">
+                          Kelas {student.class}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">NISN: {student.nisn || '—'}</span>
+                      </div>
                     </div>
-                  </div>
-                  {student.is_active ? (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Aktif</span>
-                  ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">Nonaktif</span>
-                  )}
-                </div>
-                
-                <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-slate-400 block text-xs font-medium">Wali Murid</span>
-                    <span className="font-semibold text-slate-800 text-xs sm:text-sm">{student.parent_name || '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Link 
-                      href={`/students/${student.id}`}
-                      className="p-2 text-blue-700 bg-blue-50 rounded-xl"
-                      title="Lihat Detail"
-                    >
-                      <Eye size={15} />
-                    </Link>
-                    {canEdit && (
-                      <>
-                        <button 
-                          onClick={() => { setEditingStudent(student); setShowForm(true); }}
-                          className="p-2 text-amber-700 bg-amber-50 rounded-xl cursor-pointer"
-                          title="Edit"
-                        >
-                          <Edit3 size={15} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(student.id, student.name)}
-                          className="p-2 text-rose-700 bg-rose-50 rounded-xl cursor-pointer"
-                          title="Hapus"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </>
+                    {student.is_active ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">Aktif</span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">Nonaktif</span>
                     )}
                   </div>
+                  
+                  {/* Kartu Ujian Mobile Status */}
+                  <div className="flex items-center justify-between text-xs py-1 border-t border-slate-50">
+                    <span className="text-slate-400 font-medium">Kartu Ujian:</span>
+                    {isEligible ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <CheckCircle2 size={12} className="text-emerald-600" />
+                        <span>Eligible</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200" title={issues.join(', ')}>
+                        <AlertTriangle size={12} className="text-rose-600" />
+                        <span>Not Eligible ({issues.length})</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-xs font-medium">Wali Murid</span>
+                      <span className="font-semibold text-slate-800 text-xs sm:text-sm">{student.parent_name || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Link 
+                        href={`/students/${student.id}`}
+                        className="p-2 text-blue-700 bg-blue-50 rounded-xl"
+                        title="Lihat Detail"
+                      >
+                        <Eye size={15} />
+                      </Link>
+                      {canEdit && (
+                        <>
+                          <button 
+                            onClick={() => { setEditingStudent(student); setShowForm(true); }}
+                            className="p-2 text-amber-700 bg-amber-50 rounded-xl cursor-pointer"
+                            title="Edit"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(student.id, student.name)}
+                            className="p-2 text-rose-700 bg-rose-50 rounded-xl cursor-pointer"
+                            title="Hapus"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

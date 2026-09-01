@@ -31,7 +31,11 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('students')
-      .select('*')
+      .select(`
+        *,
+        spp_invoices (id, month, year, status),
+        general_invoices (id, items)
+      `)
       .order('created_at', { ascending: false })
 
     if (allowedClassroomIds !== null) {

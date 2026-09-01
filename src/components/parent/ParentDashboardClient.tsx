@@ -801,7 +801,7 @@ export function ParentDashboardClient({
                     <h3 className="font-headline font-black text-base text-slate-800">
                       Syarat Unduh Kartu Ujian
                     </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
+                    <p className="text-[13px] text-slate-500 font-medium">
                       Ananda <strong className="text-slate-700">{student.name}</strong> · Kelas <strong className="text-blue-700">{student.className} ({isFullday ? 'Full Day' : 'Reguler'})</strong>
                     </p>
                   </div>
@@ -824,11 +824,11 @@ export function ParentDashboardClient({
                     ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900' 
                     : 'bg-rose-50/90 border-rose-200 text-rose-900'
                 }`}>
-                  <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-white shadow-2xs ${
+                  {/* <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-white shadow-2xs ${
                     isEligible ? 'bg-emerald-500' : 'bg-rose-500'
                   }`}>
                     {isEligible ? <Check size={18} /> : <AlertTriangle size={18} />}
-                  </div>
+                  </div> */}
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-black text-sm uppercase tracking-wide">
@@ -855,7 +855,7 @@ export function ParentDashboardClient({
                       <FileCheck2 size={14} className="text-blue-600" />
                       <span>Checklist Administrasi Siswa</span>
                     </h4>
-                    <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                       {isFullday ? 'Kelas Full Day' : 'Kelas Reguler'}
                     </span>
                   </div>
