@@ -100,7 +100,7 @@ export function SidebarClient({ role, userName }: Props) {
       <aside className={`fixed inset-y-0 left-0 z-50 w-68 bg-white border-r border-slate-200/80 p-4 flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto print:hidden shadow-lg md:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col gap-5">
           {/* Brand */}
-          <div className="flex items-center justify-between px-2 sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 sticky top-0 bg-white/95 backdrop-blur-sm py-4 z-10 border-b border-slate-100">
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
               <Image 
                 src="/logosmart/smartlogover.png" 
@@ -125,7 +125,7 @@ export function SidebarClient({ role, userName }: Props) {
             {/* MAIN */}
             {hasAccess('main') && (
               <div>
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
+                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   MENU UTAMA
                 </h4>
                 <div className="flex flex-col gap-1">
@@ -169,7 +169,7 @@ export function SidebarClient({ role, userName }: Props) {
             {/* AKADEMIK */}
             {hasAccess('akademik') && (
               <div>
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
+                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   AKADEMIK
                 </h4>
                 <div className="flex flex-col gap-1">
@@ -206,7 +206,7 @@ export function SidebarClient({ role, userName }: Props) {
             {/* FINANCE */}
             {canViewFinance && (
               <div>
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
+                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   KEUANGAN
                 </h4>
                 <div className="flex flex-col gap-1">
@@ -235,7 +235,7 @@ export function SidebarClient({ role, userName }: Props) {
             {/* KONTEN */}
             {hasAccess('content') && (
               <div>
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
+                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   KONTEN WEBSITE
                 </h4>
                 <div className="flex flex-col gap-1">
@@ -276,7 +276,7 @@ export function SidebarClient({ role, userName }: Props) {
             {/* KONTEN untuk Staff (hanya Berita & Artikel) */}
             {canViewContentPosts && (
               <div>
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
+                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   KONTEN SEKOLAH
                 </h4>
                 <div className="flex flex-col gap-1">
@@ -293,7 +293,7 @@ export function SidebarClient({ role, userName }: Props) {
             {/* SISTEM */}
             {(hasAccess('reports') || hasAccess('users')) && (
               <div>
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
+                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   SISTEM &amp; LAPORAN
                 </h4>
                 <div className="flex flex-col gap-1">

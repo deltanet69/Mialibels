@@ -148,3 +148,189 @@ html.lenis, html.lenis body { height: auto; }
   margin-right: auto;
 }
 
+
+/* Custom styling for driver.js popover (Parent Portal Tour) */
+.driver-popover.driverjs-theme {
+  background-color: #002957 !important;
+  color: #ffffff !important;
+  border-radius: 1.25rem !important;
+  padding: 1.35rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 41, 87, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(8px) !important;
+  width: 390px !important;
+  max-width: calc(100vw - 32px) !important;
+  min-width: 320px !important;
+  box-sizing: border-box !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-title {
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-description {
+  font-size: 0.875rem !important;
+  color: #c7d2fe !important;
+  line-height: 1.6 !important;
+  margin-bottom: 1.35rem !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-footer {
+  margin-top: 1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-progress-text {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #93c5fd !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  padding: 0.35rem 0.75rem !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  letter-spacing: 0.02em !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-navigation-btns {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  flex-shrink: 0 !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-footer-btn {
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.825rem !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  line-height: 1.25 !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-next-btn {
+  background-color: #f59e0b !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35) !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-next-btn:hover {
+  background-color: #fbbf24 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45) !important;
+} 
+
+.driver-popover.driverjs-theme .driver-popover-prev-btn {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-prev-btn:hover {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  transform: translateY(-1px) !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-close-btn {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-close-btn:hover {
+  color: #ffffff !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-arrow-side-left.driver-popover-arrow {
+  border-left-color: #002957 !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-arrow-side-right.driver-popover-arrow {
+  border-right-color: #002957 !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-arrow-side-top.driver-popover-arrow {
+  border-top-color: #002957 !important;
+}
+
+.driver-popover.driverjs-theme .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-bottom-color: #002957 !important;
+}
+
+/* 🔒 Lock & Disable interaction on highlighted element during tour to prevent opening new pages */
+body.driver-active .driver-active-element,
+body.driver-active .driver-active-element * {
+  pointer-events: none !important;
+  cursor: default !important;
+  user-select: none !important;
+}
+
+/* Ensure only popover buttons can be clicked */
+.driver-popover,
+.driver-popover * {
+  pointer-events: auto !important;
+}
+
+/* 📱 Mobile First Responsiveness for Driver.js Popover */
+@media (max-width: 640px) {
+  .driver-popover.driverjs-theme {
+    width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+    padding: 1rem 1.1rem !important;
+    border-radius: 1rem !important;
+  }
+
+  .driver-popover.driverjs-theme .driver-popover-title {
+    font-size: 1rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .driver-popover.driverjs-theme .driver-popover-description {
+    font-size: 0.8rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .driver-popover.driverjs-theme .driver-popover-footer {
+    margin-top: 0.75rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .driver-popover.driverjs-theme .driver-popover-progress-text {
+    font-size: 0.7rem !important;
+    padding: 0.25rem 0.55rem !important;
+  }
+
+  .driver-popover.driverjs-theme .driver-popover-navigation-btns {
+    gap: 0.35rem !important;
+  }
+
+  .driver-popover.driverjs-theme .driver-popover-footer-btn {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 0.5rem !important;
+  }
+}
+

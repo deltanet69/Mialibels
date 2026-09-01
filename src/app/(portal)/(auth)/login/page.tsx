@@ -72,7 +72,7 @@ export default function LoginPage() {
             <span>SMART Portal v2.0</span>
           </div>
 
-          <h2 className="font-headline font-black text-4xl xl:text-5xl leading-tight mb-5 text-white">
+          <h2 className="font-headline font-black text-4xl xl:text-4xl leading-tight mb-5 text-white">
             Sistem Manajemen Akademik &amp; Administrasi Terpadu
           </h2>
           <p className="font-body text-blue-100 text-base leading-relaxed mb-8">

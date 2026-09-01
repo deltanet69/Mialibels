@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Bell, CheckCircle2, User, LogOut, Sparkles, ExternalLink } from 'lucide-react';
+import { Menu, Bell, CheckCircle2, User, LogOut, Sparkles, ExternalLink, HelpCircle } from 'lucide-react';
 import { useSidebar } from './SidebarProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -81,14 +81,14 @@ export function NavbarClient({ user }: { user: any }) {
   };
 
   return (
-    <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 print:hidden transition-all shadow-[0_1px_8px_rgba(0,0,0,0.02)]">
+    <header className="h-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 print:hidden transition-all shadow-[0_1px_8px_rgba(0,0,0,0.02)]">
       <div className="flex items-center gap-3">
         <button 
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-slate-100/80 rounded-xl md:hidden text-slate-600 transition"
           aria-label="Buka Menu"
         >
-          <Menu size={20} />
+          <Menu size={24} />
         </button>
 
         <div className="hidden sm:flex items-center gap-2">
@@ -103,13 +103,25 @@ export function NavbarClient({ user }: { user: any }) {
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Link to Live Website */}
         <Link 
-          href="/"
+          href="https://miattaqwa15.sch.id/"
           target="_blank"
           className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/90 text-slate-600 hover:text-blue-700 hover:border-blue-200 text-xs font-semibold transition-all"
         >
           <span>Buka Website</span>
           <ExternalLink size={12} />
         </Link>
+
+        {/* Help / Tour Dropdown/Button for Parent */}
+        {role === 'parent' && (
+          <button 
+             onClick={() => window.dispatchEvent(new Event('start-parent-tour'))}
+             className="relative p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 hover:text-blue-600"
+             aria-label="Panduan"
+             title="Lihat Panduan Aplikasi"
+          >
+             <HelpCircle size={24} />
+          </button>
+        )}
 
         {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
@@ -122,8 +134,8 @@ export function NavbarClient({ user }: { user: any }) {
             }`}
             aria-label="Notifikasi"
           >
-            <Bell size={18} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white"></span>
+            <Bell size={24} />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-600 rounded-full ring-2 ring-white"></span>
           </button>
 
           {showNotifications && (

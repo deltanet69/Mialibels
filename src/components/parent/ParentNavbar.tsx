@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Menu, CheckCircle2, LogOut } from 'lucide-react';
+import { Bell, Menu, CheckCircle2, LogOut, HelpCircle } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useParentSidebar } from './ParentSidebarProvider';
 
@@ -57,7 +57,22 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
         </button>
       </div>
       
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Help & Hints Button (Syarat Kartu Ujian & Tour) */}
+        <button 
+          onClick={() => window.dispatchEvent(new Event('open-exam-rules-modal'))}
+          className="relative p-2.5 rounded-xl text-amber-600 bg-amber-50/80 hover:bg-amber-100 hover:text-amber-700 transition flex items-center justify-center cursor-pointer border border-amber-200/80 shadow-2xs"
+          aria-label="Petunjuk & Syarat Kartu Ujian"
+          title="Petunjuk & Syarat Unduh Kartu Ujian"
+        >
+          <HelpCircle size={22} className="animate-pulse text-amber-600" />
+          {/* Eye-catching live pulsing dot */}
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-80"></span>
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 ring-2 ring-white shadow-xs"></span>
+          </span>
+        </button>
+
         <div className="relative" ref={notifRef}>
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
