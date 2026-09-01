@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, User, Phone, Mail, MapPin, Edit3, ShieldCheck, Wallet, PiggyBank, Calendar, Clock, Key, Loader2, CheckCircle2 } from 'lucide-react'
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import { CardDownloader } from '@/components/portal/students/CardDownloader'
+import { getDirectImageUrl } from '@/lib/imageUtils'
 
 export default function StudentDetailPage() {
   const params = useParams()
@@ -16,6 +17,7 @@ export default function StudentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showEdit, setShowEdit] = useState(false)
   const [activeTab, setActiveTab] = useState<'profil' | 'spp' | 'tabungan'>('profil')
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   // Password Parent State
   const [newParentPassword, setNewParentPassword] = useState('')
@@ -41,6 +43,7 @@ export default function StudentDetailPage() {
 
   useEffect(() => {
     fetchStudent()
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.success) setCurrentUser(d.user) })
   }, [id])
 
   const handleUpdateParentPassword = async () => {
@@ -88,6 +91,7 @@ export default function StudentDetailPage() {
 
   const account = student.student_accounts?.[0]
   const sppPayments = student.spp_invoices || []
+  const photoSrc = getDirectImageUrl(student.photo_url, 300)
 
   return (
     <div className="font-sans space-y-6 sm:space-y-7 w-full pb-16">
@@ -107,8 +111,17 @@ export default function StudentDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Quick Profile */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-4">
-            <User size={40} />
+          <div className="w-24 h-24 bg-blue-100 border-2 border-slate-100 shadow-xs rounded-full flex items-center justify-center text-blue-600 mb-4 overflow-hidden shrink-0">
+            {photoSrc ? (
+              <img 
+                src={photoSrc} 
+                alt={student.name} 
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+              />
+            ) : (
+              <User size={40} />
+            )}
           </div>
           <h2 className="text-xl font-bold text-slate-800">{student.name}</h2>
           <div className="mt-1 flex items-center justify-center gap-2 flex-wrap">
@@ -135,14 +148,14 @@ export default function StudentDetailPage() {
 
           <div className="w-full space-y-3 text-left">
             <div className="flex items-start gap-3">
-              <User className="text-slate-400 shrink-0" size={18} />
+              <User className="text-slate-400 shrink-0 mt-0.5" size={18} />
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Orang Tua/Wali</p>
                 <p className="text-sm font-medium text-slate-700">{student.parent_name}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Phone className="text-slate-400 shrink-0" size={18} />
+              <Phone className="text-slate-400 shrink-0 mt-0.5" size={18} />
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">No HP</p>
                 <p className="text-sm font-medium text-slate-700">{student.parent_phone}</p>
@@ -150,10 +163,19 @@ export default function StudentDetailPage() {
             </div>
             {student.parent_email && (
               <div className="flex items-start gap-3">
-                <Mail className="text-slate-400 shrink-0" size={18} />
+                <Mail className="text-slate-400 shrink-0 mt-0.5" size={18} />
                 <div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Email</p>
                   <p className="text-sm font-medium text-slate-700">{student.parent_email}</p>
+                </div>
+              </div>
+            )}
+            {student.address && (
+              <div className="flex items-start gap-3">
+                <MapPin className="text-slate-400 shrink-0 mt-0.5" size={18} />
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Alamat</p>
+                  <p className="text-sm font-medium text-slate-700 leading-snug">{student.address}</p>
                 </div>
               </div>
             )}
@@ -161,12 +183,16 @@ export default function StudentDetailPage() {
 
           <div className="w-full mt-6 pt-6 border-t border-slate-100">
             <p className="text-sm font-semibold text-slate-700 mb-3 text-left">Unduh Kartu Identitas</p>
-            <CardDownloader student={student} sppInvoices={sppPayments} />
+            {currentUser?.role === 'superadmin' ? (
+              <CardDownloader student={student} sppInvoices={sppPayments} />
+            ) : (
+              <p className="text-xs text-slate-400 italic">Hanya Superadmin yang dapat mengunduh kartu siswa.</p>
+            )}
           </div>
 
           <button 
             onClick={() => setShowEdit(true)}
-            className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition font-medium"
+            className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition font-medium cursor-pointer"
           >
             <Edit3 size={18} /> Edit Profil
           </button>
@@ -181,18 +207,22 @@ export default function StudentDetailPage() {
             >
               <User size={18} /> Info Lengkap
             </button>
-            <button 
-              onClick={() => setActiveTab('spp')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'spp' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <Wallet size={18} /> Riwayat SPP
-            </button>
-            <button 
-              onClick={() => setActiveTab('tabungan')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'tabungan' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <PiggyBank size={18} /> Tabungan
-            </button>
+            {currentUser?.role === 'superadmin' && (
+              <>
+                <button 
+                  onClick={() => setActiveTab('spp')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'spp' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <Wallet size={18} /> Riwayat SPP
+                </button>
+                <button 
+                  onClick={() => setActiveTab('tabungan')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === 'tabungan' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <PiggyBank size={18} /> Tabungan
+                </button>
+              </>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 min-h-[400px]">
@@ -206,12 +236,6 @@ export default function StudentDetailPage() {
                     <p className="text-2xl font-black font-mono tracking-widest text-blue-700">{student.nisn || '—'}</p>
                     <p className="text-xs text-blue-500 mt-1">Berikan NISN ini kepada Wali Murid untuk login ke Portal Orang Tua.</p>
                   </div>
-                  {/*
-                  <div>
-                    <p className="text-sm font-medium text-slate-500 mb-1">NISN (Nasional)</p>
-                    <p className="text-slate-800 font-medium">{student.nisn || '—'}</p>
-                  </div>
-                  */}
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">Kelas</p>
                     <p className="text-slate-800 font-medium">{student.class || '—'}</p>
@@ -227,6 +251,14 @@ export default function StudentDetailPage() {
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">No RFID</p>
                     <p className="text-slate-800 font-medium">{student.rfid_number || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 mb-1">Keringanan Infaq</p>
+                    <p className="text-slate-800 font-medium">{student.fee_waiver_type || 'Tidak Ada'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm font-medium text-slate-500 mb-1">Alamat Tempat Tinggal</p>
+                    <p className="text-slate-800 font-medium">{student.address || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-500 mb-1">Didaftarkan Pada</p>

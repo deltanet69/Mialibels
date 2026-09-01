@@ -59,6 +59,20 @@ export default function DetailGuruPage() {
     )
   }
 
+  const canViewDetail = ['superadmin', 'staff_operator', 'staff', 'kepsek'].includes(currentUser?.role)
+
+  if (!canViewDetail) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Akses Ditolak</h2>
+        <p className="text-slate-500 mb-6">Anda tidak memiliki izin untuk melihat detail guru/staff.</p>
+        <Link href="/guru" className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition">
+          Kembali ke Data Guru
+        </Link>
+      </div>
+    )
+  }
+
   if (!guru) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">

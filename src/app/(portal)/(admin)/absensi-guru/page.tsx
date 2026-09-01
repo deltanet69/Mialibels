@@ -36,7 +36,9 @@ type LogEntry = {
 type FilterType = 'hari' | 'minggu' | 'bulan'
 
 export default function AbsensiGuruPage() {
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState<string>(() => {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+  })
   const [filterType, setFilterType] = useState<FilterType>('hari')
   const [staffs, setStaffs] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)

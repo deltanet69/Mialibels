@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Menu, CheckCircle2, DollarSign } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { Bell, Menu, CheckCircle2, LogOut } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useParentSidebar } from './ParentSidebarProvider';
 
 export function ParentNavbar({ studentName, parentName }: { studentName?: string; parentName?: string }) {
   const { setIsOpen } = useParentSidebar();
+  const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [loggingOut, setLoggingOut] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +35,12 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
     
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    document.cookie = 'parent_session=; Max-Age=0; path=/';
+    router.push('/parent/login');
+  };
 
   const initials = parentName
     ? parentName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
@@ -100,6 +108,15 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
             {initials}
           </div>
         </div>
+
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          title="Keluar dari Akun"
+          className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition disabled:opacity-50 cursor-pointer"
+        >
+          <LogOut size={18} />
+        </button>
       </div>
     </header>
   );

@@ -55,6 +55,7 @@ export default function AdminSpmbPage() {
   const [settings, setSettings] = useState<any>(null)
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   // Filters & State
   const [search, setSearch] = useState('')
@@ -94,13 +95,15 @@ export default function AdminSpmbPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [resApps, resSettings] = await Promise.all([
+      const [resApps, resSettings, resMe] = await Promise.all([
         fetch('/api/spmb/admin?_t=' + Date.now()),
-        fetch('/api/spmb/admin/settings?_t=' + Date.now())
+        fetch('/api/spmb/admin/settings?_t=' + Date.now()),
+        fetch('/api/auth/me')
       ])
 
       const dataApps = await resApps.json()
       const dataSettings = await resSettings.json()
+      const dataMe = await resMe.json()
 
       if (dataApps.success) {
         setApplicants(dataApps.data || [])
@@ -110,6 +113,10 @@ export default function AdminSpmbPage() {
       if (dataSettings.success && dataSettings.data) {
         setSettings(dataSettings.data)
         setSettingsForm(dataSettings.data)
+      }
+
+      if (dataMe.success) {
+        setCurrentUser(dataMe.user)
       }
     } catch (err) {
       console.error('Error fetching SPMB admin data:', err)
@@ -269,6 +276,18 @@ export default function AdminSpmbPage() {
     } finally {
       setSavingSettings(false)
     }
+  }
+
+  if (!loading && currentUser && currentUser.role !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Akses Ditolak</h2>
+        <p className="text-slate-500 mb-6">Hanya Superadmin yang memiliki izin untuk mengakses halaman SPMB.</p>
+        <Link href="/dashboard" className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition">
+          Kembali ke Dashboard
+        </Link>
+      </div>
+    )
   }
 
   return (

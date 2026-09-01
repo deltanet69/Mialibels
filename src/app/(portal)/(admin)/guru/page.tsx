@@ -72,6 +72,7 @@ export default function GuruPage() {
   }, [fetchGuru])
 
   const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff_operator'
+  const canViewDetail = ['superadmin', 'staff_operator', 'staff', 'kepsek'].includes(currentUser?.role)
 
   // Unique positions for filter
   const positions = useMemo(() => {
@@ -352,13 +353,15 @@ export default function GuruPage() {
                     {/* Actions */}
                     <td className="py-4 pr-5 text-right font-sans">
                       <div className="flex items-center justify-end gap-1.5">
-                        <Link
-                          href={`/guru/${guru.id}`}
-                          className="p-2 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition"
-                          title="Detail Profil Guru"
-                        >
-                          <Eye size={16} />
-                        </Link>
+                        {canViewDetail && (
+                          <Link
+                            href={`/guru/${guru.id}`}
+                            className="p-2 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition"
+                            title="Detail Profil Guru"
+                          >
+                            <Eye size={16} />
+                          </Link>
+                        )}
                         {canEdit && (
                           <>
                             <button
@@ -407,9 +410,15 @@ export default function GuruPage() {
               <div key={guru.id} className="bg-white border border-slate-200/80 p-4.5 rounded-2xl shadow-2xs flex flex-col gap-3 relative">
                 <div className="flex justify-between items-start">
                   <div>
-                    <Link href={`/guru/${guru.id}`} className="font-sans font-bold text-slate-900 text-base hover:text-blue-600 transition block mb-0.5">
-                      {guru.name}
-                    </Link>
+                    {canViewDetail ? (
+                      <Link href={`/guru/${guru.id}`} className="font-sans font-bold text-slate-900 text-base hover:text-blue-600 transition block mb-0.5">
+                        {guru.name}
+                      </Link>
+                    ) : (
+                      <span className="font-sans font-bold text-slate-900 text-base block mb-0.5">
+                        {guru.name}
+                      </span>
+                    )}
                     <p className="text-xs sm:text-sm font-semibold text-blue-700">{guru.position}</p>
                   </div>
                   {guru.is_active ? (
@@ -455,12 +464,14 @@ export default function GuruPage() {
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                  <Link
-                    href={`/guru/${guru.id}`}
-                    className="flex-1 flex justify-center items-center gap-1.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
-                  >
-                    <Eye size={14} /> Detail
-                  </Link>
+                  {canViewDetail && (
+                    <Link
+                      href={`/guru/${guru.id}`}
+                      className="flex-1 flex justify-center items-center gap-1.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition"
+                    >
+                      <Eye size={14} /> Detail
+                    </Link>
+                  )}
                   {canEdit && (
                     <>
                       <button

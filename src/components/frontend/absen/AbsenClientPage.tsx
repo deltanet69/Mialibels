@@ -96,11 +96,15 @@ export default function AbsenClientPage() {
         const presentList = allStaffs.filter((s: any) => s.attendance && s.attendance.check_in_time)
         // Sort by most recently checked in first
         presentList.sort((a: any, b: any) => {
-           const timeA = new Date(a.attendance?.check_in_time || 0).getTime()
-           const timeB = new Date(b.attendance?.check_in_time || 0).getTime()
-           const validTimeA = isNaN(timeA) ? 0 : timeA
-           const validTimeB = isNaN(timeB) ? 0 : timeB
-           return validTimeB - validTimeA
+           const getValidTime = (iso?: string) => {
+             if (!iso) return 0;
+             const validIso = (!iso.endsWith('Z') && !iso.includes('+')) ? `${iso}Z` : iso;
+             const d = new Date(validIso).getTime();
+             return isNaN(d) ? 0 : d;
+           };
+           const timeA = getValidTime(a.attendance?.check_in_time);
+           const timeB = getValidTime(b.attendance?.check_in_time);
+           return timeB - timeA;
         })
         
         setPresentStaff(presentList.length)
@@ -186,7 +190,21 @@ export default function AbsenClientPage() {
     }
   }
 
+  // Lock to prevent rapid double scans
+  const isScanningRef = useRef(false)
+  const lastScannedRfidRef = useRef<{rfid: string, time: number}>({rfid: '', time: 0})
+
   const processRFID = async (rfid: string) => {
+    // Prevent rapid double scan of the same RFID within 3 seconds
+    const now = Date.now()
+    if (isScanningRef.current) return
+    if (lastScannedRfidRef.current.rfid === rfid && (now - lastScannedRfidRef.current.time) < 3000) {
+      return // Ignore duplicate scan
+    }
+    
+    isScanningRef.current = true
+    lastScannedRfidRef.current = { rfid, time: now }
+
     try {
       const res = await fetch('/api/attendance/scan', {
         method: 'POST',
@@ -222,6 +240,8 @@ export default function AbsenClientPage() {
 
     } catch (error) {
       showPopup({ type: 'error', message: 'Koneksi ke server bermasalah.' })
+    } finally {
+      isScanningRef.current = false
     }
   }
 

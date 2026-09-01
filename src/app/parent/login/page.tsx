@@ -110,7 +110,6 @@ export default function ParentLoginPage() {
                   placeholder="Misal: 01A2026001"
                 />
               </div>
-              <p className="text-xs text-slate-400 ml-2 mt-1">Format: {'{Kelas}{Tahun}{Nomor Urut}'} — contoh: 01A2026001</p>
             </div>
 
             <div className="space-y-1.5">
@@ -126,7 +125,6 @@ export default function ParentLoginPage() {
                   placeholder="••••••••"
                 />
               </div>
-              <p className="text-xs text-slate-500 ml-2 mt-1">Default password: mialibels15</p>
             </div>
 
             <button

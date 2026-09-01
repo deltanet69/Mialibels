@@ -81,6 +81,7 @@ const ADMIN_API_PREFIXES: string[] = [
   '/api/classrooms',
   '/api/guru',
   '/api/attendance',
+  '/api/dashboard',
   '/api/finance',
   '/api/spp',
   '/api/savings',

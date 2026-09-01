@@ -22,16 +22,18 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
       'parent_email',
       'is_active',
       'tempat_lahir',
-      'tanggal_lahir'
+      'tanggal_lahir',
+      'alamat',
+      'foto_url'
     ]
     const rows = [
-      ['0123456789', 'Budi Santoso', '2023001', '1A', 'Joko Santoso', '081234567890', 'joko@email.com', 'true', 'Jakarta', '2015-08-17'],
-      ['0234567891', 'Siti Aminah', '2023002', '1B', 'Ahmad Syarif', '082298765432', 'ahmad@email.com', 'true', 'Bandung', '2015-09-10'],
-      ['0345678912', 'Dani Pratama', '2023003', '2A', 'Bapak Dani', '083312345678', '', 'true', 'Surabaya', '2014-01-05'],
+      ['0123456789', 'Budi Santoso', '2023001', '1A', 'Joko Santoso', '081234567890', 'joko@email.com', 'true', 'Jakarta', '2015-08-17', 'Jl. Merdeka No. 10 Jakarta', 'https://drive.google.com/file/d/1A2B3C4D5E6F7G8H9/view?usp=sharing'],
+      ['0234567891', 'Siti Aminah', '2023002', '1B', 'Ahmad Syarif', '082298765432', 'ahmad@email.com', 'true', 'Bandung', '2015-09-10', 'Jl. Mawar No. 5 Bekasi', 'https://drive.google.com/file/d/2B3C4D5E6F7G8H9I0/view?usp=sharing'],
+      ['0345678912', 'Dani Pratama', '2023003', '2A', 'Bapak Dani', '083312345678', '', 'true', 'Surabaya', '2014-01-05', 'Jl. Kebon Jeruk Babelan', ''],
     ]
 
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -70,15 +72,17 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
           const students = (res.data as any[])
             .map((row) => ({
               nisn: (row.nisn || row.NISN || '').toString().trim() || null,
-              name: (row.name || row.Nama || '').toString().trim(),
+              name: (row.name || row.Nama || row['Nama Lengkap'] || '').toString().trim(),
               student_number: (row.student_number || row.NIS || '').toString().trim() || null,
               class: (row.class || row.Kelas || '').toString().trim(),
-              parent_name: (row.parent_name || row['Nama Orang Tua'] || '').toString().trim(),
-              parent_phone: (row.parent_phone || row['No HP'] || '').toString().trim(),
+              parent_name: (row.parent_name || row['Nama Orang Tua'] || row['Orang Tua'] || '').toString().trim(),
+              parent_phone: (row.parent_phone || row['No HP'] || row['No HP Orang Tua'] || '').toString().trim(),
               parent_email: (row.parent_email || row.Email || '').toString().trim() || null,
               is_active: row.is_active !== 'false',
-              place_of_birth: (row.tempat_lahir || row['Tempat Lahir'] || '').toString().trim() || null,
-              date_of_birth: (row.tanggal_lahir || row['Tanggal Lahir'] || '').toString().trim() || null,
+              place_of_birth: (row.tempat_lahir || row['Tempat Lahir'] || row.place_of_birth || '').toString().trim() || null,
+              date_of_birth: (row.tanggal_lahir || row['Tanggal Lahir'] || row.date_of_birth || '').toString().trim() || null,
+              address: (row.alamat || row.Alamat || row.address || '').toString().trim() || null,
+              photo_url: (row.foto_url || row['Foto Siswa'] || row['Foto URL'] || row.foto || row.photo_url || '').toString().trim() || null,
             }))
             .filter((s) => s.name && s.class)
 
@@ -131,9 +135,9 @@ export function CsvImport({ onSuccess, onClose }: { onSuccess: () => void, onClo
 
           {/* Info banner */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700">
-            <p className="font-semibold mb-1">Kolom yang diperlukan:</p>
+            <p className="font-semibold mb-1">Kolom yang tersedia:</p>
             <p className="font-mono text-xs leading-relaxed">
-              nisn, name, student_number, class, parent_name, parent_phone, parent_email, is_active
+              nisn, name, student_number, class, parent_name, parent_phone, parent_email, is_active, tempat_lahir, tanggal_lahir, alamat, foto_url
             </p>
           </div>
 

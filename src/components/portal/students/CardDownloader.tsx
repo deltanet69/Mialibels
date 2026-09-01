@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Download, AlertCircle, Loader2 } from 'lucide-react';
+import { getDirectImageUrl } from '@/lib/imageUtils';
 
 interface Student {
   id: string;
@@ -11,6 +12,7 @@ interface Student {
   class: string;
   address?: string;
   image?: string;
+  photo_url?: string;
 }
 
 interface SPPInvoice {
@@ -31,20 +33,18 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
   const [generatingUjian, setGeneratingUjian] = useState(false);
   
   const fetchFullData = async () => {
-    if (initialStudent && initialSpp && initialSpp.length > 3) {
-      return { studentData: initialStudent, sppData: initialSpp };
-    }
-    
     const targetId = studentId || initialStudent?.id;
     if (!targetId) throw new Error("No student ID provided");
     
+    // Always fetch fresh data to get general_invoices as well
     const res = await fetch(`/api/students/${targetId}`);
     const result = await res.json();
     if (!result.success) throw new Error("Failed to fetch student data");
     
     return {
       studentData: result.data,
-      sppData: result.data.spp_invoices || []
+      sppData: result.data.spp_invoices || [],
+      generalData: result.data.general_invoices || []
     };
   };
 
@@ -57,17 +57,59 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
     });
     return !unpaidTargetMonth;
   };
+  
+  const getGeneralPaidAmount = (generalList: any[], key: string) => 
+    generalList.flatMap(inv => inv.items || []).filter((item: any) => item.name?.toLowerCase().includes(key.toLowerCase())).reduce((sum, item) => sum + (Number(item.paid_amount) || 0), 0);
 
   const drawCard = async (type: 'siswa' | 'ujian') => {
     if (type === 'siswa') setGeneratingSiswa(true);
     else setGeneratingUjian(true);
 
     try {
-      const { studentData, sppData } = await fetchFullData();
+      if (type === 'ujian' && process.env.NODE_ENV === 'production') {
+        const releaseDate = new Date('2026-09-08T00:00:00+07:00');
+        if (new Date() < releaseDate) {
+          alert('Kartu Ujian baru dapat diunduh mulai tanggal 8 September 2026.');
+          setGeneratingUjian(false);
+          return;
+        }
+      }
+
+      const { studentData, sppData, generalData } = await fetchFullData();
       
-      if (type === 'ujian' && !isSppSeptemberLunas(sppData)) {
-        alert('Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP sampai dengan bulan September sudah dilunasi.');
-        return;
+      if (type === 'ujian') {
+        const className = studentData.class || '';
+        const isFullday = className.match(/A$/i);
+        const isClass6 = className.startsWith('6');
+        
+        let errorMsg = '';
+        
+        if (!isSppSeptemberLunas(sppData)) {
+          errorMsg = 'Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP s/d bulan September sudah dilunasi.';
+        } else {
+          const paidBuku = getGeneralPaidAmount(generalData, 'buku');
+          const paidUlangan = getGeneralPaidAmount(generalData, 'ulangan');
+          const paidAkhirTahun = getGeneralPaidAmount(generalData, 'akhir tahun');
+          
+          const minBuku = isFullday ? 700000 : 300000;
+          const minUlangan = 110000;
+          const minAkhirTahun = 600000;
+          
+          if (paidBuku < minBuku) {
+            errorMsg = `Uang Buku/LKS minimal Rp.${minBuku.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidBuku.toLocaleString('id-ID')}).`;
+          } else if (paidUlangan < minUlangan) {
+            errorMsg = `Uang Ulangan Umum minimal Rp.${minUlangan.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidUlangan.toLocaleString('id-ID')}).`;
+          } else if (isClass6 && paidAkhirTahun < minAkhirTahun) {
+            errorMsg = `Uang Kegiatan Akhir Tahun minimal Rp.${minAkhirTahun.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidAkhirTahun.toLocaleString('id-ID')}).`;
+          }
+        }
+
+        if (errorMsg) {
+          alert(errorMsg);
+          if (type === 'siswa') setGeneratingSiswa(false);
+          else setGeneratingUjian(false);
+          return;
+        }
       }
 
       const canvas = document.createElement('canvas');
@@ -84,6 +126,8 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         img.onerror = reject;
         img.src = templateSrc;
       });
+
+      const photoUrl = getDirectImageUrl(studentData.photo_url || studentData.image, 600);
 
       if (type === 'siswa') {
         // Original Kartu Siswa dimensions (3150 x 1800 px)
@@ -156,16 +200,25 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         const photoW = 441;
         const photoH = 629;
 
-        if (studentData.image) {
-          const photo = new window.Image();
-          photo.crossOrigin = 'anonymous';
-          await new Promise((resolve, reject) => {
-            photo.onload = resolve;
-            photo.onerror = reject;
-            photo.src = studentData.image!;
-          });
-          ctx.drawImage(photo, photoX, photoY, photoW, photoH);
-        } else {
+        let photoLoaded = false;
+        if (photoUrl) {
+          try {
+            const photo = new window.Image();
+            photo.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+              photo.onload = () => { photoLoaded = true; resolve(true); };
+              photo.onerror = () => resolve(false);
+              photo.src = photoUrl;
+            });
+            if (photoLoaded) {
+              ctx.drawImage(photo, photoX, photoY, photoW, photoH);
+            }
+          } catch (e) {
+            photoLoaded = false;
+          }
+        }
+
+        if (!photoLoaded) {
           ctx.fillStyle = '#e2e8f0';
           ctx.fillRect(photoX, photoY, photoW, photoH);
           
@@ -240,16 +293,25 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         const photoW = 460;
         const photoH = 613;
 
-        if (studentData.image) {
-          const photo = new window.Image();
-          photo.crossOrigin = 'anonymous';
-          await new Promise((resolve, reject) => {
-            photo.onload = resolve;
-            photo.onerror = reject;
-            photo.src = studentData.image!;
-          });
-          ctx.drawImage(photo, photoX, photoY, photoW, photoH);
-        } else {
+        let photoLoaded = false;
+        if (photoUrl) {
+          try {
+            const photo = new window.Image();
+            photo.crossOrigin = 'anonymous';
+            await new Promise((resolve, reject) => {
+              photo.onload = () => { photoLoaded = true; resolve(true); };
+              photo.onerror = () => resolve(false);
+              photo.src = photoUrl;
+            });
+            if (photoLoaded) {
+              ctx.drawImage(photo, photoX, photoY, photoW, photoH);
+            }
+          } catch (e) {
+            photoLoaded = false;
+          }
+        }
+
+        if (!photoLoaded) {
           ctx.fillStyle = '#e2e8f0';
           if (typeof ctx.roundRect === 'function') {
             ctx.beginPath();

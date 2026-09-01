@@ -84,7 +84,7 @@ export function SppInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) 
 
   // Edit Mode States  
   const [isEditMode, setIsEditMode] = useState(false)
-  const [editItems, setEditItems] = useState<{id: string, amount: number | string}[]>([])
+  const [editItems, setEditItems] = useState<{id: string, amount: number | string, paid_amount?: number | string}[]>([])
   
   // New invoice rows (inline add, like GeneralInvoiceDetailModal)
   const [newInvoiceRows, setNewInvoiceRows] = useState<{month: number, year: number, amount: string}[]>([])

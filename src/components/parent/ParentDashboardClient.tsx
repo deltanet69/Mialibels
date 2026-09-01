@@ -676,31 +676,25 @@ export function ParentDashboardClient({
               <div className="space-y-3">
                 {/* 1. Full Day */}
                 <div className="p-3.5 bg-blue-50/60 border border-blue-100 rounded-2xl">
-                  <h4 className="font-bold text-slate-800 text-xs mb-1">1. Kelas Full Day (1A s/d 5A)</h4>
+                  <h4 className="font-bold text-slate-800 text-xs mb-1">1. Kelas Full Day (1-6 A)</h4>
                   <ul className="list-disc list-inside space-y-1 text-slate-600">
-                    <li>Melunasi Infaq/SPP sampai dengan bulan <strong>September</strong></li>
-                    <li>Membayar tagihan Ulangan Umum (Ulum) minimal <strong>50% (Rp 110.000)</strong> dari total Rp 220.000</li>
+                    <li>Telah melunasi keuangan PPDB/SPMB dan tunggakan tahun sebelumnya</li>
+                    <li>Membayar Infaq s/d bulan <strong>September 2026</strong></li>
+                    <li>Uang Buku/LKS minimal <strong>Rp.700.000,-</strong></li>
+                    <li>Uang Ulangan umum minimal <strong>Rp.110.000,-</strong></li>
+                    <li>Uang kegiatan akhir tahun minimal <strong>Rp.600.000,-</strong> (Tambahan Khusus Kelas 6)</li>
                   </ul>
                 </div>
 
                 {/* 2. Regular */}
                 <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                  <h4 className="font-bold text-slate-800 text-xs mb-1">2. Kelas Regular (1 s/d 5 B, C, D)</h4>
+                  <h4 className="font-bold text-slate-800 text-xs mb-1">2. Kelas Reguler (1-6 B, C, D)</h4>
                   <ul className="list-disc list-inside space-y-1 text-slate-600">
-                    <li>Melunasi Infaq/SPP sampai dengan bulan <strong>September</strong></li>
-                    <li>Membayar tagihan Ulangan Umum minimal <strong>50% (Rp 110.000)</strong></li>
-                    <li>Buku Paket / LKS telah terbayar minimal <strong>Rp 300.000</strong></li>
-                  </ul>
-                </div>
-
-                {/* 3. Kelas 6 */}
-                <div className="p-3.5 bg-amber-50/60 border border-amber-100 rounded-2xl">
-                  <h4 className="font-bold text-slate-800 text-xs mb-1">3. Kelas 6 (A s/d D)</h4>
-                  <ul className="list-disc list-inside space-y-1 text-slate-600">
-                    <li>Melunasi Infaq/SPP sampai dengan bulan <strong>September</strong></li>
-                    <li>Membayar tagihan Ulangan Umum minimal <strong>50% (Rp 110.000)</strong></li>
-                    <li>Buku Paket / LKS minimal <strong>Rp 300.000</strong></li>
-                    <li>Kegiatan Akhir Tahun minimal <strong>Rp 600.000</strong></li>
+                    <li>Telah melunasi keuangan PPDB/SPMB dan tunggakan tahun sebelumnya</li>
+                    <li>Membayar Infaq s/d bulan <strong>September 2026</strong></li>
+                    <li>Uang Buku/LKS minimal <strong>Rp.300.000,-</strong></li>
+                    <li>Uang Ulangan umum minimal <strong>Rp.110.000,-</strong></li>
+                    <li>Uang kegiatan akhir tahun minimal <strong>Rp.600.000,-</strong> (Tambahan Khusus Kelas 6)</li>
                   </ul>
                 </div>
               </div>

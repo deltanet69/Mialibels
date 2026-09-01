@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, UserPlus, Save } from 'lucide-react'
+import { X, UserPlus, Save, Image as ImageIcon } from 'lucide-react'
+import { getDirectImageUrl } from '@/lib/imageUtils'
 
 type StudentFormProps = {
   initialData?: any
@@ -24,12 +25,14 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
     parent_email: initialData?.parent_email || '',
     place_of_birth: initialData?.place_of_birth || '',
     date_of_birth: initialData?.date_of_birth || '',
+    address: initialData?.address || '',
+    photo_url: initialData?.photo_url || '',
     rfid_number: initialData?.rfid_number || '',
     fee_waiver_type: initialData?.fee_waiver_type || '',
     is_active: initialData?.is_active ?? true,
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked
@@ -55,6 +58,8 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
         parent_email: formData.parent_email?.trim() || null,
         place_of_birth: formData.place_of_birth?.trim() || null,
         date_of_birth: formData.date_of_birth || null,
+        address: formData.address?.trim() || null,
+        photo_url: formData.photo_url?.trim() || null,
         fee_waiver_type: formData.fee_waiver_type || null
       }
 
@@ -217,6 +222,49 @@ export function StudentForm({ initialData, onSuccess, onClose }: StudentFormProp
                   onChange={handleChange}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-slate-700"
                 />
+              </div>
+
+              <div className="col-span-full space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Alamat Tempat Tinggal (Opsional)</label>
+                <textarea 
+                  name="address"
+                  rows={2}
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Jl. Merdeka No. 10, RT 01/02, Babelan, Bekasi"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-sm resize-none"
+                />
+              </div>
+
+              <div className="col-span-full space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Link Foto Siswa / Google Drive (Opsional)</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <input 
+                      type="text" 
+                      name="photo_url"
+                      value={formData.photo_url}
+                      onChange={handleChange}
+                      placeholder="https://drive.google.com/file/d/.../view atau URL Foto"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none text-xs font-mono"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Dapat menempelkan link Google Drive (Public/Share link) atau URL foto.</p>
+                  </div>
+
+                  {/* Photo Preview */}
+                  <div className="w-12 h-14 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                    {formData.photo_url ? (
+                      <img 
+                        src={getDirectImageUrl(formData.photo_url, 150)} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <ImageIcon className="text-slate-400" size={20} />
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-1.5">

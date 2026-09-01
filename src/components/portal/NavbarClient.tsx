@@ -212,6 +212,14 @@ export function NavbarClient({ user }: { user: any }) {
             </div>
           )}
         </div>
+
+        <button
+          onClick={handleLogout}
+          title="Keluar dari Akun"
+          className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+        >
+          <LogOut size={18} />
+        </button>
       </div>
 
       {/* Push Notifications Toasts */}

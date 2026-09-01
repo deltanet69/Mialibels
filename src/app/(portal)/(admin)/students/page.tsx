@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles, Users, X } from 'lucide-react'
+import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles, Users, X, User } from 'lucide-react'
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { BulkPhotoUpload } from '@/components/portal/students/BulkPhotoUpload'
 import { StudentForm } from '@/components/portal/students/StudentForm'
+import { getDirectImageUrl } from '@/lib/imageUtils'
 import Link from 'next/link'
 
 // Skeleton row component
@@ -44,6 +45,7 @@ export default function StudentsPage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [generateTarget, setGenerateTarget] = useState('all')
   const [generatingAccess, setGeneratingAccess] = useState(false)
+  const [isResettingPasswords, setIsResettingPasswords] = useState(false)
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -72,6 +74,7 @@ export default function StudentsPage() {
   }, [fetchStudents])
 
   const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff' || currentUser?.role === 'staff_operator'
+  const canGenerateParent = currentUser?.role === 'superadmin'
 
   const classes = useMemo(() => {
     const uniqueClasses = Array.from(new Set(allStudents.map(s => s.class).filter(Boolean)))
@@ -178,6 +181,25 @@ export default function StudentsPage() {
     }
   }
 
+  const handleResetAllPasswords = async () => {
+    if (!confirm('⚠️ PERHATIAN! Aksi ini akan mereset SEMUA password orang tua. Seluruh akses yang pernah dibuat sebelumnya (termasuk password yang sudah diubah) akan tidak berlaku. Lanjutkan?')) return;
+    setIsResettingPasswords(true);
+    try {
+      const res = await fetch('/api/students/reset-parent-passwords', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setRegenerateResult(`✅ ${data.message}`);
+        setShowGenerateModal(false);
+      } else {
+        setRegenerateResult(`❌ Error: ${data.error}`);
+      }
+    } catch (err: any) {
+      setRegenerateResult(`❌ Koneksi gagal: ${err.message}`);
+    } finally {
+      setIsResettingPasswords(false);
+    }
+  }
+
   return (
     <div className="font-sans space-y-6 sm:space-y-7 w-full pb-16">
       
@@ -197,13 +219,15 @@ export default function StudentsPage() {
         </div>
         {canEdit && (
           <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap">
-            <button 
-              onClick={() => setShowGenerateModal(true)}
-              className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200/90 text-indigo-700 px-4 py-2.5 rounded-2xl hover:bg-indigo-100 transition text-xs font-bold shadow-2xs cursor-pointer"
-            >
-              <Key size={15} />
-              <span>Akses Orang Tua</span>
-            </button>
+            {canGenerateParent && (
+              <button 
+                onClick={() => setShowGenerateModal(true)}
+                className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200/90 text-indigo-700 px-4 py-2.5 rounded-2xl hover:bg-indigo-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+              >
+                <Key size={15} />
+                <span>Akses Orang Tua</span>
+              </button>
+            )}
             <button 
               onClick={() => setShowImport(true)}
               className="btn-tactile flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition text-xs font-bold shadow-2xs cursor-pointer"
@@ -318,12 +342,26 @@ export default function StudentsPage() {
                       </span>
                     </td>
                     <td className="py-4 pr-4">
-                      <Link 
-                        href={`/students/${student.id}`} 
-                        className="font-sans font-bold text-[14px] sm:text-[15px] text-slate-900 hover:text-blue-600 transition-colors leading-snug"
-                      >
-                        {student.name}
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 text-slate-500 text-xs font-bold">
+                          {student.photo_url ? (
+                            <img 
+                              src={getDirectImageUrl(student.photo_url, 100)} 
+                              alt={student.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <User size={16} />
+                          )}
+                        </div>
+                        <Link 
+                          href={`/students/${student.id}`} 
+                          className="font-sans font-bold text-[14px] sm:text-[15px] text-slate-900 hover:text-blue-600 transition-colors leading-snug"
+                        >
+                          {student.name}
+                        </Link>
+                      </div>
                     </td>
                     <td className="py-4 pr-4">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -579,7 +617,19 @@ export default function StudentsPage() {
               </select>
             </div>
             
-            <div className="flex items-center gap-3 justify-end mt-4">
+              <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl">
+                <p className="text-xs font-bold text-rose-700 mb-2">⚠️ Zona Berbahaya</p>
+                <p className="text-xs text-rose-600 leading-relaxed mb-3">Reset seluruh password orang tua. Semua akses lama (termasuk yang sudah diubah) akan tidak berlaku. Gunakan setelah generate password baru.</p>
+                <button
+                  onClick={handleResetAllPasswords}
+                  disabled={isResettingPasswords || generatingAccess}
+                  className="px-4 py-2 bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 rounded-xl transition flex items-center gap-2 disabled:opacity-70 cursor-pointer"
+                >
+                  {isResettingPasswords ? <><Loader2 size={14} className="animate-spin" /><span>Mereset...</span></> : <span>Reset Semua Password Orang Tua</span>}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3 justify-end mt-4">
               <button 
                 onClick={() => setShowGenerateModal(false)}
                 disabled={generatingAccess}

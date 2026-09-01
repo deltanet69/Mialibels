@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -21,11 +21,9 @@ import {
   BarChart3,
   UserCog,
   School,
-  LogOut,
-  X,
   Activity,
   Sparkles,
-  ChevronRight
+  X
 } from 'lucide-react';
 import { useSidebar } from './SidebarProvider';
 
@@ -35,15 +33,10 @@ type Props = {
 };
 
 export function SidebarClient({ role, userName }: Props) {
-  const router = useRouter();
   const pathname = usePathname();
   const { isOpen, setIsOpen } = useSidebar();
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
-    router.refresh();
-  };
+
 
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(path + '/');
@@ -180,12 +173,14 @@ export function SidebarClient({ role, userName }: Props) {
                   AKADEMIK
                 </h4>
                 <div className="flex flex-col gap-1">
-                  <Link href="/academic/spmb" className={linkClass('/academic/spmb')} onClick={() => setIsOpen(false)}>
-                    <div className="flex items-center gap-3">
-                      <Sparkles size={18} className="text-amber-500" />
-                      <span>SPMB Baru</span>
-                    </div>
-                  </Link>
+                  {role === 'superadmin' && (
+                    <Link href="/academic/spmb" className={linkClass('/academic/spmb')} onClick={() => setIsOpen(false)}>
+                      <div className="flex items-center gap-3">
+                        <Sparkles size={18} className="text-amber-500" />
+                        <span>SPMB Baru</span>
+                      </div>
+                    </Link>
+                  )}
                   <Link href="/students" className={linkClass('/students')} onClick={() => setIsOpen(false)}>
                     <div className="flex items-center gap-3">
                       <Users size={18} />
@@ -333,30 +328,6 @@ export function SidebarClient({ role, userName }: Props) {
           </nav>
         </div>
 
-        {/* User Card & Logout at the bottom */}
-        <div className="border-t border-slate-100 pt-3 mt-4">
-          {userName && (
-            <div className="px-3 py-2.5 mb-2 bg-slate-50/80 rounded-xl border border-slate-100 flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-slate-800 truncate">{userName}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-[11px] text-slate-500 capitalize">{role || 'Online'}</span>
-                </div>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50/80 transition-all w-full text-left font-semibold text-sm"
-          >
-            <div className="flex items-center gap-3">
-              <LogOut size={18} />
-              <span>Keluar Akun</span>
-            </div>
-            <ChevronRight size={14} className="text-rose-400" />
-          </button>
-        </div>
       </aside>
     </>
   );

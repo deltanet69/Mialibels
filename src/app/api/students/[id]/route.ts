@@ -18,7 +18,8 @@ export async function GET(
       .select(`
         *,
         student_accounts (*),
-        spp_invoices (*)
+        spp_invoices (*),
+        general_invoices (*)
       `)
       .eq('id', id)
       .single()
@@ -62,6 +63,8 @@ export async function PUT(
     if (updateData.parent_email !== undefined) updateData.parent_email = updateData.parent_email?.toString().trim() || null
     if (updateData.place_of_birth !== undefined) updateData.place_of_birth = updateData.place_of_birth?.toString().trim() || null
     if (updateData.date_of_birth !== undefined) updateData.date_of_birth = updateData.date_of_birth || null
+    if (updateData.address !== undefined) updateData.address = updateData.address?.toString().trim() || null
+    if (updateData.photo_url !== undefined) updateData.photo_url = updateData.photo_url?.toString().trim() || null
     if (updateData.fee_waiver_type !== undefined) updateData.fee_waiver_type = updateData.fee_waiver_type || null
 
     if (body.parent_password) {
@@ -98,8 +101,8 @@ export async function PUT(
 
     // Graceful fallback if database schema does not yet have newly added optional columns
     if (error && (error.message?.includes('column') || error.message?.includes('schema cache'))) {
-      console.warn('Supabase schema cache warning on student update, retrying without birth columns:', error.message)
-      const { date_of_birth, place_of_birth, ...strippedUpdate } = updateData
+      console.warn('Supabase schema cache warning on student update, retrying without optional columns:', error.message)
+      const { date_of_birth, place_of_birth, address, photo_url, ...strippedUpdate } = updateData
       const retry = await supabase
         .from('students')
         .update(strippedUpdate)
