@@ -121,9 +121,12 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
   const fridayStr = weekDayDates[4].dateStr;
 
   const [
-    { data: attendance },
-    { data: recentAttendance },
-    { data: weekAttendance },
+    { data: classroomAttMonth },
+    { data: rfidAttMonth },
+    { data: classroomAttRecent },
+    { data: rfidAttRecent },
+    { data: classroomAttWeek },
+    { data: rfidAttWeek },
     { data: savings },
     { data: savingsTransactions },
     { data: sppInvoices },
@@ -137,14 +140,33 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
       .lte('date', endOfMonth)
       .order('date', { ascending: false }),
     supabase
+      .from('student_attendances')
+      .select('id, date, status, entry_time, exit_time')
+      .eq('student_id', studentId)
+      .gte('date', startOfMonth)
+      .lte('date', endOfMonth)
+      .order('date', { ascending: false }),
+    supabase
       .from('classroom_attendances')
       .select('id, date, status, reason')
       .eq('student_id', studentId)
       .order('date', { ascending: false })
       .limit(5),
     supabase
+      .from('student_attendances')
+      .select('id, date, status, entry_time, exit_time')
+      .eq('student_id', studentId)
+      .order('date', { ascending: false })
+      .limit(5),
+    supabase
       .from('classroom_attendances')
       .select('id, date, status, reason')
+      .eq('student_id', studentId)
+      .gte('date', mondayStr)
+      .lte('date', fridayStr),
+    supabase
+      .from('student_attendances')
+      .select('id, date, status, entry_time, exit_time')
       .eq('student_id', studentId)
       .gte('date', mondayStr)
       .lte('date', fridayStr),
@@ -172,11 +194,41 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
       .order('created_at', { ascending: false })
   ]);
 
+  // Merge monthly attendance records
+  const dateMap: Record<string, any> = {};
+  (rfidAttMonth || []).forEach((r: any) => {
+    dateMap[r.date] = { date: r.date, status: r.status || 'Hadir', entry_time: r.entry_time, exit_time: r.exit_time, reason: '' };
+  });
+  (classroomAttMonth || []).forEach((c: any) => {
+    if (dateMap[c.date]) {
+      dateMap[c.date].status = c.status || dateMap[c.date].status;
+      dateMap[c.date].reason = c.reason || '';
+    } else {
+      dateMap[c.date] = { date: c.date, status: c.status, reason: c.reason || '', entry_time: null, exit_time: null };
+    }
+  });
+  const attendance = Object.values(dateMap);
+
+  // Merge recent attendance records (5 latest)
+  const recentDateMap: Record<string, any> = {};
+  (rfidAttRecent || []).forEach((r: any) => {
+    recentDateMap[r.date] = { id: r.id, date: r.date, status: r.status || 'Hadir', reason: r.entry_time ? `Scan ${r.entry_time}` : '' };
+  });
+  (classroomAttRecent || []).forEach((c: any) => {
+    if (recentDateMap[c.date]) {
+      recentDateMap[c.date].status = c.status || recentDateMap[c.date].status;
+      recentDateMap[c.date].reason = c.reason || recentDateMap[c.date].reason;
+    } else {
+      recentDateMap[c.date] = { id: c.id, date: c.date, status: c.status, reason: c.reason || '' };
+    }
+  });
+  const recentAttendance = Object.values(recentDateMap).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+
   // Attendance summary for month
-  const attendanceSummary = { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: attendance?.length || 0 };
-  attendance?.forEach((r: any) => {
+  const attendanceSummary = { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: attendance.length };
+  attendance.forEach((r: any) => {
     const s = (r.status || '').toLowerCase();
-    if (s === 'hadir' || s === 'present') attendanceSummary.hadir++;
+    if (s === 'hadir' || s === 'present' || s === 'tepat waktu' || s === 'terlambat') attendanceSummary.hadir++;
     else if (s === 'sakit' || s === 'sick') attendanceSummary.sakit++;
     else if (s === 'izin' || s === 'permitted') attendanceSummary.izin++;
     else if (attendanceSummary.total > 0) attendanceSummary.alpha++;
@@ -186,19 +238,23 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
     ? Math.round((attendanceSummary.hadir / attendanceSummary.total) * 100)
     : 100;
 
-  // Build week days array with attendance status
+  // Build week days array with merged RFID + manual status
   const weekDays = weekDayDates.map(wd => {
-    const match = weekAttendance?.find((wa: any) => wa.date === wd.dateStr);
+    const rMatch = rfidAttWeek?.find((r: any) => r.date === wd.dateStr);
+    const cMatch = classroomAttWeek?.find((c: any) => c.date === wd.dateStr);
+    const status = cMatch?.status || rMatch?.status || null;
+    const reason = cMatch?.reason || (rMatch?.entry_time ? `Scan ${rMatch.entry_time}` : undefined);
     return {
       ...wd,
-      status: match ? match.status : null,
-      reason: match ? match.reason : undefined
+      status,
+      reason,
+      entry_time: rMatch?.entry_time || null,
+      exit_time: rMatch?.exit_time || null
     };
   });
 
   // Today attendance
-  const todayAttendance = attendance?.find((a: any) => a.date === todayStr) ||
-    weekAttendance?.find((wa: any) => wa.date === todayStr) || null;
+  const todayAttendance = attendance.find((a: any) => a.date === todayStr) || null;
 
   // SPP calculations (chronological order)
   const allSpp = sppInvoices || [];

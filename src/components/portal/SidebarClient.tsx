@@ -193,6 +193,12 @@ export function SidebarClient({ role, userName }: Props) {
                       <span>Classroom</span>
                     </div>
                   </Link>
+                  <Link href="/academic/absensi-siswa" className={linkClass('/academic/absensi-siswa')} onClick={() => setIsOpen(false)}>
+                    <div className="flex items-center gap-3">
+                      <ClipboardCheck size={18} />
+                      <span>Rekap Absensi Siswa</span>
+                    </div>
+                  </Link>
                   <Link href="/modul-pembelajaran" className={linkClass('/modul-pembelajaran')} onClick={() => setIsOpen(false)}>
                     <div className="flex items-center gap-3">
                       <BookOpen size={18} />

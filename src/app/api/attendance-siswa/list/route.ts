@@ -27,8 +27,18 @@ export async function GET(request: NextRequest) {
 
     // 2. Filter students by class
     const deviceClassRaw = className.toLowerCase().replace(/\s+/g, '')
+    const isMultiClassGrade1 = deviceClassRaw === 'kelas1' || deviceClassRaw === '1' || deviceClassRaw === '1bcd'
+
     const classStudents = (allStudents || []).filter(student => {
       const studentClassRaw = (student.class || '').toLowerCase().replace(/\s+/g, '')
+      if (isMultiClassGrade1) {
+        return studentClassRaw.includes('1b') || 
+               studentClassRaw.includes('1c') || 
+               studentClassRaw.includes('1d') || 
+               studentClassRaw.includes('1a') ||
+               studentClassRaw.includes('kelas1') ||
+               studentClassRaw.startsWith('1')
+      }
       return studentClassRaw.includes(deviceClassRaw)
     })
 
@@ -47,9 +57,20 @@ export async function GET(request: NextRequest) {
       attendances = attData || []
     }
 
-    // 4. Combine data
+    // 4. Combine data & compute class breakdown
+    const classBreakdown: Record<string, { total: number; present: number }> = {}
+
     const result = classStudents.map(student => {
       const att = attendances.find(a => a.student_id === student.id)
+      const c = student.class || 'Tanpa Kelas'
+      if (!classBreakdown[c]) {
+        classBreakdown[c] = { total: 0, present: 0 }
+      }
+      classBreakdown[c].total += 1
+      if (att && att.entry_time) {
+        classBreakdown[c].present += 1
+      }
+
       return {
         id: student.id,
         name: student.name,
@@ -61,7 +82,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       total_students: classStudents.length,
-      present_count: attendances.length,
+      present_count: attendances.filter(a => a.entry_time).length,
+      class_breakdown: classBreakdown,
       data: result
     })
 

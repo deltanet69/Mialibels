@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { CheckCircle, XCircle, Users, Sparkles, Clock, Wifi, ShieldCheck, UserCheck, AlertCircle, UserX, Search } from 'lucide-react'
-import { useParams } from 'next/navigation'
+import { CheckCircle, XCircle, Users, Sparkles, Clock, Wifi, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
 // Helper for Indonesian date
@@ -46,12 +45,61 @@ type StudentAttendance = {
   } | null
 }
 
-export default function AbsenSiswaPage() {
-  const params = useParams()
-  const rawClassName = (params.class as string) || ''
-  const formattedClassName = rawClassName.toUpperCase()
-  const isClass1A = formattedClassName === '1A' || formattedClassName.includes('1A')
+const CLASS_CONFIGS = [
+  {
+    code: '1B',
+    title: 'Kelas 1B',
+    subtitle: 'Gedung 2 - Ruang 1',
+    theme: {
+      border: 'border-indigo-500/40',
+      borderCard: 'border-indigo-500/20 hover:border-indigo-500/50',
+      bgGlow: 'bg-indigo-500/10',
+      headerGradient: 'from-indigo-600 via-indigo-700 to-blue-700',
+      badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/40',
+      badgeSolid: 'bg-indigo-500 text-white',
+      cardBg: 'bg-slate-900/80',
+      highlightBorder: 'ring-2 ring-indigo-400 border-indigo-400',
+      accentText: 'text-indigo-400',
+      progressBar: 'bg-indigo-500',
+    }
+  },
+  {
+    code: '1C',
+    title: 'Kelas 1C',
+    subtitle: 'Gedung 2 - Ruang 2',
+    theme: {
+      border: 'border-emerald-500/40',
+      borderCard: 'border-emerald-500/20 hover:border-emerald-500/50',
+      bgGlow: 'bg-emerald-500/10',
+      headerGradient: 'from-emerald-600 via-emerald-700 to-teal-700',
+      badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40',
+      badgeSolid: 'bg-emerald-500 text-white',
+      cardBg: 'bg-slate-900/80',
+      highlightBorder: 'ring-2 ring-emerald-400 border-emerald-400',
+      accentText: 'text-emerald-400',
+      progressBar: 'bg-emerald-500',
+    }
+  },
+  {
+    code: '1D',
+    title: 'Kelas 1D',
+    subtitle: 'Gedung 2 - Ruang 3',
+    theme: {
+      border: 'border-purple-500/40',
+      borderCard: 'border-purple-500/20 hover:border-purple-500/50',
+      bgGlow: 'bg-purple-500/10',
+      headerGradient: 'from-purple-600 via-purple-700 to-fuchsia-700',
+      badge: 'bg-purple-500/20 text-purple-300 border-purple-400/40',
+      badgeSolid: 'bg-purple-500 text-white',
+      cardBg: 'bg-slate-900/80',
+      highlightBorder: 'ring-2 ring-purple-400 border-purple-400',
+      accentText: 'text-purple-400',
+      progressBar: 'bg-purple-500',
+    }
+  }
+]
 
+export default function AbsenKelas1ClientPage() {
   const [mounted, setMounted] = useState(false)
   const [time, setTime] = useState(new Date())
   const [popup, setPopup] = useState<PopupData>({ type: 'idle', message: '' })
@@ -60,20 +108,14 @@ export default function AbsenSiswaPage() {
   const [nfcSupported, setNfcSupported] = useState(false)
   const [nfcActive, setNfcActive] = useState(false)
 
-  const [allStudents, setAllStudents] = useState<StudentAttendance[]>([])
-  const [totalStudents, setTotalStudents] = useState(0)
-  const [presentStudentsCount, setPresentStudentsCount] = useState(0)
+  const [students, setStudents] = useState<StudentAttendance[]>([])
   const [lastScannedStudentId, setLastScannedStudentId] = useState<string | null>(null)
-
-  // Filter tabs: 'HADIR' | 'BELUM_HADIR' | 'ALL'
-  const [viewFilter, setViewFilter] = useState<'HADIR' | 'BELUM_HADIR' | 'ALL'>('HADIR')
-  const [searchQuery, setSearchQuery] = useState('')
 
   const clientIdRef = useRef(Math.random().toString(36).substring(7))
   const broadcastChannelRef = useRef<any>(null)
   const showPopupRef = useRef<(data: PopupData) => void>(() => {})
 
-  // Subtle audio chime feedback
+  // Play subtle chime sound on successful attendance scan
   const playBeep = (isSuccess: boolean) => {
     try {
       if (typeof window === 'undefined') return
@@ -124,33 +166,29 @@ export default function AbsenSiswaPage() {
       const localDate = new Date(today.getTime() + offset)
       const dateStr = localDate.toISOString().split('T')[0]
 
-      const res = await fetch(`/api/attendance-siswa/list?className=${rawClassName}&date=${dateStr}&_t=${Date.now()}`)
+      const res = await fetch(`/api/attendance-siswa/list?className=kelas1&date=${dateStr}&_t=${Date.now()}`)
       const data = await res.json()
 
       if (data.success && data.data) {
-        setTotalStudents(data.total_students || 0)
-        setPresentStudentsCount(data.present_count || 0)
-        setAllStudents(data.data)
+        setStudents(data.data)
       }
     } catch (err) {
-      console.error('Error fetching student attendance list', err)
+      console.error('Error fetching multi-class attendance list', err)
     }
   }
 
-  // Realtime clock & fetch data
+  // Realtime Clock & Mount
   useEffect(() => {
     setMounted(true)
     const timer = setInterval(() => setTime(new Date()), 1000)
     if (typeof window !== 'undefined' && 'NDEFReader' in window) setNfcSupported(true)
 
-    if (rawClassName) {
-      fetchAttendanceList()
-    }
+    fetchAttendanceList()
 
     return () => clearInterval(timer)
-  }, [rawClassName])
+  }, [])
 
-  // Supabase Realtime broadcast listener
+  // Supabase Realtime Sync
   useEffect(() => {
     try {
       const channel = supabase.channel('mia-attendance-siswa-sync')
@@ -183,7 +221,7 @@ export default function AbsenSiswaPage() {
     } catch (e) {
       console.error('Realtime subscription error', e)
     }
-  }, [rawClassName])
+  }, [])
 
   // RFID Scan Locking
   const isScanningRef = useRef(false)
@@ -203,7 +241,7 @@ export default function AbsenSiswaPage() {
       const res = await fetch('/api/attendance-siswa/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid, className: rawClassName })
+        body: JSON.stringify({ rfid, className: 'kelas1' })
       })
 
       const data = await res.json()
@@ -289,7 +327,7 @@ export default function AbsenSiswaPage() {
       window.removeEventListener('keydown', handleKeyDown)
       clearTimeout(scanTimeoutId)
     }
-  }, [rawClassName])
+  }, [])
 
   const startNfcScan = async () => {
     try {
@@ -315,31 +353,59 @@ export default function AbsenSiswaPage() {
     }
   }
 
-  // Categorize students
-  const presentList = useMemo(() => {
-    const list = allStudents.filter(s => s.attendance && s.attendance.entry_time)
-    return list.sort((a, b) => (b.attendance?.entry_time || '').localeCompare(a.attendance?.entry_time || ''))
-  }, [allStudents])
+  // Normalize class code helper (strictly match 1B, 1C, 1D)
+  const normalizeClassCode = (rawClass?: string): string => {
+    if (!rawClass) return ''
+    const clean = rawClass.toUpperCase().replace(/\s+/g, '')
+    if (clean.includes('1B')) return '1B'
+    if (clean.includes('1C')) return '1C'
+    if (clean.includes('1D')) return '1D'
+    return ''
+  }
 
-  const absentList = useMemo(() => {
-    return allStudents.filter(s => !s.attendance || !s.attendance.entry_time)
-  }, [allStudents])
+  // Categorize students per class exclusively for 1B, 1C, 1D
+  const classStudentsMap = useMemo(() => {
+    const map: Record<string, { present: StudentAttendance[]; total: number; all: StudentAttendance[] }> = {
+      '1B': { present: [], total: 0, all: [] },
+      '1C': { present: [], total: 0, all: [] },
+      '1D': { present: [], total: 0, all: [] }
+    }
 
-  // Filtered list to display
-  const displayedStudents = useMemo(() => {
-    let list: StudentAttendance[] = []
-    if (viewFilter === 'HADIR') list = presentList
-    else if (viewFilter === 'BELUM_HADIR') list = absentList
-    else list = allStudents
+    students.forEach((s) => {
+      const code = normalizeClassCode(s.class)
+      if (code && map[code]) {
+        map[code].total += 1
+        map[code].all.push(s)
+        if (s.attendance && s.attendance.entry_time) {
+          map[code].present.push(s)
+        }
+      }
+    })
 
-    if (!searchQuery.trim()) return list
-    const q = searchQuery.toLowerCase()
-    return list.filter(s => s.name.toLowerCase().includes(q))
-  }, [viewFilter, presentList, absentList, allStudents, searchQuery])
+    // Sort present students by entry_time descending (latest scan first)
+    Object.keys(map).forEach((code) => {
+      map[code].present.sort((a, b) => {
+        return (b.attendance?.entry_time || '').localeCompare(a.attendance?.entry_time || '')
+      })
+    })
 
-  const presentPercentage = totalStudents > 0 
-    ? Math.round((presentStudentsCount / totalStudents) * 100) 
-    : 0
+    return map
+  }, [students])
+
+  // Calculate precise stats exclusively for Gedung 2 (1B + 1C + 1D)
+  const gedung2Stats = useMemo(() => {
+    let total = 0
+    let present = 0
+    CLASS_CONFIGS.forEach((cfg) => {
+      const c = classStudentsMap[cfg.code]
+      if (c) {
+        total += c.total
+        present += c.present.length
+      }
+    })
+    const percentage = total > 0 ? Math.round((present / total) * 100) : 0
+    return { total, present, percentage }
+  }, [classStudentsMap])
 
   if (!mounted) {
     return <div className="h-screen w-full bg-slate-950 flex items-center justify-center" />
@@ -365,8 +431,8 @@ export default function AbsenSiswaPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/90" />
         
         {/* Ambient Glow Accents */}
-        <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-sky-600/15 blur-[140px] rounded-full" />
-        <div className="absolute -top-40 right-1/4 w-[600px] h-[400px] bg-indigo-600/15 blur-[140px] rounded-full" />
+        <div className="absolute -top-40 left-1/4 w-[600px] h-[400px] bg-indigo-600/15 blur-[140px] rounded-full" />
+        <div className="absolute -top-40 right-1/4 w-[600px] h-[400px] bg-purple-600/15 blur-[140px] rounded-full" />
         <div className="absolute bottom-0 left-1/3 w-[700px] h-[300px] bg-emerald-600/10 blur-[150px] rounded-full" />
       </div>
 
@@ -386,11 +452,11 @@ export default function AbsenSiswaPage() {
             />
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-sky-400 text-slate-950 tracking-wider shadow-sm">
-                  {isClass1A ? 'Gedung 1' : 'Gedung Madrasah'}
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-400 text-slate-950 tracking-wider shadow-sm">
+                  Gedung 2
                 </span>
                 <span className="text-[11px] font-bold text-slate-400 tracking-wide">
-                  Pos Absensi Siswa Kelas {formattedClassName}
+                  Pos Absensi Siswa Kelas 1
                 </span>
               </div>
               <h1 className="text-base md:text-lg font-black text-white tracking-wide uppercase mt-0.5 drop-shadow-sm leading-tight">
@@ -438,14 +504,12 @@ export default function AbsenSiswaPage() {
               <span>SCANNER SIAGA</span>
             </div>
 
-            {/* Total Hadir Card for this class */}
+            {/* Total Hadir Gedung 2 (Accurate: 1B + 1C + 1D) */}
             <div className="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1 rounded-xl text-right">
-              <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">
-                Kelas {formattedClassName}
-              </div>
+              <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gedung 2 Madrasah</div>
               <div className="text-sm md:text-base font-black text-white">
-                {presentStudentsCount} <span className="text-slate-400 text-xs font-semibold">/ {totalStudents}</span>
-                <span className="ml-1.5 text-xs font-bold text-emerald-400">({presentPercentage}%)</span>
+                {gedung2Stats.present} <span className="text-slate-400 text-xs font-semibold">/ {gedung2Stats.total}</span>
+                <span className="ml-1.5 text-xs font-bold text-emerald-400">({gedung2Stats.percentage}%)</span>
               </div>
             </div>
 
@@ -454,182 +518,125 @@ export default function AbsenSiswaPage() {
       </header>
 
       {/* ──────────────────────────────────────────────────────────── */}
-      {/* 2. MAIN BODY - FULL ROSTER / INNER SCROLLABLE ONLY */}
+      {/* 2. MAIN BODY - 3 SECTION COLUMNS (INNER SCROLLABLE ONLY) */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative z-10 p-3 lg:p-4 flex flex-col gap-3 max-w-[1800px] w-full mx-auto overflow-hidden">
+      <div className="flex-1 min-h-0 relative z-10 p-3 lg:p-4 grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-4.5 max-w-[1800px] w-full mx-auto overflow-hidden">
         
-        {/* Class Banner Summary (Fixed) */}
-        <section className="bg-slate-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-sky-500/30 p-3.5 lg:p-4 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
-          <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-48 h-48 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
+        {CLASS_CONFIGS.map((cfg) => {
+          const classData = classStudentsMap[cfg.code] || { present: [], total: 0, all: [] }
+          const presentList = classData.present
+          const totalCount = classData.total
+          const presentCount = presentList.length
+          const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0
 
-          {/* Left: Class Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-700 border border-white/20 flex items-center justify-center font-black text-xl text-white shadow-lg">
-              {formattedClassName}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-sky-500/20 text-sky-300 border border-sky-400/40">
-                  {isClass1A ? 'Gedung 1 - Lantai 1' : 'Unit Kelas'}
-                </span>
-                <span className="text-[11px] text-slate-400 font-semibold">Tahun Ajaran 2026/2027</span>
-              </div>
-              <h2 className="text-xl lg:text-2xl font-black text-white tracking-tight mt-0.5">
-                Daftar Kehadiran Siswa Kelas {formattedClassName}
-              </h2>
-            </div>
-          </div>
-
-          {/* Center/Right: Metrics & Tabs */}
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-            
-            {/* Quick Stat Pill */}
-            <div className="bg-slate-950/70 border border-slate-800 px-3.5 py-1.5 rounded-xl flex items-center gap-3">
-              <div>
-                <span className="text-[9px] uppercase font-bold text-slate-400 block">Sudah Hadir</span>
-                <span className="text-base font-black text-emerald-400">{presentStudentsCount} Siswa</span>
-              </div>
-              <div className="h-6 w-[1px] bg-slate-800" />
-              <div>
-                <span className="text-[9px] uppercase font-bold text-slate-400 block">Belum Hadir</span>
-                <span className="text-base font-black text-amber-400">{totalStudents - presentStudentsCount} Siswa</span>
-              </div>
-            </div>
-
-            {/* Filter Buttons */}
-            <div className="flex items-center p-1 bg-slate-950/80 rounded-xl border border-slate-800">
-              <button
-                onClick={() => setViewFilter('HADIR')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-                  viewFilter === 'HADIR'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <UserCheck className="w-3 h-3" />
-                Sudah Hadir ({presentStudentsCount})
-              </button>
-              <button
-                onClick={() => setViewFilter('BELUM_HADIR')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-                  viewFilter === 'BELUM_HADIR'
-                    ? 'bg-amber-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <UserX className="w-3 h-3" />
-                Belum Hadir ({totalStudents - presentStudentsCount})
-              </button>
-              <button
-                onClick={() => setViewFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
-                  viewFilter === 'ALL'
-                    ? 'bg-slate-800 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Semua ({totalStudents})
-              </button>
-            </div>
-
-          </div>
-        </section>
-
-        {/* Search bar & count indicator (Fixed) */}
-        <div className="flex items-center justify-between gap-4 flex-shrink-0">
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder={`Cari nama siswa kelas ${formattedClassName}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50 backdrop-blur-sm"
-            />
-          </div>
-
-          <div className="text-[11px] font-bold text-slate-400">
-            Menampilkan <span className="text-white font-extrabold">{displayedStudents.length}</span> siswa
-          </div>
-        </div>
-
-        {/* Student Cards Grid (Scrollable di dalam area ini) */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar overscroll-contain">
-          {displayedStudents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800/80 text-center">
-              <Users className="w-10 h-10 text-slate-600 mb-2" />
-              <p className="text-sm font-bold text-slate-300">Tidak ada data siswa</p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {viewFilter === 'HADIR' 
-                  ? `Belum ada siswa Kelas ${formattedClassName} yang melakukan scan hari ini`
-                  : 'Seluruh siswa telah melakukan absensi'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {displayedStudents.map((student, idx) => {
-                const isPresent = !!(student.attendance && student.attendance.entry_time)
-                const isNewlyScanned = lastScannedStudentId === student.id
-                const isLate = student.attendance?.status === 'Terlambat'
-
-                return (
-                  <div
-                    key={student.id}
-                    className={`p-3 rounded-xl border transition-all duration-300 flex items-center justify-between gap-2.5 ${
-                      isNewlyScanned
-                        ? 'ring-2 ring-sky-400 border-sky-400 bg-sky-950/40 scale-[1.01] shadow-2xl animate-pulse'
-                        : isPresent
-                        ? 'bg-slate-900/90 border-slate-800/90 hover:border-slate-700 shadow-sm'
-                        : 'bg-slate-950/60 border-slate-800/40 opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    {/* Left: Avatar / Number & Name */}
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] flex-shrink-0 border ${
-                        isPresent 
-                          ? 'bg-sky-950/70 border-sky-500/30 text-sky-400' 
-                          : 'bg-slate-800/70 border-slate-700/50 text-slate-500'
-                      }`}>
-                        {idx + 1}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-extrabold text-xs lg:text-sm text-white truncate tracking-tight">
-                          {student.name}
-                        </h3>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
-                            {student.class}
-                          </span>
-                          {isPresent ? (
-                            isLate ? (
-                              <span className="text-[9px] font-extrabold text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded-md border border-amber-500/40">
-                                Terlambat
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-extrabold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded-md border border-emerald-500/40">
-                                Tepat Waktu
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-[9px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.2 rounded-md border border-slate-800">
-                              Belum Hadir
-                            </span>
-                          )}
-                        </div>
-                      </div>
+          return (
+            <section
+              key={cfg.code}
+              className={`flex flex-col h-full min-h-0 bg-slate-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border ${cfg.theme.border} shadow-2xl overflow-hidden relative`}
+            >
+              {/* Column Header (Fixed) */}
+              <div className={`p-3 lg:p-4 bg-gradient-to-r ${cfg.theme.headerGradient} text-white shadow-md relative overflow-hidden flex-shrink-0`}>
+                <div className="absolute right-0 top-0 translate-x-3 -translate-y-3 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center font-black text-lg shadow-inner">
+                      {cfg.code}
                     </div>
+                    <div>
+                      <h2 className="text-lg font-black tracking-wide text-white drop-shadow-sm leading-snug">
+                        {cfg.title}
+                      </h2>
+                      <p className="text-[11px] text-white/80 font-medium">
+                        {cfg.subtitle}
+                      </p>
+                    </div>
+                  </div>
 
-                    {/* Right: Timestamps */}
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {isPresent ? (
-                        <>
+                  <div className="text-right">
+                    <span className="text-xl font-black text-white drop-shadow-md">
+                      {presentCount}
+                      <span className="text-white/70 text-xs font-semibold ml-1">/ {totalCount}</span>
+                    </span>
+                    <span className="block text-[10px] font-extrabold text-white/90 uppercase tracking-wider">
+                      {percentage}% Hadir
+                    </span>
+                  </div>
+                </div>
+
+                {/* Live Progress Bar */}
+                <div className="w-full bg-black/30 h-1.5 rounded-full mt-2.5 overflow-hidden p-0.5 border border-white/10">
+                  <div 
+                    className="bg-white h-full rounded-full transition-all duration-500 shadow-sm"
+                    style={{ width: `${Math.min(100, percentage)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Column Scrollable Content (List Siswa Scrollable di dalam section) */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-2.5 lg:p-3 space-y-2 bg-slate-950/40 custom-scrollbar overscroll-contain">
+                {presentList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-slate-500 text-center p-4 space-y-1.5">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800/60 flex items-center justify-center text-slate-600 border border-slate-700/50">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-400">Belum ada siswa yang scan</p>
+                    <p className="text-[11px] text-slate-500 max-w-[180px]">
+                      Tempelkan kartu RFID siswa Kelas {cfg.code} pada scanner
+                    </p>
+                  </div>
+                ) : (
+                  presentList.map((student, idx) => {
+                    const isNewlyScanned = lastScannedStudentId === student.id
+                    const isLate = student.attendance?.status === 'Terlambat'
+
+                    return (
+                      <div
+                        key={student.id}
+                        className={`p-2.5 lg:p-3 rounded-xl border transition-all duration-300 flex items-center justify-between gap-2.5 ${
+                          isNewlyScanned 
+                            ? `${cfg.theme.highlightBorder} bg-white/10 scale-[1.01] shadow-xl animate-pulse` 
+                            : `${cfg.theme.cardBg} ${cfg.theme.borderCard} hover:bg-slate-800/80 shadow-sm`
+                        }`}
+                      >
+                        {/* Left: Number & Student Name */}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="w-6 h-6 rounded-lg bg-slate-800/90 border border-slate-700/60 flex items-center justify-center font-extrabold text-[11px] text-slate-400 flex-shrink-0">
+                            {idx + 1}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-extrabold text-xs lg:text-sm text-white truncate tracking-tight">
+                              {student.name}
+                            </h3>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border ${cfg.theme.badge}`}>
+                                {student.class}
+                              </span>
+                              {isLate ? (
+                                <span className="text-[9px] font-extrabold text-amber-400 bg-amber-950/60 px-1.5 py-0.2 rounded-md border border-amber-500/40">
+                                  Terlambat
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-extrabold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.2 rounded-md border border-emerald-500/40">
+                                  Tepat Waktu
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Scan Timestamps */}
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          {/* Jam Masuk */}
                           <div className="flex items-center gap-1 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-md">
                             <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Masuk</span>
                             <span className="text-[11px] font-black text-white font-mono">
                               {formatTime(student.attendance?.entry_time)}
                             </span>
                           </div>
+
+                          {/* Jam Pulang */}
                           {student.attendance?.exit_time && (
                             <div className="flex items-center gap-1 bg-amber-950/70 border border-amber-500/30 px-2 py-0.5 rounded-md">
                               <span className="text-[8px] font-black text-amber-400 uppercase tracking-wider">Pulang</span>
@@ -638,19 +645,21 @@ export default function AbsenSiswaPage() {
                               </span>
                             </div>
                           )}
-                        </>
-                      ) : (
-                        <div className="text-[10px] font-bold text-slate-500 italic">
-                          - - : - -
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Column Footer Status (Fixed) */}
+              <div className="p-2 bg-slate-950/90 border-t border-slate-800/80 text-center flex items-center justify-between px-3 text-[11px] font-bold text-slate-400 flex-shrink-0">
+                <span>Kehadiran {cfg.code}</span>
+                <span className={cfg.theme.accentText}>{presentCount} Siswa Terdata</span>
+              </div>
+            </section>
+          )
+        })}
 
       </div>
 
@@ -681,7 +690,7 @@ export default function AbsenSiswaPage() {
                       className="w-24 h-24 rounded-full object-cover border-4 border-emerald-500/40 shadow-xl mb-3"
                     />
                     <h3 className="text-xl lg:text-2xl font-black text-white tracking-tight">{popup.student.name}</h3>
-                    <span className="mt-1 px-4 py-1 bg-sky-500/30 text-sky-300 border border-sky-400/40 rounded-full font-extrabold text-sm">
+                    <span className="mt-1 px-4 py-1 bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 rounded-full font-extrabold text-sm">
                       {popup.student.class}
                     </span>
                   </div>

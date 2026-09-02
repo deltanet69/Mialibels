@@ -32,14 +32,27 @@ export async function POST(request: NextRequest) {
     const student = students[0]
     
     // Check if class matches the device class
-    const studentClassRaw = student.class.replace(/\s+/g, '').toLowerCase() // "Kelas 1A" -> "kelas1a"
-    const deviceClassRaw = className.toLowerCase() // "1a"
+    const studentClassRaw = (student.class || '').replace(/\s+/g, '').toLowerCase() // "Kelas 1B" -> "kelas1b"
+    const deviceClassRaw = (className || '').toLowerCase().replace(/\s+/g, '') // "1a", "kelas1", "1bcd"
     
-    if (!studentClassRaw.includes(deviceClassRaw)) {
-       return NextResponse.json({ success: false, error: `Siswa ini bukan dari kelas ${className.toUpperCase()}` }, { status: 403 })
+    let isClassAllowed = false
+    if (deviceClassRaw === 'kelas1' || deviceClassRaw === '1' || deviceClassRaw === '1bcd') {
+      // Allow Grade 1 students (1B, 1C, 1D, 1A)
+      isClassAllowed = studentClassRaw.includes('1b') || 
+                       studentClassRaw.includes('1c') || 
+                       studentClassRaw.includes('1d') || 
+                       studentClassRaw.includes('1a') || 
+                       studentClassRaw.includes('kelas1') ||
+                       studentClassRaw.startsWith('1')
+    } else {
+      isClassAllowed = studentClassRaw.includes(deviceClassRaw)
+    }
+    
+    if (!isClassAllowed) {
+       return NextResponse.json({ success: false, error: `Siswa ${student.name} dari (${student.class}) tidak diizinkan di mesin absensi ini.` }, { status: 403 })
     }
 
-    // Get today's date in local YYYY-MM-DD
+    // Get today's date in local YYYY-MM-DD (Asia/Jakarta UTC+7)
     const today = new Date()
     const offset = 7 * 60 * 60 * 1000 // UTC+7
     const localDate = new Date(today.getTime() + offset)
@@ -63,11 +76,9 @@ export async function POST(request: NextRequest) {
     const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null
 
     if (!existingRecord) {
-      // 3. Check IN
-      let status = 'Hadir'
-      if (hours > 7 || (hours === 7 && mins > 0)) {
-         status = 'Terlambat'
-      }
+      // 3. Check IN: Siswa diatas jam 07:00 pagi status "Terlambat"
+      const isLate = hours > 7 || (hours === 7 && mins > 0)
+      const status = isLate ? 'Terlambat' : 'Hadir'
 
       const { data: newRecord, error: insertError } = await supabase
         .from('student_attendances')
@@ -82,12 +93,24 @@ export async function POST(request: NextRequest) {
 
       if (insertError) throw insertError
 
+      const msg = isLate 
+        ? `Absen Masuk (Terlambat ${currentTimeStr}): ${student.name}` 
+        : `Berhasil Absen Masuk (${currentTimeStr}): ${student.name}`
+
       return NextResponse.json({ 
         success: true, 
         action: 'check-in', 
-        message: `Berhasil Absen Masuk: ${student.name}`,
+        status: status,
+        is_late: isLate,
+        entry_time: currentTimeStr,
+        message: msg,
         data: newRecord,
-        student: student
+        student: {
+          ...student,
+          status,
+          is_late: isLate,
+          entry_time: currentTimeStr
+        }
       })
     } else {
       // 4. Check OUT
@@ -122,9 +145,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ 
           success: true, 
           action: 'check-out', 
-          message: `Berhasil Absen Pulang: ${student.name}`,
+          status: existingRecord.status || 'Hadir',
+          exit_time: currentTimeStr,
+          message: `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`,
           data: updateRecord,
-          student: student
+          student: {
+            ...student,
+            exit_time: currentTimeStr
+          }
         })
       }
     }

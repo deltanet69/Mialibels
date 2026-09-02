@@ -209,6 +209,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.rewrite(new URL(`/absen-siswa${pathname.toLowerCase()}`, request.url));
     }
 
+    // Direct route /kelas1 ke /absen-siswa/kelas1
+    if (pathname.toLowerCase() === '/kelas1') {
+      return NextResponse.rewrite(new URL('/absen-siswa/kelas1', request.url));
+    }
+
     // Allow public API and other routes (like /api/attendance/scan) to pass through
     return NextResponse.next();
   }
