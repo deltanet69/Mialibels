@@ -48,6 +48,7 @@ interface StudentInfo {
   parentPhone?: string;
   image?: string;
   address?: string;
+  feeWaiverType?: string;
   homeroomTeacher?: {
     name?: string;
     position?: string;
@@ -407,7 +408,8 @@ export function ParentDashboardClient({
                 student_number: student.studentNumber,
                 class: student.className,
                 address: student.address,
-                image: student.image
+                image: student.image,
+                fee_waiver_type: student.feeWaiverType
               }}
               sppInvoices={data.allSppInvoices}
             />
@@ -759,13 +761,20 @@ export function ParentDashboardClient({
         const isFullday = (student.className || '').match(/A$/i);
         const isClass6 = (student.className || '').startsWith('6');
 
+        const isExempt = (w?: string | null) => {
+          if (!w) return false;
+          const val = String(w).toLowerCase().trim();
+          return val === 'anak_yatim' || val.includes('yatim') || val.includes('guru');
+        };
+        const exemptInfaqAndBuku = isExempt(student.feeWaiverType);
+
         const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
         const unpaidSeptemberSpp = (data.allSppInvoices || []).find(inv => {
           const isTarget = targetMonths.includes(String(inv.month));
           const isPaid = inv.status === 'PAID';
           return isTarget && !isPaid;
         });
-        const sppOk = !unpaidSeptemberSpp;
+        const sppOk = exemptInfaqAndBuku || !unpaidSeptemberSpp;
 
         const getGeneralPaid = (key: string) => {
           return (data.generalInvoices || [])
@@ -782,7 +791,7 @@ export function ParentDashboardClient({
         const minUlum = 110000;
         const minAkhirTahun = 600000;
 
-        const bukuOk = paidBuku >= minBuku;
+        const bukuOk = exemptInfaqAndBuku || paidBuku >= minBuku;
         const ulumOk = paidUlum >= minUlum;
         const akhirTahunOk = !isClass6 || paidAkhirTahun >= minAkhirTahun;
 
@@ -824,11 +833,6 @@ export function ParentDashboardClient({
                     ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900' 
                     : 'bg-rose-50/90 border-rose-200 text-rose-900'
                 }`}>
-                  {/* <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-white shadow-2xs ${
-                    isEligible ? 'bg-emerald-500' : 'bg-rose-500'
-                  }`}>
-                    {isEligible ? <Check size={18} /> : <AlertTriangle size={18} />}
-                  </div> */}
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-black text-sm uppercase tracking-wide">
@@ -883,7 +887,13 @@ export function ParentDashboardClient({
                         <div>
                           <p className="font-bold text-slate-800">2. Infaq / SPP s/d September 2026</p>
                           <p className="text-[11px] text-slate-500">
-                            {sppOk ? <span className="text-emerald-600 font-semibold">Telah Lunas s/d September 2026</span> : 'Ada tagihan Infaq belum lunas'}
+                            {exemptInfaqAndBuku ? (
+                              <span className="text-emerald-600 font-semibold">Telah Lunas / Kompensasi ({student.feeWaiverType})</span>
+                            ) : sppOk ? (
+                              <span className="text-emerald-600 font-semibold">Telah Lunas s/d September 2026</span>
+                            ) : (
+                              'Ada tagihan Infaq belum lunas'
+                            )}
                           </p>
                         </div>
                       </div>
@@ -907,8 +917,14 @@ export function ParentDashboardClient({
                         <div>
                           <p className="font-bold text-slate-800">3. Uang Buku Paket / LKS</p>
                           <p className="text-[11px] text-slate-500">
-                            Min: <strong>Rp {minBuku.toLocaleString('id-ID')}</strong> · Terbayar: <strong className={bukuOk ? 'text-emerald-600' : 'text-slate-700'}>Rp {paidBuku.toLocaleString('id-ID')}</strong>
-                            {!bukuOk && <span className="text-rose-600 font-bold"> (Kurang Rp {(minBuku - paidBuku).toLocaleString('id-ID')})</span>}
+                            {exemptInfaqAndBuku ? (
+                              <span className="text-emerald-600 font-semibold">Bebas Biaya / Kompensasi ({student.feeWaiverType})</span>
+                            ) : (
+                              <>
+                                Min: <strong>Rp {minBuku.toLocaleString('id-ID')}</strong> · Terbayar: <strong className={bukuOk ? 'text-emerald-600' : 'text-slate-700'}>Rp {paidBuku.toLocaleString('id-ID')}</strong>
+                                {!bukuOk && <span className="text-rose-600 font-bold"> (Kurang Rp {(minBuku - paidBuku).toLocaleString('id-ID')})</span>}
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>

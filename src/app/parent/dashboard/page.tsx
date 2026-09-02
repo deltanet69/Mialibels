@@ -30,7 +30,7 @@ async function resolveStudent(payload: any) {
   if (tokenId) {
     const { data } = await supabase
       .from('students')
-      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone')
+      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone, address, fee_waiver_type')
       .eq('id', tokenId)
       .maybeSingle();
     studentData = data;
@@ -40,7 +40,7 @@ async function resolveStudent(payload: any) {
   if (!studentData && tokenNis) {
     const { data } = await supabase
       .from('students')
-      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone')
+      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone, address, fee_waiver_type')
       .ilike('student_number', tokenNis.trim())
       .maybeSingle();
     studentData = data;
@@ -50,7 +50,7 @@ async function resolveStudent(payload: any) {
   if (!studentData && tokenNisn) {
     const { data } = await supabase
       .from('students')
-      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone')
+      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone, address, fee_waiver_type')
       .eq('nisn', tokenNisn.trim())
       .maybeSingle();
     studentData = data;
@@ -85,7 +85,7 @@ async function resolveStudent(payload: any) {
   };
 }
 
-async function getDashboardData(studentId: string) {
+async function getDashboardData(studentId: string, feeWaiverType?: string | null) {
   const supabase = getAdminSupabase();
 
   const now = new Date();
@@ -221,14 +221,21 @@ async function getDashboardData(studentId: string) {
     (acc, cur: any) => acc + ((cur.total_amount || 0) - (cur.paid_amount || 0)), 0
   );
 
-  // Check exam card requirements (SPP through September is paid)
+  // Check exam card requirements (SPP through September is paid, or fee exempt)
+  const isExempt = (w?: string | null) => {
+    if (!w) return false;
+    const val = String(w).toLowerCase().trim();
+    return val === 'anak_yatim' || val.includes('yatim') || val.includes('guru');
+  };
+  const exemptInfaqAndBuku = isExempt(feeWaiverType);
+
   const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
   const unpaidSeptemberSpp = allSpp.find(inv => {
     const isTarget = targetMonths.includes(String(inv.month));
     const isPaid = inv.status === 'PAID';
     return isTarget && !isPaid;
   });
-  const sppSeptemberPaid = !unpaidSeptemberSpp;
+  const sppSeptemberPaid = exemptInfaqAndBuku || !unpaidSeptemberSpp;
 
   return {
     attendance: attendanceSummary,
@@ -284,11 +291,12 @@ export default async function ParentDashboardHome() {
     parentPhone: studentObj?.parent_phone || '',
     image: studentObj?.image || undefined,
     address: studentObj?.address || undefined,
+    feeWaiverType: studentObj?.fee_waiver_type || undefined,
     homeroomTeacher: studentObj?.classroom?.homeroom_teacher || null
   };
 
   const dashboardData = student.id
-    ? await getDashboardData(student.id)
+    ? await getDashboardData(student.id, student.feeWaiverType)
     : {
         attendance: { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: 0 },
         persentaseHadir: 100,

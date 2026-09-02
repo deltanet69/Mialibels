@@ -13,6 +13,8 @@ interface Student {
   address?: string;
   image?: string;
   photo_url?: string;
+  fee_waiver_type?: string | null;
+  feeWaiverType?: string | null;
 }
 
 interface SPPInvoice {
@@ -31,6 +33,12 @@ interface CardDownloaderProps {
 export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, student: initialStudent, sppInvoices: initialSpp }) => {
   const [generatingSiswa, setGeneratingSiswa] = useState(false);
   const [generatingUjian, setGeneratingUjian] = useState(false);
+
+  const isFeeExempt = (waiverType?: string | null) => {
+    if (!waiverType) return false;
+    const val = String(waiverType).toLowerCase().trim();
+    return val === 'anak_yatim' || val.includes('yatim') || val.includes('guru');
+  };
   
   const fetchFullData = async () => {
     const targetId = studentId || initialStudent?.id;
@@ -81,10 +89,12 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         const className = studentData.class || '';
         const isFullday = className.match(/A$/i);
         const isClass6 = className.startsWith('6');
+        const waiverType = studentData.fee_waiver_type || initialStudent?.fee_waiver_type || (initialStudent as any)?.feeWaiverType;
+        const exemptInfaqAndBuku = isFeeExempt(waiverType);
         
         let errorMsg = '';
         
-        if (!isSppSeptemberLunas(sppData)) {
+        if (!exemptInfaqAndBuku && !isSppSeptemberLunas(sppData)) {
           errorMsg = 'Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP s/d bulan September sudah dilunasi.';
         } else {
           const paidBuku = getGeneralPaidAmount(generalData, 'buku');
@@ -95,7 +105,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
           const minUlangan = 110000;
           const minAkhirTahun = 600000;
           
-          if (paidBuku < minBuku) {
+          if (!exemptInfaqAndBuku && paidBuku < minBuku) {
             errorMsg = `Uang Buku/LKS minimal Rp.${minBuku.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidBuku.toLocaleString('id-ID')}).`;
           } else if (paidUlangan < minUlangan) {
             errorMsg = `Uang Ulangan Umum minimal Rp.${minUlangan.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidUlangan.toLocaleString('id-ID')}).`;
@@ -292,9 +302,13 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
     }
   };
 
+  const initialWaiver = initialStudent?.fee_waiver_type || (initialStudent as any)?.feeWaiverType;
+  const initialExempt = isFeeExempt(initialWaiver);
+  const isSppBlocked = !initialExempt && initialSpp && initialSpp.length > 0 && !isSppSeptemberLunas(initialSpp);
+
   const handleUjianClick = async () => {
     // If we only have studentId but no sppInvoices, we let drawCard handle the fetching and alerting.
-    if (initialSpp && initialSpp.length > 0 && !isSppSeptemberLunas(initialSpp)) {
+    if (isSppBlocked) {
       alert('Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP sampai dengan bulan September sudah dilunasi.');
       return;
     }
@@ -306,7 +320,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
       <button
         onClick={() => drawCard('siswa')}
         disabled={generatingSiswa}
-        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-5 py-2.5 rounded-xl hover:bg-indigo-100 transition font-medium w-full sm:w-auto whitespace-nowrap"
+        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-5 py-2.5 rounded-xl hover:bg-indigo-100 transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer"
       >
         {generatingSiswa ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Download size={18} className="shrink-0" />}
         Kartu Siswa
@@ -315,14 +329,14 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
       <button
         onClick={handleUjianClick}
         disabled={generatingUjian}
-        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition font-medium w-full sm:w-auto whitespace-nowrap ${
-          (initialSpp && initialSpp.length > 0 && !isSppSeptemberLunas(initialSpp)) 
+        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer ${
+          isSppBlocked 
             ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
             : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
         }`}
-        title={(initialSpp && initialSpp.length > 0 && !isSppSeptemberLunas(initialSpp)) ? "SPP sampai September belum lunas" : ""}
+        title={isSppBlocked ? "SPP sampai September belum lunas" : ""}
       >
-        {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : ((initialSpp && initialSpp.length > 0 && !isSppSeptemberLunas(initialSpp)) ? <AlertCircle size={18} className="shrink-0" /> : <Download size={18} className="shrink-0" />)}
+        {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : (isSppBlocked ? <AlertCircle size={18} className="shrink-0" /> : <Download size={18} className="shrink-0" />)}
         Kartu Ujian
       </button>
     </div>

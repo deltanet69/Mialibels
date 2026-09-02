@@ -181,6 +181,7 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomain(request);
 
   // ══════════════════════════════════════════════════════════════════════════
+
   // SPMB SUBDOMAIN — spmb.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'spmb') {
@@ -392,7 +393,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 7. Parent portal pages ────────────────────────────────────────────────
+  if (pathname === '/parent' || pathname === '/parent/') {
+    const token = request.cookies.get('parent_session')?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL('/parent/login', request.url));
+    }
+    return NextResponse.redirect(new URL('/parent/dashboard', request.url));
+  }
+
   if (pathname.startsWith(PARENT_PREFIX)) {
+
     const token = request.cookies.get('parent_session')?.value;
 
     if (!token) {

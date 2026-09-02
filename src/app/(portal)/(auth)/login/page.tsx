@@ -52,8 +52,8 @@ export default function LoginPage() {
         {/* Background Image with Overlay */}
         <div className="absolute inset-0">
           <Image 
-            src="/images/student_activity.png"
-            alt="School background"
+            src="/mialibels8.jpg"
+            alt="School background" 
             fill
             className="object-cover opacity-20 object-center"
             priority
