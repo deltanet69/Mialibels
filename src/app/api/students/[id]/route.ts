@@ -4,6 +4,8 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { hash } from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
+import { canManageStudents } from '@/lib/rbac'
 
 export async function GET(
   request: NextRequest,
@@ -38,6 +40,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!canManageStudents(session?.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki izin untuk mengubah data siswa' }, { status: 403 })
+    }
+
     const { id } = await params
     const body = await request.json()
 
@@ -155,6 +162,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!canManageStudents(session?.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki izin untuk menghapus data siswa' }, { status: 403 })
+    }
+
     const { id } = await params
 
     const { error } = await supabase

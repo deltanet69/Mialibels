@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSession } from "@/lib/session";
+import { canViewFinance, canManageFinance } from "@/lib/rbac";
 
 function getAdminSupabase() {
   return createClient(
@@ -18,7 +19,9 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !canViewFinance(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { id } = await params;
     const supabase = getAdminSupabase();
@@ -83,7 +86,9 @@ export async function PUT(
 ) {
   try {
     const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: "Forbidden: Anda tidak memiliki hak untuk mengubah/memproses pembayaran" }, { status: 403 });
+    }
 
     const { id } = await params;
     const body = await request.json();

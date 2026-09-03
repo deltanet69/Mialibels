@@ -3,11 +3,15 @@ import { cookies } from 'next/headers'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 
+import { UserRole } from './rbac'
+
+export type { UserRole }
+
 export type SessionUser = {
   id: string
   email: string
   name: string
-  role: string
+  role: UserRole | string
   staffId?: string
 }
 

@@ -281,7 +281,7 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
   const isExempt = (w?: string | null) => {
     if (!w) return false;
     const val = String(w).toLowerCase().trim();
-    return val === 'anak_yatim' || val.includes('yatim') || val.includes('guru');
+    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
   };
   const exemptInfaqAndBuku = isExempt(feeWaiverType);
 

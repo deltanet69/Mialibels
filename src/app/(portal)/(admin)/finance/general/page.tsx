@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Download, ExternalLink, MoreVertical, Plus, Search, Eye, Filter, Banknote, CreditCard, Clock, CheckCircle, FileText, AlertTriangle, Printer, Trash2, Edit3, X, Wallet, Receipt, Send, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react'
 import { CreateBillModal } from '@/components/portal/finance/general/CreateBillModal'
 import { GeneralInvoiceDetailModal } from '@/components/portal/finance/general/GeneralInvoiceDetailModal'
+import { canManageFinance } from '@/lib/rbac'
 
 const PREDEFINED_ITEMS = [
   'Mutu', 'Infaq Sekolah', 'Buku Paket/LKS', 'Seragam Sekolah', 'Ulangan Umum (ULUM)', 'Raport',
@@ -35,6 +36,16 @@ export default function GeneralFinancePage() {
   const [filterClass, setFilterClass] = useState('ALL')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCurrentUser(d.user) })
+      .catch(console.error);
+  }, []);
+
+  const canManage = canManageFinance(currentUser?.role);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -257,12 +268,14 @@ export default function GeneralFinancePage() {
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/20 transition flex items-center gap-2 text-sm sm:text-base"
-          >
-            <Plus size={20} /> Buat Tagihan
-          </button>
+          {canManage && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/20 transition flex items-center gap-2 text-sm sm:text-base"
+            >
+              <Plus size={20} /> Buat Tagihan
+            </button>
+          )}
         </div>
       </div>
 
@@ -585,6 +598,7 @@ export default function GeneralFinancePage() {
         invoiceId={selectedInvoiceId}
         onClose={() => setSelectedInvoiceId(null)}
         onUpdated={fetchData}
+        readOnly={!canManage}
       />
 
       {/* Breakdown Modal */}

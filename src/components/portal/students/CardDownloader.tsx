@@ -37,7 +37,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
   const isFeeExempt = (waiverType?: string | null) => {
     if (!waiverType) return false;
     const val = String(waiverType).toLowerCase().trim();
-    return val === 'anak_yatim' || val.includes('yatim') || val.includes('guru');
+    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
   };
   
   const fetchFullData = async () => {

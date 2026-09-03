@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getSession } from '@/lib/session'
+import { canManageTeachers } from '@/lib/rbac'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(
@@ -38,6 +40,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!canManageTeachers(session?.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki izin untuk mengubah data guru' }, { status: 403 })
+    }
+
     const { id } = await params
     const body = await request.json()
     const { classroom_id, ...staffData } = body
@@ -86,6 +93,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!canManageTeachers(session?.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki izin untuk menghapus data guru' }, { status: 403 })
+    }
+
     const { id } = await params
 
     const { error } = await supabase

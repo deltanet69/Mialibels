@@ -10,6 +10,7 @@ type Props = {
   invoiceId: string | null
   onClose: () => void
   onUpdated: () => void
+  readOnly?: boolean
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -111,7 +112,7 @@ function InputDialog({
   )
 }
 
-export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Props) {
+export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated, readOnly = false }: Props) {
   const [invoice, setInvoice] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -615,24 +616,26 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-bold text-slate-800 text-sm">Rincian Item Tagihan</h4>
-                    {/* Edit button always visible for all statuses — admin can correct wrongly-paid invoices */}
-                    <button
-                      onClick={toggleEditMode}
-                      className={`text-xs font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                        isEditMode
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    {/* Edit button visible only for non-read-only users */}
+                    {!readOnly && (
+                      <button
+                        onClick={toggleEditMode}
+                        className={`text-xs font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                          isEditMode
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            : invoice.status === 'PAID'
+                            ? 'bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {isEditMode
+                          ? <><X size={14} /> Batal Edit</>
                           : invoice.status === 'PAID'
-                          ? 'bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {isEditMode
-                        ? <><X size={14} /> Batal Edit</>
-                        : invoice.status === 'PAID'
-                        ? <><Edit3 size={14} /> Edit Rincian (Sudah Lunas)</>
-                        : <><Edit3 size={14} /> Edit Rincian Manual</>
-                      }
-                    </button>
+                          ? <><Edit3 size={14} /> Edit Rincian (Sudah Lunas)</>
+                          : <><Edit3 size={14} /> Edit Rincian Manual</>
+                        }
+                      </button>
+                    )}
                   </div>
 
                   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
@@ -931,6 +934,14 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                 {/* Form Aksi Pembayaran */}
                 <div className="space-y-4 pt-2 border-t border-slate-100">
 
+                  {readOnly && invoice.status !== 'PAID' && (
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center">
+                      <p className="text-xs font-semibold text-slate-500">Mode Read-Only: Hak akses Bendahara dan Kepala Sekolah hanya dapat melihat rekap dan mencetak kuitansi.</p>
+                    </div>
+                  )}
+
+                  {!readOnly && (
+                    <>
                   {/* PENDING VERIFICATION — Approve with Items or Reject */}
                   {invoice.status === 'PENDING_VERIFICATION' && (
                     <div className="bg-blue-50 border border-blue-200 p-4 sm:p-5 rounded-xl space-y-4">
@@ -1122,6 +1133,8 @@ export function GeneralInvoiceDetailModal({ invoiceId, onClose, onUpdated }: Pro
                       </button>
                     </div>
                   )}
+                  </>
+                )}
 
                   {/* PAID — sudah lunas */}
                   {invoice.status === 'PAID' && (

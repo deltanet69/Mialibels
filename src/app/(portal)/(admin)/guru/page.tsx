@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Plus, Search, Trash2, Edit3, Eye, Phone, Mail, UploadCloud, GraduationCap, X } from 'lucide-react'
 import { GuruForm } from '@/components/portal/guru/GuruForm'
 import { CsvImportGuru } from '@/components/portal/guru/CsvImportGuru'
+import { canManageTeachers } from '@/lib/rbac'
 import Link from 'next/link'
 
 // Skeleton row component
@@ -71,8 +72,8 @@ export default function GuruPage() {
     fetchGuru()
   }, [fetchGuru])
 
-  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff_operator'
-  const canViewDetail = ['superadmin', 'staff_operator', 'staff', 'kepsek'].includes(currentUser?.role)
+  const canEdit = canManageTeachers(currentUser?.role)
+  const canViewDetail = ['superadmin', 'administrasi', 'bendahara', 'kepsek', 'staff_operator', 'staff'].includes(currentUser?.role)
 
   // Unique positions for filter
   const positions = useMemo(() => {

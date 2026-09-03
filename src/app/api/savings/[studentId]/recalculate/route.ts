@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
+import { canManageFinance } from '@/lib/rbac'
 
 /**
  * GET /api/savings/[studentId]/recalculate
@@ -15,6 +17,11 @@ export async function GET(
   { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki akses untuk rekonsiliasi saldo' }, { status: 403 })
+    }
+
     const studentId = (await params).studentId
 
     // 1. Fetch ALL transactions in strict chronological order

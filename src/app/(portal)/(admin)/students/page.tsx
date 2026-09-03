@@ -5,6 +5,7 @@ import { Plus, UploadCloud, Search, Trash2, Edit3, Eye, Key, Loader2, Sparkles, 
 import { CsvImport } from '@/components/portal/students/CsvImport'
 import { BulkPhotoUpload } from '@/components/portal/students/BulkPhotoUpload'
 import { StudentForm } from '@/components/portal/students/StudentForm'
+import { canManageStudents } from '@/lib/rbac'
 import { getDirectImageUrl } from '@/lib/imageUtils'
 import Link from 'next/link'
 
@@ -14,6 +15,14 @@ export function checkExamEligibility(student: any) {
   const isFullday = !!rawClass.match(/A$/i);
   const isClass6 = rawClass.startsWith('6');
 
+  // Check if student has fee waiver (Anak Yatim / Anak Guru / Keluarga Guru)
+  const isExempt = (w?: string | null) => {
+    if (!w) return false;
+    const val = String(w).toLowerCase().trim();
+    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
+  };
+  const exemptInfaqAndBuku = isExempt(student.fee_waiver_type || student.feeWaiverType);
+
   const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
   const sppInvoices = student.spp_invoices || [];
   const unpaidSeptemberSpp = sppInvoices.find((inv: any) => {
@@ -21,7 +30,7 @@ export function checkExamEligibility(student: any) {
     const isPaid = inv.status === 'PAID';
     return isTarget && !isPaid;
   });
-  const sppOk = !unpaidSeptemberSpp;
+  const sppOk = exemptInfaqAndBuku || !unpaidSeptemberSpp;
 
   const generalInvoices = student.general_invoices || [];
   const getPaid = (key: string) => {
@@ -39,15 +48,15 @@ export function checkExamEligibility(student: any) {
   const minUlum = 110000;
   const minAkhirTahun = 600000;
 
-  const bukuOk = paidBuku >= minBuku;
+  const bukuOk = exemptInfaqAndBuku || paidBuku >= minBuku;
   const ulumOk = paidUlum >= minUlum;
   const akhirTahunOk = !isClass6 || paidAkhirTahun >= minAkhirTahun;
 
   const isEligible = sppOk && bukuOk && ulumOk && akhirTahunOk;
 
   const issues: string[] = [];
-  if (!sppOk) issues.push('Infaq Sept belum lunas');
-  if (!bukuOk) issues.push(`Buku kurang Rp ${(minBuku - paidBuku).toLocaleString('id-ID')}`);
+  if (!sppOk && !exemptInfaqAndBuku) issues.push('Infaq Sept belum lunas');
+  if (!bukuOk && !exemptInfaqAndBuku) issues.push(`Buku kurang Rp ${(minBuku - paidBuku).toLocaleString('id-ID')}`);
   if (!ulumOk) issues.push(`ULUM kurang Rp ${(minUlum - paidUlum).toLocaleString('id-ID')}`);
   if (!akhirTahunOk) issues.push(`Akhir Tahun kurang Rp ${(minAkhirTahun - paidAkhirTahun).toLocaleString('id-ID')}`);
 
@@ -128,8 +137,8 @@ export default function StudentsPage() {
     fetchStudents()
   }, [fetchStudents])
 
-  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'staff' || currentUser?.role === 'staff_operator'
-  const canGenerateParent = currentUser?.role === 'superadmin'
+  const canEdit = canManageStudents(currentUser?.role)
+  const canGenerateParent = currentUser?.role === 'superadmin' || currentUser?.role === 'administrasi'
 
   const classes = useMemo(() => {
     const uniqueClasses = Array.from(new Set(allStudents.map(s => s.class).filter(Boolean)))

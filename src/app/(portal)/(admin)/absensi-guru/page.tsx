@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell, Trash2, ClipboardCheck } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '../../../../lib/supabase/client'
+import { canManageTeachers } from '@/lib/rbac'
 
 // Types
 type AttendanceRecord = {
@@ -237,6 +238,7 @@ export default function AbsensiGuruPage() {
     })
   }
 
+  const canManageAttendance = canManageTeachers(currentUser?.role);
   const isGuru = currentUser?.role?.toLowerCase().includes('guru') || currentUser?.role === 'staff';
   const myStaffRecord = isGuru && currentUser?.staffId ? staffs.find(s => s.id === currentUser.staffId) : null;
   
@@ -504,7 +506,7 @@ export default function AbsensiGuruPage() {
                           <span className="font-sans text-sm sm:text-base font-bold text-slate-800">
                             {formatTime(att?.check_in_time)}
                           </span>
-                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
+                          {canManageAttendance && att?.check_in_time && (
                             <button 
                               onClick={(e) => handleSoftDelete(e, staff.id, 'in')} 
                               className="p-1 bg-rose-50 text-rose-600 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
@@ -522,7 +524,7 @@ export default function AbsensiGuruPage() {
                           <span className="font-sans text-sm sm:text-base font-bold text-slate-800">
                             {formatTime(att?.check_out_time)}
                           </span>
-                          {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
+                          {canManageAttendance && att?.check_out_time && (
                             <button 
                               onClick={(e) => handleSoftDelete(e, staff.id, 'out')} 
                               className="p-1 bg-rose-50 text-rose-600 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
@@ -580,7 +582,7 @@ export default function AbsensiGuruPage() {
                       <span className="font-sans text-sm sm:text-base font-bold text-slate-800 mt-0.5">
                         {formatTime(att?.check_in_time)}
                       </span>
-                      {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_in_time && (
+                      {canManageAttendance && att?.check_in_time && (
                         <button 
                           onClick={(e) => handleSoftDelete(e, staff.id, 'in')} 
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 
@@ -596,7 +598,7 @@ export default function AbsensiGuruPage() {
                       <span className="font-sans text-sm sm:text-base font-bold text-slate-800 mt-0.5">
                         {formatTime(att?.check_out_time)}
                       </span>
-                      {(currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek') && att?.check_out_time && (
+                      {canManageAttendance && att?.check_out_time && (
                         <button 
                           onClick={(e) => handleSoftDelete(e, staff.id, 'out')} 
                           className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition hover:bg-rose-100 cursor-pointer" 

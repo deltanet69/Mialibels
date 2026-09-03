@@ -8,6 +8,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+import { ALL_ROLES } from '@/lib/rbac'
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
   if (!session || !['superadmin', 'staff_operator'].includes(session.role)) {
@@ -18,8 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const body = await request.json()
   const { name, email, password, role, is_active } = body
 
-  const validRoles = ['superadmin', 'kepsek', 'guru', 'staff', 'staff_operator']
-  if (role && !validRoles.includes(role)) {
+  if (role && !ALL_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 })
   }
 

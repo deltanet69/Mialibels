@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Wallet, ArrowDownToLine, ArrowUpFromLine, Calendar, Download, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { TransactionModal } from '@/components/finance/TransactionModal';
+import { canManageFinance } from '@/lib/rbac';
 
 export default function StudentSavingsDetail() {
   const params = useParams();
@@ -16,6 +17,16 @@ export default function StudentSavingsDetail() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCurrentUser(d.user) })
+      .catch(console.error);
+  }, []);
+
+  const canManage = canManageFinance(currentUser?.role);
 
   const fetchDetails = async () => {
     setLoading(true);
@@ -123,16 +134,18 @@ export default function StudentSavingsDetail() {
               Rp {Number(student.balance).toLocaleString('id-ID')}
             </p>
           </div>
-          <button 
-            onClick={() => {
-              setEditingTransaction(null);
-              setIsModalOpen(true);
-            }}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-2"
-          >
-            <Wallet size={18} />
-            Transaksi
-          </button>
+          {canManage && (
+            <button 
+              onClick={() => {
+                setEditingTransaction(null);
+                setIsModalOpen(true);
+              }}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition flex items-center gap-2"
+            >
+              <Wallet size={18} />
+              Transaksi
+            </button>
+          )}
         </div>
       </div>
 
@@ -141,15 +154,17 @@ export default function StudentSavingsDetail() {
         <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <h3 className="font-bold text-slate-800">Riwayat Mutasi</h3>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleRecalculate}
-              disabled={isRecalculating}
-              className="flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800 transition px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg disabled:opacity-60"
-              title="Hitung ulang seluruh saldo dari awal untuk memastikan konsistensi data"
-            >
-              <RefreshCw size={16} className={isRecalculating ? 'animate-spin' : ''} />
-              {isRecalculating ? 'Menghitung...' : 'Rekonsiliasi Saldo'}
-            </button>
+            {canManage && (
+              <button
+                onClick={handleRecalculate}
+                disabled={isRecalculating}
+                className="flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800 transition px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg disabled:opacity-60"
+                title="Hitung ulang seluruh saldo dari awal untuk memastikan konsistensi data"
+              >
+                <RefreshCw size={16} className={isRecalculating ? 'animate-spin' : ''} />
+                {isRecalculating ? 'Menghitung...' : 'Rekonsiliasi Saldo'}
+              </button>
+            )}
             <button className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition px-3 py-1.5 bg-white border border-slate-200 rounded-lg">
               <Download size={16} />
               Cetak Rekening Koran
@@ -167,13 +182,13 @@ export default function StudentSavingsDetail() {
                 <th className="font-semibold p-4 text-right">Kredit (Keluar)</th>
                 <th className="font-semibold p-4 text-right">Saldo Akhir</th>
                 <th className="font-semibold p-4 text-center">Admin</th>
-                <th className="font-semibold p-4 text-center">Aksi</th>
+                {canManage && <th className="font-semibold p-4 text-center">Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">Belum ada transaksi</td>
+                  <td colSpan={canManage ? 7 : 6} className="p-8 text-center text-slate-400">Belum ada transaksi</td>
                 </tr>
               ) : (
                 transactions.map((t: any) => (
@@ -208,24 +223,26 @@ export default function StudentSavingsDetail() {
                     <td className="p-4 text-xs text-slate-500 font-medium text-center">
                       {t.adminName}
                     </td>
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => handleEdit(t)}
-                          className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"
-                          title="Edit Transaksi"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(t.id)}
-                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+                    {canManage && (
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => handleEdit(t)}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                            title="Edit Transaksi"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(t.id)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition"
+                            title="Hapus Transaksi"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

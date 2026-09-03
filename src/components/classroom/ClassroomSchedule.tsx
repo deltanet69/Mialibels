@@ -52,11 +52,11 @@ export function ClassroomSchedule({ classroomId, user, homeroomTeacherId }: { cl
   // Safely define currentUser and role permissions
   const currentUser = user || null;
   const role = currentUser?.role?.toLowerCase() || '';
-  const isSuperAdmin = role === 'superadmin' || role === 'admin' || role === 'staff_operator';
-  const isStaff = role === 'staff';
+  const isSuperAdmin = role === 'superadmin';
   const isKepsek = role === 'kepsek';
+  const canManage = role === 'superadmin' || role === 'administrasi' || role === 'staff_operator' || role === 'admin';
   const isHomeroom = role.includes('guru') && currentUser?.staffId === homeroomTeacherId;
-  const canEdit = isSuperAdmin || isStaff || isKepsek || isHomeroom;
+  const canEdit = canManage || isHomeroom;
 
   // Update current time every minute
   useEffect(() => {

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { canManageStudents } from '@/lib/rbac'
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,6 +65,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!canManageStudents(session?.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki akses untuk menambah/mengimpor data siswa.' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { isBulk, students } = body
 

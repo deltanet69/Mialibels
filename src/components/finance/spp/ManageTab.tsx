@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Plus, Trash2, Search, Filter, Eye, Download, Info, CheckCircle2, MessageCircle, User, ChevronUp, ChevronDown, Clock } from "lucide-react";
 import { SppInvoiceDetailModal } from "@/components/finance/spp/SppInvoiceDetailModal";
+import { canManageFinance } from "@/lib/rbac";
 
 // Constants outside component = never re-created
 const STATUS_COLORS: Record<string, string> = {
@@ -41,6 +42,16 @@ export default function ManageTab() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCurrentUser(d.user) })
+      .catch(console.error);
+  }, []);
+
+  const canManage = canManageFinance(currentUser?.role);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -409,21 +420,23 @@ export default function ManageTab() {
               className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-500"
             />
           </div>
-          <div className="flex gap-2 w-full md:w-auto">
-            <button 
-              onClick={() => setShowGenerateModal(true)}
-              className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
-            >
-              <Plus className="w-4 h-4" /> Buat Tagihan Infaq
-            </button>
-            <button 
-              onClick={handleBulkSendWA}
-              disabled={isSendingWA}
-              className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              <MessageCircle className="w-4 h-4" /> {isSendingWA ? "Mengirim..." : "Kirim WA Massal"}
-            </button>
-          </div>
+          {canManage && (
+            <div className="flex gap-2 w-full md:w-auto">
+              <button 
+                onClick={() => setShowGenerateModal(true)}
+                className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Plus className="w-4 h-4" /> Buat Tagihan Infaq
+              </button>
+              <button 
+                onClick={handleBulkSendWA}
+                disabled={isSendingWA}
+                className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+              >
+                <MessageCircle className="w-4 h-4" /> {isSendingWA ? "Mengirim..." : "Kirim WA Massal"}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -697,6 +710,7 @@ export default function ManageTab() {
           invoiceId={selectedInvoiceId}
           onClose={() => setSelectedInvoiceId(null)}
           onUpdated={handleInvoiceUpdated}
+          readOnly={!canManage}
         />
       )}
 

@@ -1,13 +1,14 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { canManageFinance } from '@/lib/rbac'
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki akses untuk melakukan transaksi' }, { status: 403 })
     }
 
     const body = await request.json()

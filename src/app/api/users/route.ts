@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { getSession } from '@/lib/session'
 import { hash } from 'bcryptjs'
 
+import { ALL_ROLES } from '@/lib/rbac'
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -64,8 +66,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Nama, email, password, dan role wajib diisi.' }, { status: 400 })
   }
 
-  const validRoles = ['superadmin', 'kepsek', 'guru', 'staff', 'staff_operator']
-  if (!validRoles.includes(role)) {
+  if (!ALL_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Role tidak valid.' }, { status: 400 })
   }
 

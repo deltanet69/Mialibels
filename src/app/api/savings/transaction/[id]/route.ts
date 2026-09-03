@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
+import { canManageFinance } from '@/lib/rbac'
 
 /**
  * Recalculates ALL balance_after values for every transaction of a student,
@@ -88,6 +90,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki hak untuk menghapus transaksi' }, { status: 403 })
+    }
+
     const id = (await params).id
 
     // 1. Get the transaction to be deleted
@@ -135,6 +142,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession()
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: 'Forbidden: Anda tidak memiliki hak untuk mengubah transaksi' }, { status: 403 })
+    }
+
     const id = (await params).id
     const body = await request.json()
     const { amount, description, type } = body

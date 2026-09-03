@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getAdminSupabase } from "@/lib/supabase";
+import { canViewFinance, canManageFinance } from "@/lib/rbac";
 
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -9,8 +10,8 @@ export const fetchCache = 'force-no-store';
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !canViewFinance(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const url = new URL(request.url);
@@ -102,8 +103,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: "Forbidden: Anda tidak memiliki hak untuk membuat tagihan" }, { status: 403 });
     }
 
     const body = await request.json();

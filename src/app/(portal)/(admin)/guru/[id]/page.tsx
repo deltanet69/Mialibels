@@ -18,6 +18,7 @@ import {
   UserCircle,
   IdCard
 } from 'lucide-react'
+import { canManageTeachers } from '@/lib/rbac'
 import { GuruForm } from '@/components/portal/guru/GuruForm'
 
 export default function DetailGuruPage() {
@@ -49,7 +50,7 @@ export default function DetailGuruPage() {
     fetchGuru()
   }, [params.id])
 
-  const canEdit = currentUser?.role === 'superadmin' || currentUser?.role === 'kepsek' || currentUser?.role === 'staff_operator'
+  const canEdit = canManageTeachers(currentUser?.role)
 
   if (loading) {
     return (
@@ -59,7 +60,7 @@ export default function DetailGuruPage() {
     )
   }
 
-  const canViewDetail = ['superadmin', 'staff_operator', 'staff', 'kepsek'].includes(currentUser?.role)
+  const canViewDetail = ['superadmin', 'administrasi', 'bendahara', 'kepsek', 'staff_operator', 'staff'].includes(currentUser?.role)
 
   if (!canViewDetail) {
     return (

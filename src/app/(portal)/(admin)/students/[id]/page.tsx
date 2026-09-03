@@ -7,6 +7,7 @@ import { ArrowLeft, User, Phone, Mail, MapPin, Edit3, ShieldCheck, Wallet, Piggy
 import { StudentForm } from '@/components/portal/students/StudentForm'
 import { CardDownloader } from '@/components/portal/students/CardDownloader'
 import { getDirectImageUrl } from '@/lib/imageUtils'
+import { canManageStudents, canViewFinance } from '@/lib/rbac'
 
 export default function StudentDetailPage() {
   const params = useParams()
@@ -183,19 +184,17 @@ export default function StudentDetailPage() {
 
           <div className="w-full mt-6 pt-6 border-t border-slate-100">
             <p className="text-sm font-semibold text-slate-700 mb-3 text-left">Unduh Kartu Identitas</p>
-            {currentUser?.role === 'superadmin' ? (
-              <CardDownloader student={student} sppInvoices={sppPayments} />
-            ) : (
-              <p className="text-xs text-slate-400 italic">Hanya Superadmin yang dapat mengunduh kartu siswa.</p>
-            )}
+            <CardDownloader student={student} sppInvoices={sppPayments} />
           </div>
 
-          <button 
-            onClick={() => setShowEdit(true)}
-            className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition font-medium cursor-pointer"
-          >
-            <Edit3 size={18} /> Edit Profil
-          </button>
+          {canManageStudents(currentUser?.role) && (
+            <button 
+              onClick={() => setShowEdit(true)}
+              className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition font-medium cursor-pointer"
+            >
+              <Edit3 size={18} /> Edit Profil
+            </button>
+          )}
         </div>
 
         {/* Right Column: Tabs */}
@@ -207,7 +206,7 @@ export default function StudentDetailPage() {
             >
               <User size={18} /> Info Lengkap
             </button>
-            {currentUser?.role === 'superadmin' && (
+            {canViewFinance(currentUser?.role) && (
               <>
                 <button 
                   onClick={() => setActiveTab('spp')}

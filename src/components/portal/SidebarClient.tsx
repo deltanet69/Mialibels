@@ -26,6 +26,13 @@ import {
   X
 } from 'lucide-react';
 import { useSidebar } from './SidebarProvider';
+import { 
+  canViewFinance, 
+  canViewContent, 
+  canViewExecutiveReports, 
+  canViewActivityLogs, 
+  canManageUsers 
+} from '@/lib/rbac';
 
 type Props = {
   role: string | null;
@@ -35,8 +42,6 @@ type Props = {
 export function SidebarClient({ role, userName }: Props) {
   const pathname = usePathname();
   const { isOpen, setIsOpen } = useSidebar();
-
-
 
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(path + '/');
@@ -51,42 +56,31 @@ export function SidebarClient({ role, userName }: Props) {
     }`;
   };
 
-  const hasAccess = (section: 'main' | 'akademik' | 'finance' | 'content' | 'reports' | 'users') => {
+  const hasAccess = (section: 'main' | 'akademik' | 'finance' | 'content') => {
     if (!role) return false;
-    // superadmin & kepsek have full access to navigation
-    if (role === 'superadmin' || role === 'kepsek') return true;
-    // staff_operator: full access except finance
-    if (role === 'staff_operator') {
-      return section !== 'finance';
+    const r = role.toLowerCase().trim();
+
+    // 1. Menu Utama: semua role dapat melihat
+    if (section === 'main') return true;
+
+    // 2. Akademik: superadmin, administrasi, bendahara, kepsek, staff_operator, guru
+    // (Staff biasa HANYA dapat melihat menu utama)
+    if (section === 'akademik') {
+      return r !== 'staff';
     }
-    // guru: limited access
-    if (role === 'guru') {
-      switch (section) {
-        case 'main':
-        case 'akademik':
-          return true;
-        default:
-          return false;
-      }
+
+    // 3. Keuangan: superadmin, administrasi, bendahara, kepsek
+    if (section === 'finance') {
+      return canViewFinance(r);
     }
-    // staff: same as guru
-    if (role === 'staff') {
-      switch (section) {
-        case 'main':
-        case 'akademik':
-          return true;
-        default:
-          return false;
-      }
+
+    // 4. Konten Website: superadmin, staff_operator, kepsek
+    if (section === 'content') {
+      return canViewContent(r);
     }
+
     return false;
   };
-
-  // kepsek can see finance pages but cannot execute transactions (handled per-page)
-  const canViewFinance = role === 'superadmin' || role === 'kepsek';
-
-  // Staff operator manages content; old staff role gets basic posts only
-  const canViewContentPosts = role === 'staff';
 
   return (
     <>
@@ -210,7 +204,7 @@ export function SidebarClient({ role, userName }: Props) {
             )}
 
             {/* FINANCE */}
-            {canViewFinance && (
+            {hasAccess('finance') && (
               <div>
                 <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   KEUANGAN
@@ -279,31 +273,14 @@ export function SidebarClient({ role, userName }: Props) {
               </div>
             )}
 
-            {/* KONTEN untuk Staff (hanya Berita & Artikel) */}
-            {canViewContentPosts && (
-              <div>
-                <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
-                  KONTEN SEKOLAH
-                </h4>
-                <div className="flex flex-col gap-1">
-                  <Link href="/content/posts" className={linkClass('/content/posts')} onClick={() => setIsOpen(false)}>
-                    <div className="flex items-center gap-3">
-                      <FileText size={18} />
-                      <span>Berita &amp; Artikel</span>
-                    </div>
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* SISTEM */}
-            {(hasAccess('reports') || hasAccess('users')) && (
+            {/* SISTEM & LAPORAN */}
+            {(canViewExecutiveReports(role) || canViewActivityLogs(role) || canManageUsers(role)) && (
               <div>
                 <h4 className="text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">
                   SISTEM &amp; LAPORAN
                 </h4>
                 <div className="flex flex-col gap-1">
-                  {hasAccess('reports') && (
+                  {canViewExecutiveReports(role) && (
                     <Link href="/reports" className={linkClass('/reports')} onClick={() => setIsOpen(false)}>
                       <div className="flex items-center gap-3">
                         <BarChart3 size={18} />
@@ -311,7 +288,7 @@ export function SidebarClient({ role, userName }: Props) {
                       </div>
                     </Link>
                   )}
-                  {hasAccess('reports') && (
+                  {canViewActivityLogs(role) && (
                     <Link href="/reports/logs" className={linkClass('/reports/logs')} onClick={() => setIsOpen(false)}>
                       <div className="flex items-center gap-3">
                         <Activity size={18} />
@@ -319,7 +296,7 @@ export function SidebarClient({ role, userName }: Props) {
                       </div>
                     </Link>
                   )}
-                  {hasAccess('users') && (
+                  {canManageUsers(role) && (
                     <Link href="/users" className={linkClass('/users')} onClick={() => setIsOpen(false)}>
                       <div className="flex items-center gap-3">
                         <UserCog size={18} />

@@ -4,14 +4,15 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Users, UserPlus, Edit3, Trash2, Search, Shield, ShieldCheck,
   GraduationCap, CheckCircle, XCircle, Eye, EyeOff, X, Loader2, RefreshCw,
-  AlertTriangle, Download
+  AlertTriangle, Download, Briefcase, Wallet
 } from 'lucide-react'
+import { UserRole } from '@/lib/rbac'
 
 type Admin = {
   id: string
   name: string
   email: string
-  role: 'superadmin' | 'kepsek' | 'guru' | 'staff' | 'staff_operator'
+  role: UserRole | string
   is_active: boolean
   created_at: string
   image?: string | null
@@ -27,6 +28,8 @@ type FormData = {
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   superadmin: { label: 'Super Admin', color: 'bg-violet-100 text-violet-800 border-violet-200', icon: Shield },
+  administrasi: { label: 'Administrasi', color: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: Briefcase },
+  bendahara: { label: 'Bendahara', color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: Wallet },
   kepsek: { label: 'Kepala Sekolah', color: 'bg-teal-100 text-teal-800 border-teal-200', icon: ShieldCheck },
   guru: { label: 'Guru', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: GraduationCap },
   staff: { label: 'Staff', color: 'bg-orange-100 text-orange-800 border-orange-200', icon: Users },
@@ -222,11 +225,13 @@ function UserForm({ initialData, isSelf, onSuccess, onClose }: UserFormProps) {
               disabled={isSelf}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="guru">Guru — Absensi, Classroom, Data Siswa (read)</option>
-              <option value="staff">Staff — Sama seperti Guru + Kelola Berita &amp; Artikel</option>
-              <option value="staff_operator">Staff Operator — Akses penuh (kecuali keuangan) + Manage User</option>
-              <option value="kepsek">Kepala Sekolah — Full akses (kecuali eksekusi transaksi)</option>
-              <option value="superadmin">Super Admin — Full akses + Manage User</option>
+              <option value="superadmin">Super Admin — Full akses seluruh fitur &amp; manajemen user</option>
+              <option value="administrasi">Administrasi — Full CRUD Menu Utama, Akademik &amp; Keuangan</option>
+              <option value="bendahara">Bendahara — Read-only Menu Utama, Akademik &amp; Keuangan</option>
+              <option value="kepsek">Kepala Sekolah — Read-only seluruh menu</option>
+              <option value="staff_operator">Staff Operator — Full akses seluruh menu (kecuali Keuangan)</option>
+              <option value="guru">Guru — Absensi, Classroom, Jadwal Mengajar, Modul</option>
+              <option value="staff">Staff — Read-only Menu Utama (Rekap Absensi Pribadi)</option>
             </select>
             {isSelf && (
               <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
@@ -252,15 +257,20 @@ function UserForm({ initialData, isSelf, onSuccess, onClose }: UserFormProps) {
 
           {/* Role preview info */}
           <div className={`p-3 rounded-xl text-xs border ${form.role === 'superadmin' ? 'bg-violet-50 border-violet-200 text-violet-800' :
+              form.role === 'administrasi' ? 'bg-indigo-50 border-indigo-200 text-indigo-800' :
+              form.role === 'bendahara' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
               form.role === 'kepsek' ? 'bg-teal-50 border-teal-200 text-teal-800' :
               form.role === 'staff_operator' ? 'bg-cyan-50 border-cyan-200 text-cyan-800' :
+              form.role === 'staff' ? 'bg-orange-50 border-orange-200 text-orange-800' :
                 'bg-blue-50 border-blue-200 text-blue-800'
             }`}>
-            {form.role === 'superadmin' && 'Super Admin: Akses penuh ke semua fitur, termasuk manajemen user dan semua transaksi keuangan.'}
-            {form.role === 'kepsek' && 'Kepala Sekolah: Akses penuh seperti Super Admin, kecuali tidak bisa eksekusi transaksi tabungan & SPP.'}
-            {form.role === 'staff_operator' && 'Staff Operator: Akses penuh ke semua fitur kecuali keuangan. Bisa kelola data, konten website, jadwal, dan user management.'}
-            {form.role === 'guru' && 'Guru: Hanya bisa absensi guru, kelola classroom, dan melihat data siswa. Tidak bisa create/delete siswa.'}
-            {form.role === 'staff' && 'Staff: Sama seperti Guru, ditambah bisa membuat dan mengelola konten Berita & Artikel di website sekolah.'}
+            {form.role === 'superadmin' && 'Super Admin: Akses penuh ke semua fitur, termasuk manajemen user dan seluruh transaksi keuangan.'}
+            {form.role === 'administrasi' && 'Administrasi: Akses pengelolaan penuh (CRUD) untuk Menu Utama, Akademik, dan Keuangan. Tidak dapat mengakses Konten Website dan Sistem & Laporan.'}
+            {form.role === 'bendahara' && 'Bendahara: Akses melihat rekap (read-only) untuk Menu Utama, Akademik, Keuangan, serta Laporan Eksekutif tanpa hak mutasi/edit data.'}
+            {form.role === 'kepsek' && 'Kepala Sekolah: Akses melihat seluruh menu sistem dalam mode Read-Only (tidak bisa tambah, edit, atau delete data).'}
+            {form.role === 'staff_operator' && 'Staff Operator: Akses penuh ke semua fitur kecuali Keuangan. Bisa kelola data siswa/guru, konten website, jadwal, dan user management.'}
+            {form.role === 'guru' && 'Guru: Mengakses absensi guru, jadwal mengajar, modul pembelajaran, dan classroom yang di-assign.'}
+            {form.role === 'staff' && 'Staff: Hanya dapat melihat Menu Utama (Dashboard & rekap absensi diri sendiri dalam mode Read-Only).'}
           </div>
 
           {/* Actions */}
@@ -508,6 +518,8 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
     total: users.length,
     active: users.filter(u => u.is_active).length,
     superadmin: users.filter(u => u.role === 'superadmin').length,
+    administrasi: users.filter(u => u.role === 'administrasi').length,
+    bendahara: users.filter(u => u.role === 'bendahara').length,
     kepsek: users.filter(u => u.role === 'kepsek').length,
     guru: users.filter(u => u.role === 'guru').length,
     staff: users.filter(u => u.role === 'staff').length,
@@ -586,14 +598,16 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
         {[
           { label: 'Total User', value: stats.total, bg: 'bg-slate-800 text-white', icon: Users },
           { label: 'Aktif', value: stats.active, bg: 'bg-green-50 border border-green-100 text-green-800', icon: CheckCircle },
           { label: 'Super Admin', value: stats.superadmin, bg: 'bg-violet-50 border border-violet-100 text-violet-800', icon: Shield },
+          { label: 'Administrasi', value: stats.administrasi, bg: 'bg-indigo-50 border border-indigo-100 text-indigo-800', icon: Briefcase },
+          { label: 'Bendahara', value: stats.bendahara, bg: 'bg-emerald-50 border border-emerald-100 text-emerald-800', icon: Wallet },
           { label: 'Kepsek', value: stats.kepsek, bg: 'bg-teal-50 border border-teal-100 text-teal-800', icon: ShieldCheck },
-          { label: 'Guru', value: stats.guru, bg: 'bg-blue-50 border border-blue-100 text-blue-800', icon: GraduationCap },
-          { label: 'Staff Operator', value: stats.staff_operator, bg: 'bg-cyan-50 border border-cyan-100 text-cyan-800', icon: ShieldCheck },
+          { label: 'Staff Op.', value: stats.staff_operator, bg: 'bg-cyan-50 border border-cyan-100 text-cyan-800', icon: ShieldCheck },
+          { label: 'Guru & Staf', value: stats.guru + stats.staff, bg: 'bg-blue-50 border border-blue-100 text-blue-800', icon: GraduationCap },
         ].map(({ label, value, bg, icon: Icon }) => (
           <div key={label} className={`${bg} rounded-2xl p-3 sm:p-4`}>
             <div className="flex items-center justify-between mb-2 opacity-75">
@@ -626,10 +640,12 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
           >
             <option value="all">Semua Role</option>
             <option value="superadmin">Super Admin</option>
+            <option value="administrasi">Administrasi</option>
+            <option value="bendahara">Bendahara</option>
             <option value="kepsek">Kepala Sekolah</option>
+            <option value="staff_operator">Staff Operator</option>
             <option value="guru">Guru</option>
             <option value="staff">Staff</option>
-            <option value="staff_operator">Staff Operator</option>
           </select>
           <select
             value={statusFilter}
@@ -692,10 +708,12 @@ export function UsersClient({ currentUserId, currentUserRole, isSuperAdmin }: Us
                             <img src={user.image} alt={user.name} className="w-9 h-9 rounded-full object-cover shrink-0 shadow-sm" />
                           ) : (
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${user.role === 'superadmin' ? 'bg-violet-100 text-violet-700' :
+                                user.role === 'administrasi' ? 'bg-indigo-100 text-indigo-700' :
+                                user.role === 'bendahara' ? 'bg-emerald-100 text-emerald-700' :
                                 user.role === 'kepsek' ? 'bg-teal-100 text-teal-700' :
                                 user.role === 'staff_operator' ? 'bg-cyan-100 text-cyan-700' :
-                                  user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
-                                    'bg-blue-100 text-blue-700'
+                                user.role === 'staff' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-blue-100 text-blue-700'
                               }`}>
                               {user.name.charAt(0).toUpperCase()}
                             </div>

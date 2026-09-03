@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Wallet, ArrowDownToLine, ArrowUpFromLine, RefreshCw, ChevronRight, Filter } from 'lucide-react';
 import { TransactionModal } from '@/components/finance/TransactionModal';
+import { canManageFinance } from '@/lib/rbac';
 
 function SkeletonRow() {
   return (
@@ -44,6 +45,16 @@ export default function SavingsPage() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCurrentUser(d.user) })
+      .catch(console.error);
+  }, []);
+
+  const canManage = canManageFinance(currentUser?.role);
 
   // Fetch ALL savings data once (no search/class params)
   const fetchSavings = useCallback(async () => {
@@ -358,12 +369,14 @@ export default function SavingsPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => openTransactionModal(student.id, student.name)}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-semibold transition"
-                        >
-                          Transaksi
-                        </button>
+                        {canManage && (
+                          <button 
+                            onClick={() => openTransactionModal(student.id, student.name)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-semibold transition"
+                          >
+                            Transaksi
+                          </button>
+                        )}
                         <Link 
                           href={`/finance/savings/${student.id}`}
                           className="p-1.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-200 rounded-lg transition"

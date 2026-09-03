@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from "@/lib/session";
 import { getAdminSupabase } from "@/lib/supabase";
+import { canViewFinance, canManageFinance } from "@/lib/rbac";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,9 @@ export async function GET(
   try {
     const { id } = await params;
     const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !canViewFinance(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const adminSupabase = getAdminSupabase();
 
@@ -98,7 +101,9 @@ export async function PUT(
   try {
     const { id } = await params;
     const session = await getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || !canManageFinance(session.role)) {
+      return NextResponse.json({ error: "Forbidden: Anda tidak memiliki hak untuk mengubah atau memproses pembayaran" }, { status: 403 });
+    }
 
     const body = await request.json();
     const { action, paid_amount, note, rejectReason } = body;

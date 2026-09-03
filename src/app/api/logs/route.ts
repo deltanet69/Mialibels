@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { canViewActivityLogs } from '@/lib/rbac'
 
 export async function GET(request: NextRequest) {
   const session = await getSession()
-  if (!session || !['superadmin', 'kepsek'].includes(session.role)) {
+  if (!session || !canViewActivityLogs(session.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
