@@ -368,7 +368,7 @@ export default function AbsenSiswaPage() {
   }
 
   return (
-    <main className="h-screen max-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-hidden relative">
+    <main className="min-h-screen md:h-screen md:max-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-y-auto md:overflow-hidden relative">
       
       {/* ──────────────────────────────────────────────────────────── */}
       {/* BACKGROUND VIDEO WITH SUBTLE 85-90% DARK OVERLAY */}
@@ -393,58 +393,58 @@ export default function AbsenSiswaPage() {
       </div>
 
       {/* ──────────────────────────────────────────────────────────── */}
-      {/* 1. TOP HEADER - FIXED HEIGHT, NON-SCROLLABLE */}
+      {/* 1. TOP HEADER - MOBILE RESPONSIVE */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <header className="relative z-20 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-6 py-2.5 shadow-xl flex-shrink-0">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+      <header className="relative z-20 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-3 md:px-6 py-3 shadow-xl flex-shrink-0">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
           
           {/* Brand & Kiosk Location */}
-          <div className="flex items-center gap-3.5 text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto text-center sm:text-left">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logosmart/smartputihver.png" 
               alt="Logo MI Attaqwa 15" 
-              className="h-10 md:h-12 object-contain filter drop-shadow" 
+              className="h-10 md:h-12 object-contain filter drop-shadow mx-auto sm:mx-0" 
             />
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-sky-400 text-slate-950 tracking-wider shadow-sm">
                   {isClass1A ? 'Gedung 1' : 'Gedung Madrasah'}
                 </span>
-                <span className="text-[11px] font-bold text-slate-400 tracking-wide">
+                <span className="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wide">
                   Pos Absensi Siswa Kelas {formattedClassName}
                 </span>
               </div>
-              <h1 className="text-base md:text-lg font-black text-white tracking-wide uppercase mt-0.5 drop-shadow-sm leading-tight">
+              <h1 className="text-sm md:text-lg font-black text-white tracking-wide uppercase mt-1 drop-shadow-sm leading-tight text-center sm:text-left">
                 MI Attaqwa 15 Babelan
               </h1>
             </div>
           </div>
 
           {/* Center: Live Digital Clock & Indonesian Date */}
-          <div className="flex flex-col items-center justify-center bg-slate-950/70 px-5 py-1.5 rounded-2xl border border-white/10 shadow-inner">
-            <div className="flex items-center gap-1.5 text-xl md:text-2xl font-black tracking-tight text-white font-mono">
+          <div className="flex flex-col items-center justify-center bg-slate-950/70 px-4 md:px-5 py-2 rounded-2xl border border-white/10 shadow-inner w-full sm:w-auto mt-2 md:mt-0">
+            <div className="flex items-center gap-1.5 text-lg md:text-2xl font-black tracking-tight text-white font-mono">
               <span>{time.getHours().toString().padStart(2, '0')}</span>
               <span className="text-amber-400 animate-pulse font-light">:</span>
               <span>{time.getMinutes().toString().padStart(2, '0')}</span>
               <span className="text-amber-400 animate-pulse font-light">:</span>
               <span className="text-amber-300">{time.getSeconds().toString().padStart(2, '0')}</span>
-              <span className="text-[10px] font-sans font-bold text-slate-400 ml-1">WIB</span>
+              <span className="text-[9px] md:text-[10px] font-sans font-bold text-slate-400 ml-1">WIB</span>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-medium">
+            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] text-slate-300 font-medium">
               <Clock className="w-3 h-3 text-amber-400" />
               <span>{getIndonesianDate()}</span>
             </div>
           </div>
 
           {/* Right: Scanner Status & Total Hadir Pill */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-row flex-wrap justify-center sm:justify-end items-center gap-2.5 w-full md:w-auto mt-2 md:mt-0">
             
             {/* NFC Button if smartphone */}
             {nfcSupported && !nfcActive && (
               <button
                 onClick={startNfcScan}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-bold shadow-lg transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-blue-400/40"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] md:text-[11px] font-bold shadow-lg transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-blue-400/40"
               >
                 <Wifi className="w-3 h-3" />
                 NFC HP
@@ -452,7 +452,7 @@ export default function AbsenSiswaPage() {
             )}
 
             {/* Live Scanner Siaga Pill */}
-            <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/40 px-3 py-1.5 rounded-xl text-emerald-400 text-xs font-bold shadow-sm backdrop-blur-sm">
+            <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/40 px-3 py-2 rounded-xl text-emerald-400 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -461,13 +461,13 @@ export default function AbsenSiswaPage() {
             </div>
 
             {/* Total Hadir Card for this class */}
-            <div className="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1 rounded-xl text-right">
-              <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">
+            <div className="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-right">
+              <div className="text-[8px] md:text-[9px] uppercase font-bold text-slate-400 tracking-wider text-center sm:text-right">
                 Kelas {formattedClassName}
               </div>
-              <div className="text-sm md:text-base font-black text-white">
-                {presentStudentsCount} <span className="text-slate-400 text-xs font-semibold">/ {totalStudents}</span>
-                <span className="ml-1.5 text-xs font-bold text-emerald-400">({presentPercentage}%)</span>
+              <div className="text-xs md:text-base font-black text-white text-center sm:text-right">
+                {presentStudentsCount} <span className="text-slate-400 text-[10px] md:text-xs font-semibold">/ {totalStudents}</span>
+                <span className="ml-1 md:ml-1.5 text-[10px] md:text-xs font-bold text-emerald-400">({presentPercentage}%)</span>
               </div>
             </div>
 
@@ -478,79 +478,79 @@ export default function AbsenSiswaPage() {
       {/* ──────────────────────────────────────────────────────────── */}
       {/* 2. MAIN BODY - FULL ROSTER / INNER SCROLLABLE ONLY */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative z-10 p-3 lg:p-4 flex flex-col gap-3 max-w-[1800px] w-full mx-auto overflow-hidden">
+      <div className="flex-1 min-h-0 relative z-10 p-3 lg:p-4 flex flex-col gap-3 max-w-[1800px] w-full mx-auto overflow-visible md:overflow-hidden h-auto md:h-full">
         
         {/* Class Banner Summary (Fixed) */}
         <section className="bg-slate-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border border-sky-500/30 p-3.5 lg:p-4 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
           <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-48 h-48 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
 
           {/* Left: Class Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-700 border border-white/20 flex items-center justify-center font-black text-xl text-white shadow-lg">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto text-center sm:text-left z-10">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-700 border border-white/20 flex items-center justify-center font-black text-xl text-white shadow-lg mx-auto sm:mx-0">
               {formattedClassName}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2">
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-sky-500/20 text-sky-300 border border-sky-400/40">
                   {isClass1A ? 'Gedung 1 - Lantai 1' : 'Unit Kelas'}
                 </span>
-                <span className="text-[11px] text-slate-400 font-semibold">Tahun Ajaran 2026/2027</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold">Tahun Ajaran 2026/2027</span>
               </div>
-              <h2 className="text-xl lg:text-2xl font-black text-white tracking-tight mt-0.5">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-white tracking-tight mt-1 text-center sm:text-left">
                 Daftar Kehadiran Siswa Kelas {formattedClassName}
               </h2>
             </div>
           </div>
 
           {/* Center/Right: Metrics & Tabs */}
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+          <div className="flex flex-col md:flex-row flex-wrap items-center gap-3 w-full md:w-auto justify-center md:justify-end z-10 mt-2 md:mt-0">
             
             {/* Quick Stat Pill */}
-            <div className="bg-slate-950/70 border border-slate-800 px-3.5 py-1.5 rounded-xl flex items-center gap-3">
-              <div>
-                <span className="text-[9px] uppercase font-bold text-slate-400 block">Sudah Hadir</span>
-                <span className="text-base font-black text-emerald-400">{presentStudentsCount} Siswa</span>
+            <div className="bg-slate-950/70 border border-slate-800 px-3.5 py-1.5 rounded-xl flex flex-wrap justify-center items-center gap-3 w-full md:w-auto">
+              <div className="text-center sm:text-left">
+                <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Sudah Hadir</span>
+                <span className="text-sm sm:text-base font-black text-emerald-400">{presentStudentsCount} Siswa</span>
               </div>
-              <div className="h-6 w-[1px] bg-slate-800" />
-              <div>
-                <span className="text-[9px] uppercase font-bold text-slate-400 block">Belum Hadir</span>
-                <span className="text-base font-black text-amber-400">{totalStudents - presentStudentsCount} Siswa</span>
+              <div className="h-6 w-[1px] bg-slate-800 hidden sm:block" />
+              <div className="text-center sm:text-left">
+                <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Belum Hadir</span>
+                <span className="text-sm sm:text-base font-black text-amber-400">{totalStudents - presentStudentsCount} Siswa</span>
               </div>
             </div>
 
             {/* Filter Buttons */}
-            <div className="flex items-center p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+            <div className="flex flex-wrap justify-center items-center p-1 bg-slate-950/80 rounded-xl border border-slate-800 w-full md:w-auto">
               <button
                 onClick={() => setViewFilter('HADIR')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 flex-1 md:flex-none ${
                   viewFilter === 'HADIR'
                     ? 'bg-emerald-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <UserCheck className="w-3 h-3" />
-                Sudah Hadir ({presentStudentsCount})
+                Sudah <span className="hidden sm:inline">Hadir ({presentStudentsCount})</span>
               </button>
               <button
                 onClick={() => setViewFilter('BELUM_HADIR')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 flex-1 md:flex-none ${
                   viewFilter === 'BELUM_HADIR'
                     ? 'bg-amber-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <UserX className="w-3 h-3" />
-                Belum Hadir ({totalStudents - presentStudentsCount})
+                Belum <span className="hidden sm:inline">Hadir ({totalStudents - presentStudentsCount})</span>
               </button>
               <button
                 onClick={() => setViewFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-black transition-all flex-1 md:flex-none text-center ${
                   viewFilter === 'ALL'
                     ? 'bg-slate-800 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Semua ({totalStudents})
+                Semua <span className="hidden sm:inline">({totalStudents})</span>
               </button>
             </div>
 

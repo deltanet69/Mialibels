@@ -405,7 +405,7 @@ export default function AbsenClientPage() {
   }
 
   return (
-    <main className="h-screen max-h-screen w-full bg-[#060a12] text-slate-100 flex flex-col font-sans select-none overflow-hidden relative">
+    <main className="min-h-screen md:h-screen md:max-h-screen w-full bg-[#060a12] text-slate-100 flex flex-col font-sans select-none overflow-y-auto md:overflow-hidden relative">
       
       {/* ──────────────────────────────────────────────────────────── */}
       {/* 1. BACKGROUND WITH ROYAL CYAN, SAPPHIRE & EMERALD GLOWS */}
@@ -432,60 +432,43 @@ export default function AbsenClientPage() {
       {/* ──────────────────────────────────────────────────────────── */}
       {/* 2. TOP EXECUTIVE HEADER - PRESTIGIOUS CYAN & SAPPHIRE THEME */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <header className="relative z-20 bg-[#0a1120]/95 backdrop-blur-xl border-b border-cyan-500/20 px-5 lg:px-8 py-3 shadow-2xl flex-shrink-0">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3.5 max-w-[1900px] mx-auto w-full">
+      <header className="relative z-20 bg-[#0a1120]/95 backdrop-blur-xl border-b border-cyan-500/20 px-3 md:px-8 py-3 shadow-2xl flex-shrink-0">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1900px] mx-auto w-full">
           
           {/* Brand & Executive Identity */}
-          <div className="flex items-center gap-4 text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto text-center sm:text-left">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logosmart/smartputihver.png" 
               alt="Logo SMART MI Attaqwa 15" 
-              className="h-11 md:h-13 object-contain filter drop-shadow-[0_2px_12px_rgba(6,182,212,0.25)]" 
+              className="h-11 md:h-13 object-contain filter drop-shadow-[0_2px_12px_rgba(6,182,212,0.25)] mx-auto sm:mx-0" 
             />
-            {/* <div className="border-l border-cyan-500/30 pl-4">
-              <div className="flex items-center gap-2.5">
-                <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20 flex items-center gap-1.5">
-                  <Award className="w-3 h-3 text-cyan-200" />
-                  Presensi Eksekutif
-                </span>
-                <span className="text-[11px] font-extrabold text-cyan-300 tracking-wide uppercase">
-                  Dewan Guru & Tenaga Kependidikan
-                </span>
-              </div>
-              <h1 className="text-lg md:text-xl font-black text-white tracking-wider uppercase mt-1 drop-shadow flex items-center gap-2">
-                MI Attaqwa 15 Babelan
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                  SMART ID
-                </span>
-              </h1>
-            </div> */}
           </div>
 
           {/* Center: Live Digital Clock & Indonesian Date (Pure Cyan & Mint) */}
-          <div className="flex flex-col items-center justify-center bg-[#060a12]/95 px-7 py-2 rounded-2xl border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.12)]">
-            <div className="flex items-center gap-2 text-2xl md:text-3xl font-black tracking-tight text-white font-mono">
+          <div className="flex flex-col items-center justify-center bg-[#060a12]/95 px-5 md:px-7 py-2 rounded-2xl border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.12)] w-full sm:w-auto mt-2 md:mt-0">
+            <div className="flex items-center gap-1.5 md:gap-2 text-xl md:text-3xl font-black tracking-tight text-white font-mono">
               <span className="text-white">{time.getHours().toString().padStart(2, '0')}</span>
               <span className="text-cyan-400 animate-pulse font-light">:</span>
               <span className="text-white">{time.getMinutes().toString().padStart(2, '0')}</span>
               <span className="text-cyan-400 animate-pulse font-light">:</span>
               <span className="text-cyan-300">{time.getSeconds().toString().padStart(2, '0')}</span>
-              <span className="text-[11px] font-sans font-bold text-cyan-300 ml-1.5 px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30">WIB</span>
+              <span className="text-[9px] md:text-[11px] font-sans font-bold text-cyan-300 ml-1.5 px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30">WIB</span>
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-slate-300 font-medium mt-0.5">
+            <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-[11px] text-slate-300 font-medium mt-0.5">
               <Clock className="w-3.5 h-3.5 text-cyan-400" />
               <span>{getIndonesianDate()}</span>
             </div>
           </div>
 
           {/* Right: Scanner Status & Total Hadir Pill */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-row flex-wrap justify-center sm:justify-end items-center gap-2.5 w-full md:w-auto mt-2 md:mt-0">
             
             {/* NFC Button if smartphone */}
             {nfcSupported && !nfcActive && (
               <button
                 onClick={startNfcScan}
-                className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-600/20 transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-cyan-400/40"
+                className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-[10px] md:text-xs font-bold shadow-lg shadow-cyan-600/20 transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-cyan-400/40"
               >
                 <Wifi className="w-3.5 h-3.5" />
                 NFC Smartphone
@@ -493,22 +476,22 @@ export default function AbsenClientPage() {
             )}
 
             {/* Live Scanner Siaga Pill */}
-            <div className="flex items-center gap-2.5 bg-emerald-950/80 border border-emerald-500/50 px-4 py-2 rounded-xl text-emerald-300 text-xs font-black shadow-lg shadow-emerald-950/50 backdrop-blur-md">
-              <span className="relative flex h-2.5 w-2.5">
+            <div className="flex items-center gap-2.5 bg-emerald-950/80 border border-emerald-500/50 px-3 md:px-4 py-2 rounded-xl text-emerald-300 text-[10px] md:text-xs font-black shadow-lg shadow-emerald-950/50 backdrop-blur-md">
+              <span className="relative flex h-2 md:h-2.5 w-2 md:w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2 md:h-2.5 w-2 md:w-2.5 bg-emerald-500"></span>
               </span>
               <span className="tracking-wider">SCANNER SIAGA</span>
             </div>
 
             {/* Total Hadir Guru Pill */}
-            <div className="bg-[#0b1424]/95 border border-cyan-500/30 px-4 py-1.5 rounded-xl text-right shadow-inner">
-              <div className="text-[10px] uppercase font-bold text-cyan-400/90 tracking-wider">
+            <div className="bg-[#0b1424]/95 border border-cyan-500/30 px-3 md:px-4 py-1.5 rounded-xl text-center sm:text-right shadow-inner">
+              <div className="text-[9px] md:text-[10px] uppercase font-bold text-cyan-400/90 tracking-wider">
                 Total Kehadiran
               </div>
-              <div className="text-base md:text-lg font-black text-white">
-                {presentCount} <span className="text-slate-400 text-xs font-semibold">/ {totalStaffCount} Guru</span>
-                <span className="ml-2 text-xs font-bold text-cyan-400">({presentPercentage}%)</span>
+              <div className="text-sm md:text-lg font-black text-white flex items-center justify-center sm:justify-end gap-1 md:gap-0">
+                {presentCount} <span className="text-slate-400 text-[10px] md:text-xs font-semibold ml-1">/ {totalStaffCount} Guru</span>
+                <span className="ml-1.5 md:ml-2 text-[10px] md:text-xs font-bold text-cyan-400">({presentPercentage}%)</span>
               </div>
             </div>
 
@@ -519,99 +502,99 @@ export default function AbsenClientPage() {
       {/* ──────────────────────────────────────────────────────────── */}
       {/* 3. MAIN BODY - EXECUTIVE ROSTER (INNER SCROLLABLE) */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative z-10 p-4 lg:p-6 flex flex-col gap-4 max-w-[1900px] w-full mx-auto overflow-hidden">
+      <div className="flex-1 min-h-0 relative z-10 p-3 sm:p-4 lg:p-6 flex flex-col gap-4 max-w-[1900px] w-full mx-auto overflow-visible md:overflow-hidden h-auto md:h-full">
         
         {/* Banner Summary (Executive Style) */}
-        <section className="bg-gradient-to-r from-[#0a1222]/95 via-[#0c1830]/90 to-[#0a1222]/95 backdrop-blur-xl rounded-3xl border border-cyan-500/25 p-4 lg:p-5 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
+        <section className="bg-gradient-to-r from-[#0a1222]/95 via-[#0c1830]/90 to-[#0a1222]/95 backdrop-blur-xl rounded-3xl border border-cyan-500/25 p-4 lg:p-5 shadow-2xl relative overflow-hidden flex flex-col xl:flex-row items-center justify-between gap-4 flex-shrink-0">
           <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute left-1/3 bottom-0 w-80 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Left: Identity */}
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-600 to-indigo-700 border border-cyan-300/40 flex items-center justify-center font-black text-white shadow-xl shadow-cyan-500/25 flex-shrink-0">
-              <GraduationCap className="w-8 h-8" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 text-center sm:text-left z-10 w-full xl:w-auto">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-600 to-indigo-700 border border-cyan-300/40 flex items-center justify-center font-black text-white shadow-xl shadow-cyan-500/25 flex-shrink-0">
+              <GraduationCap className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+              <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2">
+                <span className="px-2.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
                   Madrasah Ibtidaiyah Attaqwa 15
                 </span>
-                <span className="text-[11px] text-slate-400 font-semibold">Tahun Ajaran 2026/2027</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold">Tahun Ajaran 2026/2027</span>
               </div>
-              <h2 className="text-xl lg:text-2xl font-black text-white tracking-tight mt-1 flex items-center gap-2.5">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-white tracking-tight mt-1 flex flex-col sm:flex-row items-center gap-1 sm:gap-2.5">
                 Daftar Presensi Dewan Guru & Staf
-                <span className="text-xs font-bold text-cyan-400/80">({totalStaffCount} Pendidik Terdaftar)</span>
+                <span className="text-[10px] sm:text-xs font-bold text-cyan-400/80">({totalStaffCount} Pendidik Terdaftar)</span>
               </h2>
             </div>
           </div>
 
           {/* Center/Right: Executive Metrics & Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-3.5 w-full md:w-auto justify-end">
+          <div className="flex flex-col md:flex-row flex-wrap items-center gap-3.5 w-full xl:w-auto justify-center xl:justify-end z-10 mt-2 xl:mt-0">
             
             {/* Quick Stat Pill */}
-            <div className="bg-[#060a12]/90 border border-slate-800 px-4 py-2 rounded-2xl flex items-center gap-4 shadow-inner">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                <div>
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Tepat Waktu</span>
-                  <span className="text-base font-black text-emerald-400">{onTimeCount}</span>
+            <div className="bg-[#060a12]/90 border border-slate-800 px-3 sm:px-4 py-2 rounded-2xl flex flex-wrap justify-center items-center gap-3 sm:gap-4 shadow-inner w-full md:w-auto">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <div className="text-center sm:text-left">
+                  <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Tepat Waktu</span>
+                  <span className="text-sm sm:text-base font-black text-emerald-400">{onTimeCount}</span>
                 </div>
               </div>
 
-              <div className="h-7 w-[1px] bg-slate-800" />
+              <div className="h-5 sm:h-7 w-[1px] bg-slate-800 hidden sm:block" />
 
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-                <div>
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Terlambat</span>
-                  <span className="text-base font-black text-orange-400">{lateCount}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+                <div className="text-center sm:text-left">
+                  <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Terlambat</span>
+                  <span className="text-sm sm:text-base font-black text-orange-400">{lateCount}</span>
                 </div>
               </div>
 
-              <div className="h-7 w-[1px] bg-slate-800" />
+              <div className="h-5 sm:h-7 w-[1px] bg-slate-800 hidden sm:block" />
 
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <div>
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Belum Hadir</span>
-                  <span className="text-base font-black text-rose-400">{totalStaffCount - presentCount}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-400" />
+                <div className="text-center sm:text-left">
+                  <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block">Belum Hadir</span>
+                  <span className="text-sm sm:text-base font-black text-rose-400">{totalStaffCount - presentCount}</span>
                 </div>
               </div>
             </div>
 
             {/* Segmented Filter Buttons */}
-            <div className="flex items-center p-1 bg-[#060a12]/90 rounded-2xl border border-slate-800 shadow-md">
+            <div className="flex flex-wrap justify-center items-center p-1 bg-[#060a12]/90 rounded-2xl border border-slate-800 shadow-md w-full md:w-auto">
               <button
                 onClick={() => setViewFilter('HADIR')}
-                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 flex-1 md:flex-none ${
                   viewFilter === 'HADIR'
                     ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-900/50'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <UserCheck className="w-4 h-4 text-cyan-300" />
-                Sudah Hadir ({presentCount})
+                <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300" />
+                Sudah Hadir <span className="hidden sm:inline">({presentCount})</span>
               </button>
               <button
                 onClick={() => setViewFilter('BELUM_HADIR')}
-                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 flex-1 md:flex-none ${
                   viewFilter === 'BELUM_HADIR'
                     ? 'bg-gradient-to-r from-orange-600 to-rose-600 text-white shadow-lg shadow-orange-900/50'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                <UserX className="w-4 h-4 text-orange-300" />
-                Belum Hadir ({totalStaffCount - presentCount})
+                <UserX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-300" />
+                Belum <span className="hidden sm:inline">Hadir ({totalStaffCount - presentCount})</span>
               </button>
               <button
                 onClick={() => setViewFilter('ALL')}
-                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 sm:gap-2 flex-1 md:flex-none ${
                   viewFilter === 'ALL'
                     ? 'bg-slate-800 text-white shadow-lg'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Semua ({totalStaffCount})
+                Semua <span className="hidden sm:inline">({totalStaffCount})</span>
               </button>
             </div>
 

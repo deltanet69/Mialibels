@@ -434,7 +434,7 @@ export default function AbsenKelas1ClientPage() {
   }
 
   return (
-    <main className="h-screen max-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-hidden relative">
+    <main className="min-h-screen md:h-screen md:max-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-y-auto md:overflow-hidden relative">
       
       {/* ──────────────────────────────────────────────────────────── */}
       {/* BACKGROUND VIDEO WITH SUBTLE 85-90% DARK OVERLAY */}
@@ -459,58 +459,58 @@ export default function AbsenKelas1ClientPage() {
       </div>
 
       {/* ──────────────────────────────────────────────────────────── */}
-      {/* 1. TOP HEADER - FIXED HEIGHT, NON-SCROLLABLE */}
+      {/* 1. TOP HEADER - MOBILE RESPONSIVE */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <header className="relative z-20 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-6 py-2.5 shadow-xl flex-shrink-0">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+      <header className="relative z-20 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-3 md:px-6 py-3 shadow-xl flex-shrink-0">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
           
           {/* Brand & Kiosk Location */}
-          <div className="flex items-center gap-3.5 text-left">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto text-center sm:text-left">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logosmart/smartputihver.png" 
               alt="Logo MI Attaqwa 15" 
-              className="h-10 md:h-12 object-contain filter drop-shadow" 
+              className="h-10 md:h-12 object-contain filter drop-shadow mx-auto sm:mx-0" 
             />
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-400 text-slate-950 tracking-wider shadow-sm">
                   Gedung 2
                 </span>
-                <span className="text-[11px] font-bold text-slate-400 tracking-wide">
+                <span className="text-[10px] md:text-[11px] font-bold text-slate-400 tracking-wide">
                   Pos Absensi Siswa Kelas 1
                 </span>
               </div>
-              <h1 className="text-base md:text-lg font-black text-white tracking-wide uppercase mt-0.5 drop-shadow-sm leading-tight">
+              <h1 className="text-sm md:text-lg font-black text-white tracking-wide uppercase mt-1 drop-shadow-sm leading-tight text-center sm:text-left">
                 MI Attaqwa 15 Babelan
               </h1>
             </div>
           </div>
 
           {/* Center: Live Digital Clock & Indonesian Date */}
-          <div className="flex flex-col items-center justify-center bg-slate-950/70 px-5 py-1.5 rounded-2xl border border-white/10 shadow-inner">
-            <div className="flex items-center gap-1.5 text-xl md:text-2xl font-black tracking-tight text-white font-mono">
+          <div className="flex flex-col items-center justify-center bg-slate-950/70 px-4 md:px-5 py-2 rounded-2xl border border-white/10 shadow-inner w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 text-lg md:text-2xl font-black tracking-tight text-white font-mono">
               <span>{time.getHours().toString().padStart(2, '0')}</span>
               <span className="text-amber-400 animate-pulse font-light">:</span>
               <span>{time.getMinutes().toString().padStart(2, '0')}</span>
               <span className="text-amber-400 animate-pulse font-light">:</span>
               <span className="text-amber-300">{time.getSeconds().toString().padStart(2, '0')}</span>
-              <span className="text-[10px] font-sans font-bold text-slate-400 ml-1">WIB</span>
+              <span className="text-[9px] md:text-[10px] font-sans font-bold text-slate-400 ml-1">WIB</span>
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-medium">
+            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] text-slate-300 font-medium">
               <Clock className="w-3 h-3 text-amber-400" />
               <span>{getIndonesianDate()}</span>
             </div>
           </div>
 
           {/* Right: Scanner Status & Total Hadir Pill */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-row flex-wrap justify-center sm:justify-end items-center gap-2.5 w-full md:w-auto">
             
             {/* NFC Button if smartphone */}
             {nfcSupported && !nfcActive && (
               <button
                 onClick={startNfcScan}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-bold shadow-lg transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-blue-400/40"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] md:text-[11px] font-bold shadow-lg transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-blue-400/40"
               >
                 <Wifi className="w-3 h-3" />
                 NFC HP
@@ -518,7 +518,7 @@ export default function AbsenKelas1ClientPage() {
             )}
 
             {/* Live Scanner Siaga Pill */}
-            <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/40 px-3 py-1.5 rounded-xl text-emerald-400 text-xs font-bold shadow-sm backdrop-blur-sm">
+            <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/40 px-3 py-2 rounded-xl text-emerald-400 text-[10px] md:text-xs font-bold shadow-sm backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -527,11 +527,11 @@ export default function AbsenKelas1ClientPage() {
             </div>
 
             {/* Total Hadir Gedung 2 (Accurate: 1B + 1C + 1D) */}
-            <div className="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1 rounded-xl text-right">
-              <div className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Gedung 2 Madrasah</div>
-              <div className="text-sm md:text-base font-black text-white">
-                {gedung2Stats.present} <span className="text-slate-400 text-xs font-semibold">/ {gedung2Stats.total}</span>
-                <span className="ml-1.5 text-xs font-bold text-emerald-400">({gedung2Stats.percentage}%)</span>
+            <div className="bg-slate-800/90 border border-slate-700/80 px-3.5 py-1.5 rounded-xl text-right">
+              <div className="text-[8px] md:text-[9px] uppercase font-bold text-slate-400 tracking-wider text-center sm:text-right">Gedung 2 Madrasah</div>
+              <div className="text-xs md:text-base font-black text-white text-center sm:text-right">
+                {gedung2Stats.present} <span className="text-slate-400 text-[10px] md:text-xs font-semibold">/ {gedung2Stats.total}</span>
+                <span className="ml-1 md:ml-1.5 text-[10px] md:text-xs font-bold text-emerald-400">({gedung2Stats.percentage}%)</span>
               </div>
             </div>
 
@@ -542,7 +542,7 @@ export default function AbsenKelas1ClientPage() {
       {/* ──────────────────────────────────────────────────────────── */}
       {/* 2. MAIN BODY - 3 SECTION COLUMNS (INNER SCROLLABLE ONLY) */}
       {/* ──────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative z-10 p-3 lg:p-4 grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-4.5 max-w-[1800px] w-full mx-auto overflow-hidden">
+      <div className="flex-1 min-h-0 relative z-10 p-3 lg:p-4 grid grid-cols-1 md:grid-cols-3 gap-3.5 lg:gap-4.5 max-w-[1800px] w-full mx-auto overflow-visible md:overflow-hidden h-auto md:h-full">
         
         {CLASS_CONFIGS.map((cfg) => {
           const classData = classStudentsMap[cfg.code] || { present: [], total: 0, all: [] }
@@ -554,7 +554,7 @@ export default function AbsenKelas1ClientPage() {
           return (
             <section
               key={cfg.code}
-              className={`flex flex-col h-full min-h-0 bg-slate-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border ${cfg.theme.border} shadow-2xl overflow-hidden relative`}
+              className={`flex flex-col h-[450px] md:h-full min-h-0 bg-slate-900/90 backdrop-blur-md rounded-2xl lg:rounded-3xl border ${cfg.theme.border} shadow-2xl overflow-hidden relative`}
             >
               {/* Column Header (Fixed) */}
               <div className={`p-3 lg:p-4 bg-gradient-to-r ${cfg.theme.headerGradient} text-white shadow-md relative overflow-hidden flex-shrink-0`}>

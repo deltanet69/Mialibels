@@ -261,7 +261,7 @@ export async function middleware(request: NextRequest) {
     const role = verified.payload.role as string;
     if (matchesAny(pathname, ['/users']) && !['superadmin', 'kepsek', 'staff_operator'].includes(role))
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
-    if (matchesAny(pathname, ['/finance']) && !['superadmin', 'kepsek'].includes(role))
+    if (matchesAny(pathname, ['/finance']) && !['superadmin', 'kepsek', 'administrasi', 'bendahara'].includes(role))
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
     return NextResponse.next();
   }
@@ -390,7 +390,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
     }
 
-    if (matchesAny(pathname, FINANCE_ONLY) && !['superadmin', 'kepsek'].includes(role)) {
+    if (matchesAny(pathname, FINANCE_ONLY) && !['superadmin', 'kepsek', 'administrasi', 'bendahara'].includes(role)) {
       return NextResponse.redirect(new URL('/dashboard?error=no_access', request.url));
     }
 
