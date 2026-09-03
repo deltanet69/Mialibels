@@ -336,20 +336,42 @@ export default function AbsenKelas1ClientPage() {
       await ndef.scan()
       setNfcActive(true)
 
-      // @ts-ignore
-      ndef.addEventListener('reading', async ({ serialNumber }: any) => {
-        if (serialNumber) {
-          let rfid = serialNumber.replace(/:/g, '').toUpperCase()
-          await processRfid(rfid)
+      showPopup({
+        type: 'idle',
+        message: 'Sensor NFC HP Aktif! Silakan tempelkan kartu di punggung ponsel.'
+      })
+
+      const handleReading = async (event: any) => {
+        const serialNumber = event.serialNumber
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([80, 40, 80])
         }
-      })
+
+        if (serialNumber) {
+          const rfid = serialNumber.replace(/[:\s-]/g, '').toUpperCase()
+          await processRfid(rfid)
+        } else {
+          showPopup({ type: 'error', message: 'Kartu NFC terdeteksi tanpa serial number.' })
+        }
+      }
+
       // @ts-ignore
-      ndef.addEventListener('readingerror', () => {
-        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Coba dekatkan lagi.' })
-      })
-    } catch (error) {
+      ndef.onreading = handleReading
+      // @ts-ignore
+      ndef.addEventListener('reading', handleReading)
+
+      // @ts-ignore
+      ndef.onreadingerror = () => {
+        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Pastikan kartu menempel stabil.' })
+      }
+    } catch (error: any) {
       console.error('NFC Error:', error)
-      showPopup({ type: 'error', message: 'NFC tidak diizinkan atau tidak didukung.' })
+      showPopup({ 
+        type: 'error', 
+        message: error.name === 'NotAllowedError' 
+          ? 'Izin NFC ditolak pada browser.' 
+          : 'Gagal mengaktifkan NFC (Pastikan NFC aktif di pengaturan HP & browser Chrome mendukung Web NFC).' 
+      })
     }
   }
 
@@ -376,7 +398,7 @@ export default function AbsenKelas1ClientPage() {
       if (code && map[code]) {
         map[code].total += 1
         map[code].all.push(s)
-        if (s.attendance && s.attendance.entry_time) {
+        if (s.attendance && s.attendance.entry_time && s.attendance.status !== 'Alpha') {
           map[code].present.push(s)
         }
       }

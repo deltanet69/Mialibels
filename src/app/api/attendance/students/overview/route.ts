@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ATTENDANCE_CONFIG } from '@/config/attendanceRules'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(
@@ -15,6 +16,20 @@ export async function GET(request: NextRequest) {
     const classId = searchParams.get('classId') || 'ALL'
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!, 10) : new Date().getMonth() + 1
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : new Date().getFullYear()
+
+    // Current local time (WIB UTC+7) to determine if lock cutoff (07:15) has passed
+    const today = new Date()
+    const offset = 7 * 60 * 60 * 1000 // UTC+7
+    const localDate = new Date(today.getTime() + offset)
+    const todayStr = localDate.toISOString().split('T')[0]
+    const currentHours = localDate.getUTCHours()
+    const currentMins = localDate.getUTCMinutes()
+    const currentMinutes = currentHours * 60 + currentMins
+    const cutoffMinutes = ATTENDANCE_CONFIG.LATE_LIMIT.hours * 60 + ATTENDANCE_CONFIG.LATE_LIMIT.minutes
+
+    const isPastDate = date < todayStr
+    const isTodayPastCutoff = (date === todayStr) && (currentMinutes > cutoffMinutes)
+    const isAfterLockTime = isPastDate || isTodayPastCutoff
 
     // 1. Fetch all classrooms (only confirmed existing columns)
     const { data: classroomsData, error: classroomsError } = await supabase
@@ -94,6 +109,10 @@ export async function GET(request: NextRequest) {
       } else if (rRec && rRec.status) {
         status = rRec.status
         reason = rRec.notes || ''
+      } else if (isAfterLockTime) {
+        // Otomatis menjadi Alpha setelah lewat batas 07:15 WIB
+        status = 'Alpha'
+        reason = 'Tidak melakukan presensi sebelum 07:15 WIB'
       }
 
       const statusLower = status.toLowerCase()

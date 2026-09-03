@@ -1,8 +1,28 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { CheckCircle, XCircle } from 'lucide-react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Users, 
+  Clock, 
+  Wifi, 
+  Search, 
+  UserCheck, 
+  UserX, 
+  GraduationCap, 
+  Sparkles,
+  ShieldCheck,
+  Briefcase,
+  Sun,
+  Sunset,
+  Award,
+  Layers,
+  CheckCircle,
+  Timer
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { isAfternoonClass } from '@/config/attendanceRules'
 
 // Helper for Indonesian date
 const getIndonesianDate = () => {
@@ -15,6 +35,9 @@ const getIndonesianDate = () => {
 
 const formatTime = (isoString?: string | null) => {
   if (!isoString) return '-'
+  if (isoString.includes(':') && isoString.length <= 8) {
+    return isoString.substring(0, 5)
+  }
   try {
     const validIso = (!isoString.endsWith('Z') && !isoString.includes('+')) ? `${isoString}Z` : isoString
     const d = new Date(validIso)
@@ -28,11 +51,15 @@ const formatTime = (isoString?: string | null) => {
 type PopupData = {
   type: 'success' | 'error' | 'idle'
   message: string
-  action?: 'check-in' | 'check-out' | 'already-checked-out'
+  action?: 'check-in' | 'check-out' | 'already-checked-out' | 'too-early-checkout'
   staff?: {
+    id?: string
     name: string
-    position: string
-    image: string
+    position?: string
+    image?: string
+    status?: string
+    is_late?: boolean
+    shift?: string
   }
 }
 
@@ -40,10 +67,12 @@ type StaffAttendance = {
   id: string
   name: string
   position: string
+  image?: string | null
   attendance?: {
     check_in_time?: string
     check_out_time?: string
     status?: string
+    notes?: string
   } | null
 }
 
@@ -56,27 +85,61 @@ export default function AbsenClientPage() {
   const [nfcSupported, setNfcSupported] = useState(false)
   const [nfcActive, setNfcActive] = useState(false)
   
-  const [staffs, setStaffs] = useState<StaffAttendance[]>([])
-  const [totalStaff, setTotalStaff] = useState(0)
-  const [presentStaff, setPresentStaff] = useState(0)
+  const [allStaffs, setAllStaffs] = useState<StaffAttendance[]>([])
+  const [lastScannedStaffId, setLastScannedStaffId] = useState<string | null>(null)
 
-  // --- showPopup defined early so refs & effects can use it ---
-  const showPopupRef = useRef<(data: PopupData) => void>(() => {})
-  
-  const showPopup = (data: PopupData) => {
-    setPopup(data)
-    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
-    popupTimeoutRef.current = setTimeout(() => {
-      setPopup({ type: 'idle', message: '' })
-    }, 1000)
-  }
-  const closePopup = () => setPopup({ type: 'idle', message: '' })
-
-  // Always keep ref pointing to latest showPopup
-  showPopupRef.current = showPopup
+  // Filter tabs: 'HADIR' | 'BELUM_HADIR' | 'ALL'
+  const [viewFilter, setViewFilter] = useState<'HADIR' | 'BELUM_HADIR' | 'ALL'>('HADIR')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const clientIdRef = useRef(Math.random().toString(36).substring(7))
   const broadcastChannelRef = useRef<any>(null)
+  const showPopupRef = useRef<(data: PopupData) => void>(() => {})
+
+  // Subtle audio chime feedback
+  const playBeep = (isSuccess: boolean) => {
+    try {
+      if (typeof window === 'undefined') return
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioContext) return
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      if (isSuccess) {
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime) // C5
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1) // E5
+        osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2) // G5
+        gain.gain.setValueAtTime(0.25, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.45)
+      } else {
+        osc.type = 'sawtooth'
+        osc.frequency.setValueAtTime(220, ctx.currentTime)
+        gain.gain.setValueAtTime(0.25, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.35)
+      }
+    } catch (e) {
+      // Audio context might be restricted before interaction
+    }
+  }
+
+  const showPopup = (data: PopupData) => {
+    setPopup(data)
+    playBeep(data.type === 'success')
+
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
+    popupTimeoutRef.current = setTimeout(() => {
+      setPopup({ type: 'idle', message: '' })
+    }, 4000)
+  }
+  const closePopup = () => setPopup({ type: 'idle', message: '' })
+  showPopupRef.current = showPopup
 
   const fetchAttendanceList = async () => {
     try {
@@ -89,29 +152,10 @@ export default function AbsenClientPage() {
       const data = await res.json()
       
       if (data.success && data.data) {
-        const allStaffs = data.data
-        setTotalStaff(allStaffs.length)
-        
-        // Filter those who are present today (checked in)
-        const presentList = allStaffs.filter((s: any) => s.attendance && s.attendance.check_in_time)
-        // Sort by most recently checked in first
-        presentList.sort((a: any, b: any) => {
-           const getValidTime = (iso?: string) => {
-             if (!iso) return 0;
-             const validIso = (!iso.endsWith('Z') && !iso.includes('+')) ? `${iso}Z` : iso;
-             const d = new Date(validIso).getTime();
-             return isNaN(d) ? 0 : d;
-           };
-           const timeA = getValidTime(a.attendance?.check_in_time);
-           const timeB = getValidTime(b.attendance?.check_in_time);
-           return timeB - timeA;
-        })
-        
-        setPresentStaff(presentList.length)
-        setStaffs(presentList)
+        setAllStaffs(data.data)
       }
     } catch (err) {
-      console.error('Error fetching attendance list', err)
+      console.error('Error fetching teacher attendance list', err)
     }
   }
 
@@ -126,10 +170,7 @@ export default function AbsenClientPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // ================================================================
-  // Supabase Realtime Broadcast (Replaces BroadcastChannel & DB listener)
-  // Works seamlessly across subdomains, tabs, and devices.
-  // ================================================================
+  // Supabase Realtime Broadcast Listener
   useEffect(() => {
     try {
       const channel = supabase.channel('mia-attendance-sync')
@@ -140,8 +181,8 @@ export default function AbsenClientPage() {
           { event: 'scan_result' },
           (payload) => {
             const data = payload.payload
-            if (data.sender === clientIdRef.current) return // Ignore own broadcast
-            
+            if (data.sender === clientIdRef.current) return
+
             showPopupRef.current({
               type: data.success ? 'success' : 'error',
               message: data.message,
@@ -149,10 +190,7 @@ export default function AbsenClientPage() {
               staff: data.staff
             })
             
-            // Refresh list
-            if (data.success) {
-              fetchAttendanceList()
-            }
+            fetchAttendanceList()
           }
         )
         .subscribe((status) => {
@@ -173,20 +211,43 @@ export default function AbsenClientPage() {
       const ndef = new window.NDEFReader()
       await ndef.scan()
       setNfcActive(true)
-      // @ts-ignore
-      ndef.addEventListener('reading', ({ serialNumber }: any) => {
-        if (serialNumber) {
-          const cleanRfid = serialNumber.replace(/:/g, '').toUpperCase()
-          processRFID(cleanRfid)
+
+      showPopup({
+        type: 'idle',
+        message: 'Sensor NFC HP Aktif! Silakan tempelkan kartu di punggung ponsel.'
+      })
+
+      const handleReading = async (event: any) => {
+        const serialNumber = event.serialNumber
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([80, 40, 80])
         }
-      })
+
+        if (serialNumber) {
+          const cleanRfid = serialNumber.replace(/[:\s-]/g, '').toUpperCase()
+          processRFID(cleanRfid)
+        } else {
+          showPopup({ type: 'error', message: 'Kartu NFC terdeteksi tanpa serial number.' })
+        }
+      }
+
       // @ts-ignore
-      ndef.addEventListener('readingerror', () => {
-        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Coba dekatkan lagi.' })
-      })
-    } catch (error) {
+      ndef.onreading = handleReading
+      // @ts-ignore
+      ndef.addEventListener('reading', handleReading)
+
+      // @ts-ignore
+      ndef.onreadingerror = () => {
+        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Pastikan kartu menempel stabil.' })
+      }
+    } catch (error: any) {
       console.error(error)
-      showPopup({ type: 'error', message: 'NFC tidak diizinkan atau tidak didukung.' })
+      showPopup({ 
+        type: 'error', 
+        message: error.name === 'NotAllowedError' 
+          ? 'Izin NFC ditolak pada browser.' 
+          : 'Gagal mengaktifkan NFC (Pastikan NFC aktif di pengaturan HP & browser Chrome mendukung Web NFC).' 
+      })
     }
   }
 
@@ -195,11 +256,10 @@ export default function AbsenClientPage() {
   const lastScannedRfidRef = useRef<{rfid: string, time: number}>({rfid: '', time: 0})
 
   const processRFID = async (rfid: string) => {
-    // Prevent rapid double scan of the same RFID within 3 seconds
     const now = Date.now()
     if (isScanningRef.current) return
     if (lastScannedRfidRef.current.rfid === rfid && (now - lastScannedRfidRef.current.time) < 3000) {
-      return // Ignore duplicate scan
+      return
     }
     
     isScanningRef.current = true
@@ -217,13 +277,17 @@ export default function AbsenClientPage() {
         ? { type: 'success', message: data.message, action: data.action, staff: data.staff }
         : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
       
+      if (data.success && data.staff?.id) {
+        setLastScannedStaffId(data.staff.id)
+        setTimeout(() => setLastScannedStaffId(null), 8000)
+      }
+
       showPopup(popupPayload)
       
       if (data.success) {
         fetchAttendanceList()
       }
       
-      // Broadcast via Supabase (Cross-subdomain, instant)
       if (broadcastChannelRef.current) {
         broadcastChannelRef.current.send({
           type: 'broadcast',
@@ -245,19 +309,16 @@ export default function AbsenClientPage() {
     }
   }
 
-  // Auto RFID Scanner listener
+  // Auto RFID Scanner listener (USB scanner)
   useEffect(() => {
     let rfidBuffer = ''
     let lastKeyTime = Date.now()
     let scanTimeoutId: NodeJS.Timeout
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore inputs (just in case)
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
       const currentTime = Date.now()
-
-      // Reset buffer if delay is too long (human typing vs scanner)
       if (currentTime - lastKeyTime > 200) {
         rfidBuffer = ''
       }
@@ -267,7 +328,7 @@ export default function AbsenClientPage() {
 
       if (e.key === 'Enter') {
         if (rfidBuffer.length > 0) {
-          processRFID(rfidBuffer)
+          processRFID(rfidBuffer.trim().toUpperCase())
           rfidBuffer = ''
         }
         return
@@ -276,10 +337,9 @@ export default function AbsenClientPage() {
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         rfidBuffer += e.key
 
-        // Auto submit if no new key within 100ms
         scanTimeoutId = setTimeout(() => {
           if (rfidBuffer.length >= 5) {
-            processRFID(rfidBuffer)
+            processRFID(rfidBuffer.trim().toUpperCase())
             rfidBuffer = ''
           }
         }, 100)
@@ -293,185 +353,515 @@ export default function AbsenClientPage() {
     }
   }, [])
 
+  // Categorize staff
+  const presentList = useMemo(() => {
+    const list = allStaffs.filter(s => s.attendance && s.attendance.check_in_time)
+    return list.sort((a, b) => {
+      const getValidTime = (iso?: string) => {
+        if (!iso) return 0
+        const validIso = (!iso.endsWith('Z') && !iso.includes('+')) ? `${iso}Z` : iso
+        const d = new Date(validIso).getTime()
+        return isNaN(d) ? 0 : d
+      }
+      return getValidTime(b.attendance?.check_in_time) - getValidTime(a.attendance?.check_in_time)
+    })
+  }, [allStaffs])
+
+  const absentList = useMemo(() => {
+    return allStaffs.filter(s => !s.attendance || !s.attendance.check_in_time)
+  }, [allStaffs])
+
+  const lateCount = useMemo(() => {
+    return presentList.filter(s => (s.attendance?.status || '').toUpperCase() === 'TERLAMBAT').length
+  }, [presentList])
+
+  const onTimeCount = useMemo(() => {
+    return presentList.filter(s => (s.attendance?.status || '').toUpperCase() === 'HADIR').length
+  }, [presentList])
+
+  // Filtered list to display
+  const displayedStaffs = useMemo(() => {
+    let list: StaffAttendance[] = []
+    if (viewFilter === 'HADIR') list = presentList
+    else if (viewFilter === 'BELUM_HADIR') list = absentList
+    else list = allStaffs
+
+    if (!searchQuery.trim()) return list
+    const q = searchQuery.toLowerCase()
+    return list.filter(s => 
+      (s.name || '').toLowerCase().includes(q) || 
+      (s.position || '').toLowerCase().includes(q)
+    )
+  }, [viewFilter, presentList, absentList, allStaffs, searchQuery])
+
+  const totalStaffCount = allStaffs.length
+  const presentCount = presentList.length
+  const presentPercentage = totalStaffCount > 0 
+    ? Math.round((presentCount / totalStaffCount) * 100) 
+    : 0
+
   if (!mounted) {
-    return <div className="h-screen w-full bg-slate-900 relative overflow-hidden flex items-center justify-center" />
+    return <div className="h-screen w-full bg-[#060a12] flex items-center justify-center" />
   }
 
   return (
-    <main className="relative h-screen w-full overflow-hidden bg-white text-slate-800 font-sans flex flex-col md:flex-row">
-      {/* LEFT SIDE - ATTENDANCE LIST */}
-      <div className="w-full md:w-[35%] lg:w-[30%] min-w-[320px] max-w-md h-[40vh] md:h-full bg-white z-20 shadow-[10px_0_30px_rgba(0,0,0,0.1)] flex flex-col order-2 md:order-1 relative">
-        <div className="p-6 lg:p-8 border-b border-slate-100 flex-shrink-0 bg-white">
-          <h2 className="text-xl lg:text-2xl font-extrabold text-slate-800 tracking-tight">Daftar Kehadiran Dewan Guru</h2>
-          <p className="text-slate-500 font-medium mt-2">Total Guru hadir <span className="font-bold text-slate-700">{presentStaff}/{totalStaff}</span></p>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-          {staffs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-              <p>Belum ada data kehadiran hari ini</p>
+    <main className="h-screen max-h-screen w-full bg-[#060a12] text-slate-100 flex flex-col font-sans select-none overflow-hidden relative">
+      
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* 1. BACKGROUND WITH ROYAL CYAN, SAPPHIRE & EMERALD GLOWS */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <video 
+          src="/vid/bgvid.mp4" 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="object-cover w-full h-full opacity-15 scale-105 filter blur-[0.8px]"
+        />
+        {/* Deep Slate/Obsidian Overlay */}
+        <div className="absolute inset-0 bg-[#060a12]/60 mix-blend-multiply" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060a12] via-[#060a12]/85 to-[#08101e]/95" />
+        
+        {/* Eye-catching Electric Cyan & Sapphire Aurora Glows (NO YELLOW) */}
+        <div className="absolute -top-32 left-1/4 w-[700px] h-[500px] bg-cyan-500/12 blur-[160px] rounded-full" />
+        <div className="absolute -top-32 right-1/4 w-[700px] h-[500px] bg-indigo-600/15 blur-[160px] rounded-full" />
+        <div className="absolute bottom-0 left-1/3 w-[800px] h-[350px] bg-emerald-500/10 blur-[180px] rounded-full" />
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* 2. TOP EXECUTIVE HEADER - PRESTIGIOUS CYAN & SAPPHIRE THEME */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <header className="relative z-20 bg-[#0a1120]/95 backdrop-blur-xl border-b border-cyan-500/20 px-5 lg:px-8 py-3 shadow-2xl flex-shrink-0">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3.5 max-w-[1900px] mx-auto w-full">
+          
+          {/* Brand & Executive Identity */}
+          <div className="flex items-center gap-4 text-left">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src="/logosmart/smartputihver.png" 
+              alt="Logo SMART MI Attaqwa 15" 
+              className="h-11 md:h-13 object-contain filter drop-shadow-[0_2px_12px_rgba(6,182,212,0.25)]" 
+            />
+            {/* <div className="border-l border-cyan-500/30 pl-4">
+              <div className="flex items-center gap-2.5">
+                <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 text-white shadow-md shadow-cyan-500/20 flex items-center gap-1.5">
+                  <Award className="w-3 h-3 text-cyan-200" />
+                  Presensi Eksekutif
+                </span>
+                <span className="text-[11px] font-extrabold text-cyan-300 tracking-wide uppercase">
+                  Dewan Guru & Tenaga Kependidikan
+                </span>
+              </div>
+              <h1 className="text-lg md:text-xl font-black text-white tracking-wider uppercase mt-1 drop-shadow flex items-center gap-2">
+                MI Attaqwa 15 Babelan
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  SMART ID
+                </span>
+              </h1>
+            </div> */}
+          </div>
+
+          {/* Center: Live Digital Clock & Indonesian Date (Pure Cyan & Mint) */}
+          <div className="flex flex-col items-center justify-center bg-[#060a12]/95 px-7 py-2 rounded-2xl border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.12)]">
+            <div className="flex items-center gap-2 text-2xl md:text-3xl font-black tracking-tight text-white font-mono">
+              <span className="text-white">{time.getHours().toString().padStart(2, '0')}</span>
+              <span className="text-cyan-400 animate-pulse font-light">:</span>
+              <span className="text-white">{time.getMinutes().toString().padStart(2, '0')}</span>
+              <span className="text-cyan-400 animate-pulse font-light">:</span>
+              <span className="text-cyan-300">{time.getSeconds().toString().padStart(2, '0')}</span>
+              <span className="text-[11px] font-sans font-bold text-cyan-300 ml-1.5 px-2 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30">WIB</span>
             </div>
-          ) : (
-            staffs.map((staff, index) => (
-              <div key={staff.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:shadow-md animate-in slide-in-from-left-4 fade-in duration-300">
-                <div className="flex items-center gap-4 w-full">
-                  <div className="flex-shrink-0 w-6 text-center font-bold text-slate-300 text-lg">
-                    {index + 1}.
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-800 text-sm truncate">{staff.name}</h3>
-                    <p className="text-[11px] text-blue-600 font-medium truncate">{staff.position}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <div className="flex items-center justify-between w-[80px]">
-                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Masuk</span>
-                      <span className="text-xs font-semibold text-slate-700">{formatTime(staff.attendance?.check_in_time)}</span>
-                    </div>
-                    <div className="flex items-center justify-between w-[80px]">
-                      <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Keluar</span>
-                      <span className="text-xs font-semibold text-slate-700">{formatTime(staff.attendance?.check_out_time)}</span>
-                    </div>
-                  </div>
+            <div className="flex items-center gap-2 text-[11px] text-slate-300 font-medium mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{getIndonesianDate()}</span>
+            </div>
+          </div>
+
+          {/* Right: Scanner Status & Total Hadir Pill */}
+          <div className="flex items-center gap-3">
+            
+            {/* NFC Button if smartphone */}
+            {nfcSupported && !nfcActive && (
+              <button
+                onClick={startNfcScan}
+                className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-600/20 transition transform hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer border border-cyan-400/40"
+              >
+                <Wifi className="w-3.5 h-3.5" />
+                NFC Smartphone
+              </button>
+            )}
+
+            {/* Live Scanner Siaga Pill */}
+            <div className="flex items-center gap-2.5 bg-emerald-950/80 border border-emerald-500/50 px-4 py-2 rounded-xl text-emerald-300 text-xs font-black shadow-lg shadow-emerald-950/50 backdrop-blur-md">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="tracking-wider">SCANNER SIAGA</span>
+            </div>
+
+            {/* Total Hadir Guru Pill */}
+            <div className="bg-[#0b1424]/95 border border-cyan-500/30 px-4 py-1.5 rounded-xl text-right shadow-inner">
+              <div className="text-[10px] uppercase font-bold text-cyan-400/90 tracking-wider">
+                Total Kehadiran
+              </div>
+              <div className="text-base md:text-lg font-black text-white">
+                {presentCount} <span className="text-slate-400 text-xs font-semibold">/ {totalStaffCount} Guru</span>
+                <span className="ml-2 text-xs font-bold text-cyan-400">({presentPercentage}%)</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </header>
+
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* 3. MAIN BODY - EXECUTIVE ROSTER (INNER SCROLLABLE) */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 relative z-10 p-4 lg:p-6 flex flex-col gap-4 max-w-[1900px] w-full mx-auto overflow-hidden">
+        
+        {/* Banner Summary (Executive Style) */}
+        <section className="bg-gradient-to-r from-[#0a1222]/95 via-[#0c1830]/90 to-[#0a1222]/95 backdrop-blur-xl rounded-3xl border border-cyan-500/25 p-4 lg:p-5 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
+          <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute left-1/3 bottom-0 w-80 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Left: Identity */}
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-600 to-indigo-700 border border-cyan-300/40 flex items-center justify-center font-black text-white shadow-xl shadow-cyan-500/25 flex-shrink-0">
+              <GraduationCap className="w-8 h-8" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+                  Madrasah Ibtidaiyah Attaqwa 15
+                </span>
+                <span className="text-[11px] text-slate-400 font-semibold">Tahun Ajaran 2026/2027</span>
+              </div>
+              <h2 className="text-xl lg:text-2xl font-black text-white tracking-tight mt-1 flex items-center gap-2.5">
+                Daftar Presensi Dewan Guru & Staf
+                <span className="text-xs font-bold text-cyan-400/80">({totalStaffCount} Pendidik Terdaftar)</span>
+              </h2>
+            </div>
+          </div>
+
+          {/* Center/Right: Executive Metrics & Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-3.5 w-full md:w-auto justify-end">
+            
+            {/* Quick Stat Pill */}
+            <div className="bg-[#060a12]/90 border border-slate-800 px-4 py-2 rounded-2xl flex items-center gap-4 shadow-inner">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Tepat Waktu</span>
+                  <span className="text-base font-black text-emerald-400">{onTimeCount}</span>
                 </div>
               </div>
-            ))
+
+              <div className="h-7 w-[1px] bg-slate-800" />
+
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Terlambat</span>
+                  <span className="text-base font-black text-orange-400">{lateCount}</span>
+                </div>
+              </div>
+
+              <div className="h-7 w-[1px] bg-slate-800" />
+
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block">Belum Hadir</span>
+                  <span className="text-base font-black text-rose-400">{totalStaffCount - presentCount}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Segmented Filter Buttons */}
+            <div className="flex items-center p-1 bg-[#060a12]/90 rounded-2xl border border-slate-800 shadow-md">
+              <button
+                onClick={() => setViewFilter('HADIR')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                  viewFilter === 'HADIR'
+                    ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <UserCheck className="w-4 h-4 text-cyan-300" />
+                Sudah Hadir ({presentCount})
+              </button>
+              <button
+                onClick={() => setViewFilter('BELUM_HADIR')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+                  viewFilter === 'BELUM_HADIR'
+                    ? 'bg-gradient-to-r from-orange-600 to-rose-600 text-white shadow-lg shadow-orange-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <UserX className="w-4 h-4 text-orange-300" />
+                Belum Hadir ({totalStaffCount - presentCount})
+              </button>
+              <button
+                onClick={() => setViewFilter('ALL')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                  viewFilter === 'ALL'
+                    ? 'bg-slate-800 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Semua ({totalStaffCount})
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Search bar & count indicator (Fixed) */}
+        <div className="flex items-center justify-between gap-4 flex-shrink-0">
+          <div className="relative max-w-md w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
+            <input
+              type="text"
+              placeholder="Cari nama guru, wali kelas, atau jabatan struktural..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#0a1222]/90 border border-slate-800 focus:border-cyan-500/60 rounded-2xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none backdrop-blur-md shadow-inner transition"
+            />
+          </div>
+
+          <div className="text-xs font-bold text-slate-400 bg-[#0a1222]/80 px-4 py-2 rounded-xl border border-slate-800">
+            Menampilkan <span className="text-cyan-300 font-extrabold text-sm">{displayedStaffs.length}</span> Tenaga Pendidik
+          </div>
+        </div>
+
+        {/* ──────────────────────────────────────────────────────────── */}
+        {/* 4. LARGE EXECUTIVE TEACHER CARDS GRID */}
+        {/* ──────────────────────────────────────────────────────────── */}
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar overscroll-contain">
+          {displayedStaffs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-500 bg-[#0a1222]/40 rounded-3xl border border-slate-800/80 text-center">
+              <Users className="w-14 h-14 text-slate-600 mb-3" />
+              <p className="text-lg font-bold text-slate-300">Tidak ada data guru / staf</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-md">
+                {viewFilter === 'HADIR'
+                  ? 'Belum ada dewan guru yang melakukan presensi pada filter ini'
+                  : 'Seluruh dewan guru telah melakukan presensi'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 pb-2">
+              {displayedStaffs.map((staff, idx) => {
+                const isPresent = !!(staff.attendance && staff.attendance.check_in_time)
+                const isNewlyScanned = lastScannedStaffId === staff.id
+                const isLate = (staff.attendance?.status || '').toUpperCase() === 'TERLAMBAT'
+
+                // Determine if this teacher is afternoon class based on position
+                const isAfternoon = isAfternoonClass(staff.position)
+
+                return (
+                  <div
+                    key={staff.id}
+                    className={`p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between gap-4 relative overflow-hidden group ${
+                      isNewlyScanned
+                        ? 'ring-2 ring-cyan-400 border-cyan-400 bg-gradient-to-br from-indigo-950/60 via-[#0a1730] to-[#060a12] scale-[1.01] shadow-[0_0_35px_rgba(6,182,212,0.3)] animate-pulse'
+                        : isPresent
+                        ? isLate
+                          ? 'bg-gradient-to-br from-[#181122]/95 via-[#100c1a]/90 to-[#090710]/95 border-orange-500/30 hover:border-orange-400/60 shadow-lg'
+                          : 'bg-gradient-to-br from-[#0a1828]/95 via-[#081220]/90 to-[#050c14]/95 border-indigo-800/30 hover:border-cyan-400/60 shadow-lg'
+                        : 'bg-[#080d1a]/75 border-slate-800/60 opacity-70 hover:opacity-100 hover:border-slate-700'
+                    }`}
+                  >
+                    {/* Top Section: Photo (Large 64x64px) + Name + Jabatan + Status Badge */}
+                    <div className="flex items-start gap-4 min-w-0">
+                      
+                      {/* Large Photo Avatar (64x64px) with double ring */}
+                      <div className="relative flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img 
+                          src={staff.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(staff.name || 'G') + '&background=0284c7&color=fff&size=160'} 
+                          alt={staff.name}
+                          onError={(e) => { 
+                            e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(staff.name || 'G') + '&background=0284c7&color=fff&size=160' 
+                          }}
+                          className={`w-16 h-16 rounded-2xl object-cover border-2 shadow-md transition-transform group-hover:scale-105 ${
+                            isPresent 
+                              ? isLate 
+                                ? 'border-orange-400 ring-4 ring-orange-500/20' 
+                                : 'border-indigo-800 ring-4 ring-cyan-500/20'
+                              : 'border-slate-700 opacity-60'
+                          }`}
+                        />
+                        <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#060a12] border border-cyan-500/40 flex items-center justify-center text-[10px] font-black text-cyan-300 shadow">
+                          {idx + 1}
+                        </div>
+                      </div>
+
+                      {/* Name & Position Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-bold text-base lg:text-lg text-white truncate tracking-tight group-hover:text-cyan-100 transition">
+                            {staff.name}
+                          </h3>
+                        </div>
+
+                        {/* Position Badge & Shift Indicator */}
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg bg-slate-800/90 text-slate-200 border border-slate-700 flex items-center gap-1.5 shadow-sm">
+                            <Briefcase className="w-3 h-3 text-cyan-400" />
+                            <span className="truncate max-w-[180px]">{staff.position || 'Dewan Guru'}</span>
+                          </span>
+
+                          {/* Shift Label */}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                            isAfternoon
+                              ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/30'
+                              : 'bg-cyan-950/60 text-cyan-300 border-cyan-500/30'
+                          }`}>
+                            {isAfternoon ? <Sunset className="w-3 h-3 text-indigo-300" /> : <Sun className="w-3 h-3 text-cyan-300" />}
+                            {isAfternoon ? 'Shift Siang' : 'Shift Pagi'}
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Bottom Section: Attendance Timestamps & Status Pill */}
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                      
+                      {/* Left: Status Badge */}
+                      <div>
+                        {isPresent ? (
+                          isLate ? (
+                            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-950/90 to-rose-950/80 text-orange-300 border border-orange-500/50 px-3.5 py-1 rounded-xl text-xs font-black shadow-md shadow-orange-950/50">
+                              <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                              <span>Hadir Terlambat</span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-950/90 to-teal-950/80 text-emerald-300 border border-emerald-500/50 px-3.5 py-1 rounded-xl text-xs font-black shadow-md shadow-emerald-950/50">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>Hadir Tepat Waktu</span>
+                            </div>
+                          )
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 bg-slate-900/90 text-slate-400 border border-slate-800 px-3 py-1 rounded-xl text-xs font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                            <span>Belum Hadir</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Digital Timestamps (Masuk & Pulang) */}
+                      <div className="flex items-center gap-2">
+                        {isPresent ? (
+                          <>
+                            {/* Jam Masuk */}
+                            <div className="flex flex-col items-center bg-[#060a12]/90 border border-emerald-500/40 px-3.5 py-1 rounded-xl shadow-inner min-w-[80px]">
+                              <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Jam Masuk</span>
+                              <span className="text-md font-medium text-white font-mono leading-tight mt-0.5">
+                                {formatTime(staff.attendance?.check_in_time)}
+                              </span>
+                            </div>
+
+                            {/* Jam Pulang */}
+                            <div className="flex flex-col items-center bg-[#060a12]/90 border border-cyan-500/40 px-3.5 py-1 rounded-xl shadow-inner min-w-[80px]">
+                              <span className="text-[8px] font-black text-cyan-400 uppercase tracking-wider">Jam Pulang</span>
+                              <span className="text-sm font-black text-white font-mono leading-tight mt-0.5">
+                                {staff.attendance?.check_out_time ? formatTime(staff.attendance.check_out_time) : '- - : - -'}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-xs font-bold text-slate-600 font-mono italic px-3 py-1 bg-slate-900/50 rounded-lg border border-slate-800">
+                            Belum Ada Presensi
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
+
       </div>
 
-      {/* RIGHT SIDE - SCANNER AREA */}
-      <div className="flex-1 h-[60vh] md:h-full relative flex flex-col items-center justify-center text-white overflow-hidden order-1 md:order-2">
-        {/* Background Video */}
-        <div className="absolute inset-0 z-0">
-          <video 
-            src="/vid/bgvid.mp4" 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="object-cover w-full h-full opacity-60"
-          />
-          <div className="absolute inset-0 bg-blue-900/40 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-slate-900/80" />
-        </div>
-
-        {/* Main Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center w-full px-4">
-          {/* Logo */}
-          <div className="mb-6 lg:mb-10 flex flex-col items-center animate-in slide-in-from-top-10 duration-700 fade-in">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logosmart/smartputihver.png" alt="Logo MI Attaqwa 15" className="h-30 lg:h-30 object-contain" />
-          </div>
-
-          {/* Titles */}
-          <div className="text-center mb-6 animate-in slide-in-from-bottom-10 duration-700 delay-150 fade-in fill-mode-both">
-            <h2 className="text-yellow-400 text-lg md:text-2xl font-bold tracking-widest uppercase mb-2">
-              Absensi Dewan Guru
-            </h2>
-            <h1 className="text-white text-3xl md:text-5xl font-extrabold uppercase tracking-wide drop-shadow-lg">
-              MI ATTAQWA 15 BABELAN
-            </h1>
-          </div>
-
-          {/* Date */}
-          <div className="flex items-center gap-2 px-6 py-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md mb-8 lg:mb-12 animate-in zoom-in duration-700 delay-300 fade-in fill-mode-both">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-            </svg>
-            <span className="text-base lg:text-lg font-medium">{getIndonesianDate()}</span>
-          </div>
-
-          {/* Clock */}
-          <div className="flex gap-2 md:gap-4 lg:gap-6 text-5xl md:text-7xl lg:text-[8rem] font-bold tracking-tighter drop-shadow-2xl mb-12">
-            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 lg:p-8 flex items-center justify-center min-w-[70px] lg:min-w-[140px]">
-              {time.getHours().toString().padStart(2, '0').charAt(0)}
-            </div>
-            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 lg:p-8 flex items-center justify-center min-w-[70px] lg:min-w-[140px]">
-              {time.getHours().toString().padStart(2, '0').charAt(1)}
-            </div>
-            <div className="text-white flex items-center justify-center -mt-2 lg:-mt-4 animate-pulse">:</div>
-            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 lg:p-8 flex items-center justify-center min-w-[70px] lg:min-w-[140px]">
-              {time.getMinutes().toString().padStart(2, '0').charAt(0)}
-            </div>
-            <div className="bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 lg:p-8 flex items-center justify-center min-w-[70px] lg:min-w-[140px]">
-              {time.getMinutes().toString().padStart(2, '0').charAt(1)}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Text & NFC Button */}
-        <div className="absolute bottom-6 z-10 flex flex-col items-center gap-4 animate-in fade-in duration-1000 delay-500 fill-mode-both w-full px-4">
-          {nfcSupported && !nfcActive && (
-            <button 
-              onClick={startNfcScan}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg font-medium tracking-wide transition transform hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V2c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v20c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1Z"/><path d="M6 12h12"/><path d="M12 2v.01"/><path d="M12 7v.01"/><path d="M12 17v.01"/></svg>
-              Aktifkan Sensor NFC HP
-            </button>
-          )}
-          
-          {nfcActive && (
-            <div className="px-5 py-2.5 bg-green-500/20 border border-green-500/50 text-green-400 rounded-xl font-medium flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
-              NFC Siaga: Tempelkan Kartu
-            </div>
-          )}
-
-          <div className="text-slate-400 text-xs md:text-sm text-center">
-            Harap hubungi administrator jika absensi <span className="text-yellow-400 font-medium">gagal / bermasalah</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Popup Notification */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* 5. POPUP MODAL ALERT ON RFID SCAN */}
+      {/* ──────────────────────────────────────────────────────────── */}
       {popup.type !== 'idle' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white text-slate-900 rounded-3xl p-8 max-w-lg w-full shadow-2xl flex flex-col items-center animate-in zoom-in-95 duration-200">
-            
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={closePopup}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-gradient-to-b from-[#0a1428] to-[#060a12] text-white rounded-3xl p-7 lg:p-8 max-w-md w-full shadow-[0_0_60px_rgba(6,182,212,0.25)] border border-cyan-500/40 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden"
+          >
             {popup.type === 'success' ? (
               <>
-                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6">
-                  <CheckCircle size={56} className="lg:w-16 lg:h-16" />
+                <div className="w-20 h-20 rounded-full bg-cyan-500/20 border-2 border-cyan-500/50 text-cyan-300 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20 animate-bounce-short">
+                  <CheckCircle2 size={52} />
                 </div>
+
                 {popup.staff && (
-                  <div className="flex flex-col items-center mb-6 w-full">
+                  <div className="flex flex-col items-center mb-5 w-full text-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={popup.staff.image || '/images/default-avatar.png'} 
+                    <img
+                      src={popup.staff.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(popup.staff?.name || 'G') + '&background=0284c7&color=fff&size=180'}
                       alt={popup.staff.name}
-                      onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(popup.staff?.name || 'G') + '&background=0D8ABC&color=fff' }}
-                      className="w-28 h-28 lg:w-32 lg:h-32 rounded-full object-cover border-4 border-slate-100 shadow-md mb-4"
+                      onError={(e) => { 
+                        e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(popup.staff?.name || 'G') + '&background=0284c7&color=fff&size=180' 
+                      }}
+                      className="w-28 h-28 rounded-2xl object-cover border-4 border-cyan-400/80 shadow-2xl mb-3"
                     />
-                    <h3 className="text-xl lg:text-2xl font-bold text-slate-800 text-center">{popup.staff.name}</h3>
-                    <p className="text-blue-600 font-medium text-base lg:text-lg">{popup.staff.position}</p>
+                    <h3 className="text-xl lg:text-2xl font-black text-white tracking-tight">{popup.staff.name}</h3>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="px-3.5 py-1 bg-slate-800/90 text-slate-200 border border-slate-700 rounded-lg font-extrabold text-xs">
+                        {popup.staff.position || 'Dewan Guru'}
+                      </span>
+                      {popup.staff.shift && (
+                        <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 rounded-lg font-extrabold text-xs flex items-center gap-1">
+                          <Timer className="w-3.5 h-3.5" />
+                          {popup.staff.shift}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
-                <div className="bg-green-50 text-green-700 px-6 py-3 rounded-xl font-semibold text-lg lg:text-xl text-center w-full">
+
+                <div className="bg-gradient-to-r from-cyan-500 via-teal-500 to-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-lg text-center w-full shadow-lg shadow-cyan-500/25">
                   {popup.action === 'check-in' ? 'BERHASIL ABSEN MASUK' : 'BERHASIL ABSEN PULANG'}
                 </div>
-                <div className="mt-4 text-slate-500 font-medium text-sm lg:text-base">
-                  {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB
+
+                <div className="mt-4 text-cyan-300 font-bold text-xs flex items-center gap-1.5 bg-[#060a12] px-4 py-1.5 rounded-xl border border-cyan-500/20">
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  Waktu Scan: {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB
                 </div>
               </>
             ) : (
               <>
-                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-6">
-                  <XCircle size={56} className="lg:w-16 lg:h-16" />
+                <div className="w-20 h-20 rounded-full bg-rose-500/20 border-2 border-rose-500/50 text-rose-400 flex items-center justify-center mb-4 shadow-lg shadow-rose-500/20">
+                  <XCircle size={52} />
                 </div>
-                <h3 className="text-xl lg:text-2xl font-bold text-slate-800 text-center mb-2">Absensi Gagal</h3>
-                <p className="text-slate-600 text-center text-base lg:text-lg mb-6">{popup.message}</p>
-                <div className="bg-red-50 text-red-700 px-6 py-3 rounded-xl font-semibold text-base lg:text-lg text-center w-full">
-                  SILAKAN COBA LAGI
-                </div>
+                <h3 className="text-xl font-black text-white text-center mb-2">Presensi Gagal</h3>
+                <p className="text-slate-300 text-center text-sm mb-6 leading-relaxed max-w-xs">{popup.message}</p>
+                <button
+                  className="bg-rose-600 hover:bg-rose-500 text-white px-6 py-3 rounded-2xl font-black text-sm text-center w-full transition cursor-pointer shadow-lg active:scale-98"
+                  onClick={closePopup}
+                >
+                  TUTUP & SILAKAN COBA LAGI
+                </button>
               </>
             )}
-
           </div>
         </div>
       )}
+
     </main>
   )
 }

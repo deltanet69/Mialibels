@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         classBreakdown[c] = { total: 0, present: 0 }
       }
       classBreakdown[c].total += 1
-      if (att && att.entry_time) {
+      if (att && att.entry_time && att.status !== 'Alpha') {
         classBreakdown[c].present += 1
       }
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       total_students: classStudents.length,
-      present_count: attendances.filter(a => a.entry_time).length,
+      present_count: attendances.filter(a => a.entry_time && a.status !== 'Alpha').length,
       class_breakdown: classBreakdown,
       data: result
     })

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ATTENDANCE_CONFIG, evaluateStudentCheckIn } from '@/config/attendanceRules'
+import { generateRfidVariants } from '@/lib/rfidUtils'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(
@@ -15,18 +17,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'RFID is required' }, { status: 400 })
     }
 
-    // 1. Find student by RFID
+    // 1. Find student by multi-format RFID variants (Hex UID, Decimal, Reverse-Byte, etc.)
+    const rfidVariants = generateRfidVariants(rfid)
+
     const { data: students, error: studentError } = await supabase
       .from('students')
       .select('*')
-      .eq('rfid_number', rfid)
+      .in('rfid_number', rfidVariants)
       .eq('is_active', true)
       .limit(1)
 
     if (studentError) throw studentError
 
     if (!students || students.length === 0) {
-      return NextResponse.json({ success: false, error: 'Kartu tidak dikenali atau siswa tidak aktif.' }, { status: 404 })
+      return NextResponse.json({ 
+        success: false, 
+        error: `Kartu RFID/NFC (${rfid}) belum terdaftar pada data siswa aktif.` 
+      }, { status: 404 })
     }
 
     const student = students[0]
@@ -76,9 +83,40 @@ export async function POST(request: NextRequest) {
     const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null
 
     if (!existingRecord) {
-      // 3. Check IN: Siswa diatas jam 07:00 pagi status "Terlambat"
-      const isLate = hours > 7 || (hours === 7 && mins > 0)
-      const status = isLate ? 'Terlambat' : 'Hadir'
+      // 3. Check IN: Evaluasi aturan jam absensi
+      const checkInEval = evaluateStudentCheckIn(hours, mins)
+
+      // Jika absen masuk sudah terkunci (setelah 07:15 WIB)
+      if (!checkInEval.allowed) {
+        // Catat ke database sebagai Alpha jika belum ada
+        if (checkInEval.status === 'Alpha') {
+          await supabase
+            .from('student_attendances')
+            .insert({
+              student_id: student.id,
+              date: dateStr,
+              status: 'Alpha',
+              entry_time: currentTimeStr,
+              notes: `Scan ditolak: Lewat batas jam masuk (${currentTimeStr} WIB)`
+            })
+        }
+
+        return NextResponse.json({
+          success: false,
+          action: 'locked',
+          status: checkInEval.status,
+          error: checkInEval.message,
+          student: {
+            ...student,
+            status: checkInEval.status,
+            entry_time: currentTimeStr
+          }
+        }, { status: 400 })
+      }
+
+      // Absen berhasil: Hadir (00:01 - 06:45) atau Terlambat (06:46 - 07:15)
+      const status = checkInEval.status
+      const isLate = checkInEval.isLate
 
       const { data: newRecord, error: insertError } = await supabase
         .from('student_attendances')
@@ -94,8 +132,8 @@ export async function POST(request: NextRequest) {
       if (insertError) throw insertError
 
       const msg = isLate 
-        ? `Absen Masuk (Terlambat ${currentTimeStr}): ${student.name}` 
-        : `Berhasil Absen Masuk (${currentTimeStr}): ${student.name}`
+        ? `Absen Masuk [Terlambat Datang] (${currentTimeStr}): ${student.name}` 
+        : `Absen Masuk [Tepat Waktu] (${currentTimeStr}): ${student.name}`
 
       return NextResponse.json({ 
         success: true, 
@@ -114,6 +152,14 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // 4. Check OUT
+      if (existingRecord.status === 'Alpha') {
+        return NextResponse.json({ 
+          success: false, 
+          action: 'locked',
+          error: `${student.name} tercatat Alpha (tidak absen masuk sebelum ${ATTENDANCE_CONFIG.LATE_LIMIT.timeString} WIB).` 
+        }, { status: 400 })
+      }
+
       if (existingRecord.exit_time) {
         return NextResponse.json({ 
           success: false, 
@@ -121,12 +167,15 @@ export async function POST(request: NextRequest) {
           error: `${student.name} sudah melakukan Absen Pulang hari ini.` 
         }, { status: 400 })
       } else {
-        // Validate exit time (>= 10:30)
-        if (hours < 10 || (hours === 10 && mins < 30)) {
+        // Validate exit time (Minimal jam CHECKOUT_MIN_TIME, default 10:30)
+        const currentMinutes = hours * 60 + mins
+        const minCheckoutMinutes = ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.hours * 60 + ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.minutes
+
+        if (currentMinutes < minCheckoutMinutes) {
            return NextResponse.json({ 
              success: false, 
              action: 'early-checkout',
-             error: `Belum waktunya pulang untuk kelas 1 (Minimal jam 10:30)` 
+             error: `Belum waktunya absen pulang (Minimal pukul ${ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.timeString} WIB)` 
            }, { status: 400 })
         }
 

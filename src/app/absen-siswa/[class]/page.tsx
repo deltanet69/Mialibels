@@ -298,31 +298,53 @@ export default function AbsenSiswaPage() {
       await ndef.scan()
       setNfcActive(true)
 
-      // @ts-ignore
-      ndef.addEventListener('reading', async ({ serialNumber }: any) => {
-        if (serialNumber) {
-          let rfid = serialNumber.replace(/:/g, '').toUpperCase()
-          await processRfid(rfid)
+      showPopup({
+        type: 'idle',
+        message: 'Sensor NFC HP Aktif! Silakan tempelkan kartu di punggung ponsel.'
+      })
+
+      const handleReading = async (event: any) => {
+        const serialNumber = event.serialNumber
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate([80, 40, 80])
         }
-      })
+
+        if (serialNumber) {
+          const rfid = serialNumber.replace(/[:\s-]/g, '').toUpperCase()
+          await processRfid(rfid)
+        } else {
+          showPopup({ type: 'error', message: 'Kartu NFC terdeteksi tanpa serial number.' })
+        }
+      }
+
       // @ts-ignore
-      ndef.addEventListener('readingerror', () => {
-        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Coba dekatkan lagi.' })
-      })
-    } catch (error) {
+      ndef.onreading = handleReading
+      // @ts-ignore
+      ndef.addEventListener('reading', handleReading)
+
+      // @ts-ignore
+      ndef.onreadingerror = () => {
+        showPopup({ type: 'error', message: 'Gagal membaca kartu NFC. Pastikan kartu menempel stabil.' })
+      }
+    } catch (error: any) {
       console.error('NFC Error:', error)
-      showPopup({ type: 'error', message: 'NFC tidak diizinkan atau tidak didukung.' })
+      showPopup({ 
+        type: 'error', 
+        message: error.name === 'NotAllowedError' 
+          ? 'Izin NFC ditolak pada browser.' 
+          : 'Gagal mengaktifkan NFC (Pastikan NFC aktif di pengaturan HP & browser Chrome mendukung Web NFC).' 
+      })
     }
   }
 
   // Categorize students
   const presentList = useMemo(() => {
-    const list = allStudents.filter(s => s.attendance && s.attendance.entry_time)
+    const list = allStudents.filter(s => s.attendance && s.attendance.entry_time && s.attendance.status !== 'Alpha')
     return list.sort((a, b) => (b.attendance?.entry_time || '').localeCompare(a.attendance?.entry_time || ''))
   }, [allStudents])
 
   const absentList = useMemo(() => {
-    return allStudents.filter(s => !s.attendance || !s.attendance.entry_time)
+    return allStudents.filter(s => !s.attendance || !s.attendance.entry_time || s.attendance.status === 'Alpha')
   }, [allStudents])
 
   // Filtered list to display
@@ -568,9 +590,11 @@ export default function AbsenSiswaPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {displayedStudents.map((student, idx) => {
-                const isPresent = !!(student.attendance && student.attendance.entry_time)
+                const isPresent = !!(student.attendance && student.attendance.entry_time && student.attendance.status !== 'Alpha')
                 const isNewlyScanned = lastScannedStudentId === student.id
                 const isLate = student.attendance?.status === 'Terlambat'
+                const isAfterLockTime = time.getHours() > 7 || (time.getHours() === 7 && time.getMinutes() > 15)
+                const isExplicitAlpha = student.attendance?.status === 'Alpha'
 
                 return (
                   <div
@@ -580,6 +604,8 @@ export default function AbsenSiswaPage() {
                         ? 'ring-2 ring-sky-400 border-sky-400 bg-sky-950/40 scale-[1.01] shadow-2xl animate-pulse'
                         : isPresent
                         ? 'bg-slate-900/90 border-slate-800/90 hover:border-slate-700 shadow-sm'
+                        : isExplicitAlpha
+                        ? 'bg-rose-950/20 border-rose-900/40 opacity-85 hover:opacity-100'
                         : 'bg-slate-950/60 border-slate-800/40 opacity-70 hover:opacity-100'
                     }`}
                   >
@@ -588,6 +614,8 @@ export default function AbsenSiswaPage() {
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] flex-shrink-0 border ${
                         isPresent 
                           ? 'bg-sky-950/70 border-sky-500/30 text-sky-400' 
+                          : isExplicitAlpha
+                          ? 'bg-rose-950/70 border-rose-500/30 text-rose-400'
                           : 'bg-slate-800/70 border-slate-700/50 text-slate-500'
                       }`}>
                         {idx + 1}
@@ -612,9 +640,15 @@ export default function AbsenSiswaPage() {
                               </span>
                             )
                           ) : (
-                            <span className="text-[9px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.2 rounded-md border border-slate-800">
-                              Belum Hadir
-                            </span>
+                            isExplicitAlpha || isAfterLockTime ? (
+                              <span className="text-[9px] font-extrabold text-rose-400 bg-rose-950/60 px-1.5 py-0.2 rounded-md border border-rose-500/40">
+                                Alpha
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold text-slate-500 bg-slate-900 px-1.5 py-0.2 rounded-md border border-slate-800">
+                                Belum Hadir
+                              </span>
+                            )
                           )}
                         </div>
                       </div>
