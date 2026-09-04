@@ -381,7 +381,7 @@ export function evaluateTeacherCheckIn(
 
   // Lewat batas jam: Hadir [Datang Terlambat]
   return {
-    status: 'TERLAMBAT' as const,
+    status: 'HADIR' as const,
     isLate: true,
     shift: shiftData.shift,
     threshold: timeString,
