@@ -91,11 +91,22 @@ export const TEACHER_ATTENDANCE_CONFIG = {
       timeString: '12:30',
     },
     CHECKOUT_MIN_TIME: {
-      hours: 15,
-      minutes: 30,
-      timeString: '15:30',
+      hours: 14,
+      minutes: 0,
+      timeString: '14:00',
     },
   },
+
+  // 3. Shift Khusus: Guru Mata Pelajaran Khusus
+  SPECIAL_SHIFT: {
+    name: 'Shift Khusus',
+    description: 'Guru Mata Pelajaran Khusus',
+    CHECKOUT_MIN_TIME: {
+      hours: 12,
+      minutes: 30,
+      timeString: '12:30',
+    },
+  }
 } as const
 
 // ============================================================================
@@ -193,8 +204,24 @@ export type TeacherScheduleItem = {
   name?: string
 }
 
+export type TeacherShiftType = 'Pagi' | 'Siang' | 'Khusus' | 'Default'
+
+export const SPECIAL_TEACHERS_KEYS = [
+  "h. a. zarkasi",
+  "abdul munif",
+  "maimunah nadih",
+  "ihsan",
+  "alfa zahri"
+]
+
+export function isSpecialTeacher(name?: string | null) {
+  if (!name) return false
+  const lowerName = name.toLowerCase()
+  return SPECIAL_TEACHERS_KEYS.some(t => lowerName.includes(t))
+}
+
 /**
- * Menentukan shift guru/staff (Pagi atau Siang)
+ * Menentukan shift guru/staff (Pagi, Siang, Khusus, Default)
  * @param staff Objek staff / guru
  * @param schedules Daftar jadwal mengajar guru
  * @param dayName Nama hari ini dalam bahasa Indonesia ('Senin', 'Selasa', dst.)
@@ -203,11 +230,33 @@ export function determineTeacherShift(
   staff: { position?: string | null; name?: string | null },
   schedules: TeacherScheduleItem[] = [],
   dayName?: string
-): 'Pagi' | 'Siang' {
+): { shift: TeacherShiftType; earliestScheduleTime?: string | null } {
   const position = (staff.position || '').toLowerCase()
   const staffName = (staff.name || '').toLowerCase()
 
-  // 1. Staff umum, Tata Usaha, Security, Kebersihan, Kepala Sekolah, & Guru Yanbu'a -> SHIFT PAGI
+  // 1. Guru Mata Pelajaran Khusus
+  if (isSpecialTeacher(staff.name)) {
+    let earliestTime: string | null = null
+    if (dayName && schedules.length > 0) {
+      const todaySchedules = schedules.filter(
+        s => (s.day || '').trim().toLowerCase() === dayName.trim().toLowerCase() && !!s.time
+      )
+      if (todaySchedules.length > 0) {
+        // Find earliest time
+        const times = todaySchedules.map(s => {
+          const match = s.time!.match(/(\d{1,2})[:.](\d{2})/)
+          if (match) {
+            return { raw: s.time, minutes: parseInt(match[1]) * 60 + parseInt(match[2]) }
+          }
+          return { raw: s.time, minutes: 9999 }
+        }).sort((a, b) => a.minutes - b.minutes)
+        earliestTime = times[0].raw || null
+      }
+    }
+    return { shift: 'Khusus', earliestScheduleTime: earliestTime }
+  }
+
+  // 2. Staff umum, Tata Usaha, Security, Kebersihan, Kepala Sekolah, & Guru Yanbu'a -> SHIFT PAGI
   if (
     position.includes('staff') ||
     position.includes('tata usaha') ||
@@ -221,7 +270,7 @@ export function determineTeacherShift(
     staffName.includes('yanbua') ||
     staffName.includes("yanbu'a")
   ) {
-    return 'Pagi'
+    return { shift: 'Pagi' }
   }
 
   // 2. Evaluasi berdasarkan Jadwal Mengajar (classroom_schedules)
@@ -255,7 +304,7 @@ export function determineTeacherShift(
     })
 
     if (hasMorningClassSchedule) {
-      return 'Pagi'
+      return { shift: 'Pagi' }
     }
 
     // Jika semua jadwal adalah kelas siang (Kelas 2, 3, 5 Reguler) -> Shift Siang
@@ -265,35 +314,68 @@ export function determineTeacherShift(
     })
 
     if (hasAfternoonClassSchedule) {
-      return 'Siang'
+      return { shift: 'Siang' }
     }
   }
 
-  // Default jika tidak terdeteksi jadwal siang khusus -> Shift Pagi
-  return 'Pagi'
+  // Default jika tidak terdeteksi jadwal siang khusus -> Default (Pagi)
+  return { shift: 'Default' }
 }
 
 /**
  * Evaluasi status absensi masuk guru/staff
- * @param shift 'Pagi' | 'Siang'
+ * @param shiftData Objek shift dan waktu jadwal terawal
  * @param hours Jam lokal WIB (0-23)
  * @param minutes Menit lokal WIB (0-59)
  */
-export function evaluateTeacherCheckIn(shift: 'Pagi' | 'Siang', hours: number, minutes: number) {
+export function evaluateTeacherCheckIn(
+  shiftData: { shift: TeacherShiftType; earliestScheduleTime?: string | null },
+  hours: number,
+  minutes: number
+) {
   const currentMinutes = hours * 60 + minutes
-  const config = shift === 'Siang' ? TEACHER_ATTENDANCE_CONFIG.AFTERNOON_SHIFT : TEACHER_ATTENDANCE_CONFIG.MORNING_SHIFT
+  let limitMinutes = 0
+  let timeString = ''
+  let shiftName = ''
 
-  const limitMinutes = config.ON_TIME_LIMIT.hours * 60 + config.ON_TIME_LIMIT.minutes
+  if (shiftData.shift === 'Khusus') {
+    shiftName = 'Shift Khusus'
+    if (shiftData.earliestScheduleTime) {
+      const match = shiftData.earliestScheduleTime.match(/(\d{1,2})[:.](\d{2})/)
+      if (match) {
+        limitMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
+        timeString = `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`
+      } else {
+        limitMinutes = 24 * 60 // Allow anytime if parsing fails
+        timeString = 'Bebas'
+      }
+    } else {
+      // Jika tidak ada jadwal, bisa kapan saja
+      limitMinutes = 24 * 60
+      timeString = 'Bebas (Tidak ada jadwal)'
+    }
+  } else if (shiftData.shift === 'Siang') {
+    shiftName = 'Shift Siang'
+    const config = TEACHER_ATTENDANCE_CONFIG.AFTERNOON_SHIFT
+    limitMinutes = config.ON_TIME_LIMIT.hours * 60 + config.ON_TIME_LIMIT.minutes
+    timeString = config.ON_TIME_LIMIT.timeString
+  } else {
+    // Pagi atau Default
+    shiftName = 'Shift Pagi'
+    const config = TEACHER_ATTENDANCE_CONFIG.MORNING_SHIFT
+    limitMinutes = config.ON_TIME_LIMIT.hours * 60 + config.ON_TIME_LIMIT.minutes
+    timeString = config.ON_TIME_LIMIT.timeString
+  }
 
   // Sebelum atau pas batas jam: Hadir [Tepat Waktu]
   if (currentMinutes <= limitMinutes) {
     return {
       status: 'HADIR' as const,
       isLate: false,
-      shift,
-      threshold: config.ON_TIME_LIMIT.timeString,
-      message: `Hadir [Tepat Waktu] (${shift} - Batas ${config.ON_TIME_LIMIT.timeString} WIB)`,
-      notes: `Hadir Tepat Waktu (${shift})`,
+      shift: shiftData.shift,
+      threshold: timeString,
+      message: `Hadir [Tepat Waktu] (${shiftName} - Batas ${timeString} WIB)`,
+      notes: `Hadir Tepat Waktu (${shiftName})`,
     }
   }
 
@@ -301,9 +383,9 @@ export function evaluateTeacherCheckIn(shift: 'Pagi' | 'Siang', hours: number, m
   return {
     status: 'TERLAMBAT' as const,
     isLate: true,
-    shift,
-    threshold: config.ON_TIME_LIMIT.timeString,
-    message: `Hadir [Datang Terlambat] (${shift} - Batas ${config.ON_TIME_LIMIT.timeString} WIB)`,
-    notes: `Datang Terlambat (${shift})`,
+    shift: shiftData.shift,
+    threshold: timeString,
+    message: `Hadir [Datang Terlambat] (${shiftName} - Batas ${timeString} WIB)`,
+    notes: `Datang Terlambat (${shiftName})`,
   }
 }

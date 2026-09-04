@@ -78,11 +78,14 @@ export async function POST(request: NextRequest) {
       }))
     ]
 
-    // Determine shift (Pagi vs Siang)
-    const shift = determineTeacherShift(staff, allTeacherSchedules as any, todayDayName)
-    const shiftConfig = shift === 'Siang' 
-      ? TEACHER_ATTENDANCE_CONFIG.AFTERNOON_SHIFT 
-      : TEACHER_ATTENDANCE_CONFIG.MORNING_SHIFT
+    // Determine shift (Pagi vs Siang vs Khusus)
+    const shiftData = determineTeacherShift(staff, allTeacherSchedules as any, todayDayName)
+    let shiftConfig: any = TEACHER_ATTENDANCE_CONFIG.MORNING_SHIFT
+    if (shiftData.shift === 'Siang') {
+      shiftConfig = TEACHER_ATTENDANCE_CONFIG.AFTERNOON_SHIFT
+    } else if (shiftData.shift === 'Khusus') {
+      shiftConfig = TEACHER_ATTENDANCE_CONFIG.SPECIAL_SHIFT
+    }
 
     // 2. Check existing attendance for today
     const { data: existingRecords, error: checkError } = await supabase
@@ -98,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     if (!existingRecord) {
       // 3. Check IN: Evaluasi shift dan keterlambatan
-      const checkInEval = evaluateTeacherCheckIn(shift, hours, mins)
+      const checkInEval = evaluateTeacherCheckIn(shiftData, hours, mins)
 
       const { data: newRecord, error: insertError } = await supabase
         .from('staff_attendance')
@@ -124,14 +127,14 @@ export async function POST(request: NextRequest) {
         action: 'check-in', 
         status: checkInEval.status,
         is_late: checkInEval.isLate,
-        shift: shift,
+        shift: shiftData.shift,
         message: msg,
         data: newRecord,
         staff: {
           ...staff,
           status: checkInEval.status,
           is_late: checkInEval.isLate,
-          shift: shift
+          shift: shiftData.shift
         }
       })
     } else {

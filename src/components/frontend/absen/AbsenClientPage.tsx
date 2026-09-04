@@ -697,14 +697,14 @@ export default function AbsenClientPage() {
                           </span>
 
                           {/* Shift Label */}
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+                          {/* <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
                             isAfternoon
                               ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/30'
                               : 'bg-cyan-950/60 text-cyan-300 border-cyan-500/30'
                           }`}>
                             {isAfternoon ? <Sunset className="w-3 h-3 text-indigo-300" /> : <Sun className="w-3 h-3 text-cyan-300" />}
                             {isAfternoon ? 'Shift Siang' : 'Shift Pagi'}
-                          </span>
+                          </span> */}
                         </div>
                       </div>
 
