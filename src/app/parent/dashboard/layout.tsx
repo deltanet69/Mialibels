@@ -4,18 +4,15 @@ import { ParentNavbar } from '@/components/parent/ParentNavbar'
 import { ParentSidebarProvider } from '@/components/parent/ParentSidebarProvider'
 import { cookies } from 'next/headers'
 import { jwtVerify } from 'jose'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'mialibels_jwt_secret_fallback_key_2026'
-
+import { getJwtSecretKey } from '@/lib/jwt'
 import { redirect } from 'next/navigation'
 
 async function getSessionData() {
   const cookieStore = await cookies()
   const token = cookieStore.get('parent_session')?.value
-  if (!token) redirect('/parent/login') // Also enforce login just in case
+  if (!token) redirect('/parent/login')
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET)
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, getJwtSecretKey())
     return {
       studentName: (payload.studentName as string) || '',
       parentName: (payload.parentName as string) || '',

@@ -173,12 +173,16 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cleanPath = pathname.replace(/\/+$/, '') || '/';
 
-  // ── 1. Static assets & Next.js internals ─────────────────────────────────
+  // ── 1. Static assets & Next.js internals — ALWAYS allow ──────────────────
   if (
-    pathname.startsWith('/_next') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/__nextjs') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/logomi') ||
-    /\.(ico|png|jpg|jpeg|svg|webp|gif|woff2?|ttf|otf|css|js|map)$/.test(pathname)
+    pathname.startsWith('/logosmart') ||
+    pathname.startsWith('/kartu') ||
+    pathname.startsWith('/public') ||
+    /\.(ico|png|jpg|jpeg|svg|webp|gif|woff2?|ttf|otf|css|js|map|json|txt|xml|pdf)$/.test(pathname)
   ) {
     return NextResponse.next();
   }
@@ -234,6 +238,11 @@ export async function middleware(request: NextRequest) {
   // ADMIN SUBDOMAIN — smart.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'admin') {
+    // Always allow static/next internals (belt-and-suspenders)
+    if (pathname.startsWith('/_next/') || /\.(ico|png|jpg|jpeg|svg|webp|gif|woff2?|ttf|otf|css|js|map)$/.test(pathname)) {
+      return NextResponse.next();
+    }
+
     if (pathname === '/') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
@@ -282,6 +291,11 @@ export async function middleware(request: NextRequest) {
   // PARENT SUBDOMAIN — parent.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'parent') {
+    // Always allow static/next internals (belt-and-suspenders)
+    if (pathname.startsWith('/_next/') || /\.(ico|png|jpg|jpeg|svg|webp|gif|woff2?|ttf|otf|css|js|map)$/.test(pathname)) {
+      return NextResponse.next();
+    }
+
     if (pathname === '/' || pathname === '/parent') {
       const token = request.cookies.get('parent_session')?.value;
       if (!token) return NextResponse.redirect(new URL('/parent/login', request.url));
@@ -449,10 +463,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match everything EXCEPT:
-     * - _next/static, _next/image  (Next.js internal)
-     * - public static files with extensions
+     * Match all paths EXCEPT:
+     * - _next/static  (bundled JS/CSS chunks)
+     * - _next/image   (image optimization)
+     * - favicon.ico, sitemap.xml, robots.txt
+     * - static file extensions (images, fonts, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|_next/webpack-hmr|favicon\.ico|sitemap\.xml|robots\.txt|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|css|js\.map)).*)',
   ],
 };
