@@ -28,9 +28,10 @@ interface CardDownloaderProps {
   studentId?: string;
   student?: Student;
   sppInvoices?: SPPInvoice[];
+  generalInvoices?: any[];
 }
 
-export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, student: initialStudent, sppInvoices: initialSpp }) => {
+export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, student: initialStudent, sppInvoices: initialSpp, generalInvoices: initialGeneral }) => {
   const [generatingSiswa, setGeneratingSiswa] = useState(false);
   const [generatingUjian, setGeneratingUjian] = useState(false);
 
@@ -42,17 +43,35 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
   
   const fetchFullData = async () => {
     const targetId = studentId || initialStudent?.id;
-    if (!targetId) throw new Error("No student ID provided");
     
-    // Always fetch fresh data to get general_invoices as well
-    const res = await fetch(`/api/students/${targetId}`);
-    const result = await res.json();
-    if (!result.success) throw new Error("Failed to fetch student data");
-    
+    let studentData: any = initialStudent;
+    let sppData: any[] = initialSpp || [];
+    let generalData: any[] = initialGeneral || [];
+
+    if (targetId) {
+      try {
+        const res = await fetch(`/api/students/${targetId}`);
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            studentData = result.data;
+            sppData = result.data.spp_invoices || sppData;
+            generalData = result.data.general_invoices || generalData;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch /api/students, using props fallback:', err);
+      }
+    }
+
+    if (!studentData && !initialStudent) {
+      throw new Error("Data siswa tidak tersedia.");
+    }
+
     return {
-      studentData: result.data,
-      sppData: result.data.spp_invoices || [],
-      generalData: result.data.general_invoices || []
+      studentData: studentData || initialStudent,
+      sppData,
+      generalData
     };
   };
 
@@ -170,8 +189,8 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         ctx.font = 'normal 50px "Inter", "Segoe UI", sans-serif';
         const values = [
           studentData.name || '-',
-          `${studentData.student_number || '-'} / ${studentData.nisn || '-'}`,
-          studentData.class || '-',
+          `${studentData.student_number || studentData.studentNumber || studentData.nis || '-'} / ${studentData.nisn || '-'}`,
+          studentData.class || studentData.className || '-',
         ];
 
         values.forEach((value, i) => {
@@ -260,7 +279,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         const startY = 442;
         const spacing = 74;
 
-        const rawClass = studentData.class || '-';
+        const rawClass = studentData.class || studentData.className || '-';
         const cleanClass = rawClass.replace(/^kelas\s+/i, '');
         const ruangVal = studentData.exam_room || (rawClass !== '-' 
           ? (rawClass.toLowerCase().includes('ruang') ? rawClass : `Ruang ${cleanClass}`)

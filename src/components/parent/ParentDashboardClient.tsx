@@ -412,6 +412,7 @@ export function ParentDashboardClient({
                 fee_waiver_type: student.feeWaiverType
               }}
               sppInvoices={data.allSppInvoices}
+              generalInvoices={data.generalInvoices}
             />
 
             <button

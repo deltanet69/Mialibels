@@ -5,8 +5,6 @@ import bcrypt from 'bcryptjs'
 import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
 import { checkRateLimit, getIp } from '@/lib/rate-limit'
 
-const JWT_SECRET = process.env.JWT_SECRET!
-
 // Use service role to bypass RLS for authentication
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

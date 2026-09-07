@@ -18,13 +18,12 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getJwtSecretKey } from '@/lib/jwt';
 import { ChangePasswordForm } from '@/components/parent/ChangePasswordForm';
 
 export const metadata = {
   title: 'Profil Anak - Portal Wali Murid | MI Attaqwa 15',
 };
-
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 // Admin-level client — bypasses RLS. Required because parent portal uses custom JWT, not Supabase Auth.
 function getAdminSupabase() {
@@ -42,7 +41,7 @@ async function getStudentData() {
 
   let payload: any;
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtSecretKey();
     const result = await jwtVerify(token, secret);
     payload = result.payload;
   } catch {

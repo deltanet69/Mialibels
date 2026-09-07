@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { jwtVerify } from "jose";
-
-const JWT_SECRET = process.env.JWT_SECRET!;
+import { getJwtSecretKey } from "@/lib/jwt";
 
 function getAdminSupabase() {
   return createClient(
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
     let role = "";
     let userId = "";
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtSecretKey();
 
     if (adminSession) {
       try {

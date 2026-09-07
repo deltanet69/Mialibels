@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { jwtVerify } from 'jose';
 import { hash } from 'bcryptjs';
-
-const JWT_SECRET = process.env.JWT_SECRET!;
+import { getJwtSecretKey } from '@/lib/jwt';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtSecretKey();
     const { payload } = await jwtVerify(sessionCookie, secret);
 
     // admin email and role from jwt
@@ -144,7 +143,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtSecretKey();
     const { payload } = await jwtVerify(sessionCookie, secret);
     const adminId = payload.sub as string;
     const adminEmail = payload.email as string;

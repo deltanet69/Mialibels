@@ -2,11 +2,10 @@ import React from 'react';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { createClient } from '@supabase/supabase-js';
+import { getJwtSecretKey } from '@/lib/jwt';
 import { ParentDashboardClient } from '@/components/parent/ParentDashboardClient';
 
 export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 function getAdminSupabase() {
   return createClient(
@@ -30,7 +29,7 @@ async function resolveStudent(payload: any) {
   if (tokenId) {
     const { data } = await supabase
       .from('students')
-      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone, address, fee_waiver_type')
+      .select('*')
       .eq('id', tokenId)
       .maybeSingle();
     studentData = data;
@@ -40,7 +39,7 @@ async function resolveStudent(payload: any) {
   if (!studentData && tokenNis) {
     const { data } = await supabase
       .from('students')
-      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone, address, fee_waiver_type')
+      .select('*')
       .ilike('student_number', tokenNis.trim())
       .maybeSingle();
     studentData = data;
@@ -50,7 +49,7 @@ async function resolveStudent(payload: any) {
   if (!studentData && tokenNisn) {
     const { data } = await supabase
       .from('students')
-      .select('id, name, student_number, nisn, class, class_id, image, parent_name, parent_phone, address, fee_waiver_type')
+      .select('*')
       .eq('nisn', tokenNisn.trim())
       .maybeSingle();
     studentData = data;
@@ -329,7 +328,7 @@ export default async function ParentDashboardHome() {
 
   if (sessionCookie) {
     try {
-      const secret = new TextEncoder().encode(JWT_SECRET);
+      const secret = getJwtSecretKey();
       const { payload } = await jwtVerify(sessionCookie, secret);
       studentObj = await resolveStudent(payload);
     } catch {
