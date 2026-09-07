@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   // Also clear host-only cookie fallback
   response.cookies.set('admin_session', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookieOptions.secure,
     sameSite: 'lax',
     maxAge: 0,
     path: '/',
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   // Also clear host-only cookie fallback
   response.cookies.set('parent_session', '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookieOptions.secure,
     sameSite: 'lax',
     maxAge: 0,
     path: '/',
