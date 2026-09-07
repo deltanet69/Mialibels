@@ -2,6 +2,7 @@ import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
+import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
 import { checkRateLimit, getIp } from '@/lib/rate-limit'
 
 const JWT_SECRET = process.env.JWT_SECRET!
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     const isDefaultPassword = !student.parent_password
 
     // Create JWT session with both NIS and NISN for fallback
-    const secret = new TextEncoder().encode(JWT_SECRET)
+    const secret = getJwtSecretKey()
     const token = await new SignJWT({
       sub: student.id,                  // UUID — primary lookup key
       nis: student.student_number,       // NIS internal (2026001)
@@ -116,13 +117,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    response.cookies.set('parent_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: '/',
-    })
+    const cookieOptions = getAuthCookieOptions(request, 30 * 24 * 60 * 60)
+    response.cookies.set('parent_session', token, cookieOptions)
 
     return response
   } catch (err: any) {

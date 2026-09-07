@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'mialibels_jwt_secret_fallback_key_2026');
+import { getJwtSecretKey } from '@/lib/jwt';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Domain / Subdomain Config
@@ -31,6 +30,9 @@ const PUBLIC_PATHS: string[] = [
   '/spmb-app',
   '/ppdb',
   '/ppdb-app',
+  '/absen',
+  '/absen-siswa',
+  '/kelas1',
   '/parent/login',
   '/parent/change-password',
 ];
@@ -41,6 +43,8 @@ const PUBLIC_API_PREFIXES: string[] = [
   '/api/auth/logout',
   '/api/auth/parent-login',
   '/api/auth/parent-change-password',
+  '/api/attendance-siswa',
+  '/api/attendance/scan',
   '/api/public',
   '/api/posts',
   '/api/galleries',
@@ -120,7 +124,7 @@ function isPublicPath(pathname: string): boolean {
 
 async function verifyJWT(token: string): Promise<{ payload: any } | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecretKey());
     return { payload };
   } catch {
     return null;
@@ -167,6 +171,7 @@ function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' |
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const cleanPath = pathname.replace(/\/+$/, '') || '/';
 
   // ── 1. Static assets & Next.js internals ─────────────────────────────────
   if (
@@ -181,7 +186,6 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomain(request);
 
   // ══════════════════════════════════════════════════════════════════════════
-
   // SPMB SUBDOMAIN — spmb.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'spmb') {
@@ -205,17 +209,25 @@ export async function middleware(request: NextRequest) {
     }
     
     // Redirect /1a, /1b, dll ke /absen-siswa/[kelas]
-    if (pathname.match(/^\/[1-6][a-d]$/i)) {
-      return NextResponse.rewrite(new URL(`/absen-siswa${pathname.toLowerCase()}`, request.url));
+    if (cleanPath.match(/^\/[1-6][a-d]$/i)) {
+      return NextResponse.rewrite(new URL(`/absen-siswa${cleanPath.toLowerCase()}`, request.url));
     }
 
     // Direct route /kelas1 ke /absen-siswa/kelas1
-    if (pathname.toLowerCase() === '/kelas1') {
+    if (cleanPath.toLowerCase() === '/kelas1') {
       return NextResponse.rewrite(new URL('/absen-siswa/kelas1', request.url));
     }
 
     // Allow public API and other routes (like /api/attendance/scan) to pass through
     return NextResponse.next();
+  }
+
+  // ── Global Rewrite for /1a.../6d and /kelas1 on main domain/localhost ────
+  if (cleanPath.match(/^\/[1-6][a-d]$/i)) {
+    return NextResponse.rewrite(new URL(`/absen-siswa${cleanPath.toLowerCase()}`, request.url));
+  }
+  if (cleanPath.toLowerCase() === '/kelas1') {
+    return NextResponse.rewrite(new URL('/absen-siswa/kelas1', request.url));
   }
 
   // ══════════════════════════════════════════════════════════════════════════

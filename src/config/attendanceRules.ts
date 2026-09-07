@@ -39,18 +39,18 @@ export const ATTENDANCE_CONFIG = {
     timeString: '00:01',
   },
 
-  // Batas akhir Hadir Tepat Waktu (06:45 WIB)
+  // Batas akhir Hadir Tepat Waktu (08:45 WIB)
   ON_TIME_LIMIT: {
-    hours: 6,
+    hours: 8,
     minutes: 45,
-    timeString: '06:45',
+    timeString: '08:45',
   },
 
-  // Batas akhir Hadir Terlambat / Kunci Absen Masuk (07:15 WIB)
+  // Batas akhir Hadir Terlambat / Kunci Absen Masuk (09:15 WIB)
   LATE_LIMIT: {
-    hours: 7,
+    hours: 9,
     minutes: 15,
-    timeString: '07:15',
+    timeString: '09:15',
   },
 
   // Jam minimal diperbolehkan scan pulang siswa (10:30 WIB)

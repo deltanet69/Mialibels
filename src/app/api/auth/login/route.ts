@@ -3,8 +3,7 @@ import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getIp } from '@/lib/rate-limit'
-
-const JWT_SECRET = process.env.JWT_SECRET!
+import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
 
 // Use supabase-js directly (not the SSR client that needs cookies)
 const supabase = createClient(
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create JWT session token (7 days expiry)
-    const secret = new TextEncoder().encode(JWT_SECRET)
+    const secret = getJwtSecretKey()
     const jwtPayload: Record<string, any> = {
       sub: admin.id,
       email: admin.email,
@@ -115,13 +114,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    response.cookies.set('admin_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    })
+    const cookieOptions = getAuthCookieOptions(request, 7 * 24 * 60 * 60)
+    response.cookies.set('admin_session', token, cookieOptions)
 
     return response
   } catch (err: any) {

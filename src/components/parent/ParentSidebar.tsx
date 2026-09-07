@@ -25,8 +25,11 @@ export function ParentSidebar() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    document.cookie = 'parent_session=; Max-Age=0; path=/';
-    router.push('/parent/login');
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/parent/login';
+    }
   };
 
   const isActive = (path: string) => {

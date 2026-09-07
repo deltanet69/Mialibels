@@ -38,21 +38,31 @@ export async function POST(request: NextRequest) {
 
     const student = students[0]
     
-    // Check if class matches the device class
-    const studentClassRaw = (student.class || '').replace(/\s+/g, '').toLowerCase() // "Kelas 1B" -> "kelas1b"
-    const deviceClassRaw = (className || '').toLowerCase().replace(/\s+/g, '') // "1a", "kelas1", "1bcd"
+    // Robust class matching normalization
+    const cleanClassCode = (raw?: string | null): string => {
+      if (!raw) return ''
+      return raw
+        .toLowerCase()
+        .replace(/kelas/g, '')
+        .replace(/ruang/g, '')
+        .replace(/gedung/g, '')
+        .replace(/[^a-z0-9]/g, '')
+    }
+
+    const studentClean = cleanClassCode(student.class)
+    const deviceClean = cleanClassCode(className)
+    const rawClassLower = (className || '').toLowerCase().trim()
     
     let isClassAllowed = false
-    if (deviceClassRaw === 'kelas1' || deviceClassRaw === '1' || deviceClassRaw === '1bcd') {
-      // Allow Grade 1 students (1B, 1C, 1D, 1A)
-      isClassAllowed = studentClassRaw.includes('1b') || 
-                       studentClassRaw.includes('1c') || 
-                       studentClassRaw.includes('1d') || 
-                       studentClassRaw.includes('1a') || 
-                       studentClassRaw.includes('kelas1') ||
-                       studentClassRaw.startsWith('1')
+    if (deviceClean === '1' || deviceClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1') {
+      // Allow Grade 1 students (1A, 1B, 1C, 1D)
+      isClassAllowed = studentClean.startsWith('1') || studentClean.includes('1')
+    } else if (deviceClean) {
+      isClassAllowed = studentClean === deviceClean || 
+                       studentClean.includes(deviceClean) || 
+                       deviceClean.includes(studentClean)
     } else {
-      isClassAllowed = studentClassRaw.includes(deviceClassRaw)
+      isClassAllowed = true
     }
     
     if (!isClassAllowed) {

@@ -33,9 +33,8 @@ export default function LoginPage() {
         throw new Error(data.error || 'Terjadi kesalahan saat login.');
       }
 
-      // Redirect on success
-      router.push('/dashboard');
-      router.refresh();
+      // Hard navigation on success to ensure cookie inclusion and fresh server rendering
+      window.location.href = '/dashboard';
       
     } catch (err: any) {
       console.error('Sign in catch block:', err);

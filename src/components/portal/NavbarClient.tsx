@@ -74,9 +74,11 @@ export function NavbarClient({ user }: { user: any }) {
     : 'U';
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
-    router.refresh();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/login';
+    }
   };
 
   return (

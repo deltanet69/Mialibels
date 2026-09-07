@@ -1,8 +1,6 @@
 import { jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
-
-const JWT_SECRET = process.env.JWT_SECRET!
-
+import { getJwtSecretKey } from '@/lib/jwt'
 import { UserRole } from './rbac'
 
 export type { UserRole }
@@ -25,8 +23,7 @@ export async function getSession(): Promise<SessionUser | null> {
     const token = cookieStore.get('admin_session')?.value
     if (!token) return null
 
-    const secret = new TextEncoder().encode(JWT_SECRET)
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, getJwtSecretKey())
 
     return {
       id: payload.sub as string,

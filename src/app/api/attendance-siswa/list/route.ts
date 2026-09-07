@@ -26,20 +26,31 @@ export async function GET(request: NextRequest) {
     if (studentError) throw studentError
 
     // 2. Filter students by class
-    const deviceClassRaw = className.toLowerCase().replace(/\s+/g, '')
-    const isMultiClassGrade1 = deviceClassRaw === 'kelas1' || deviceClassRaw === '1' || deviceClassRaw === '1bcd'
+    const cleanClassCode = (raw?: string | null): string => {
+      if (!raw) return ''
+      return raw
+        .toLowerCase()
+        .replace(/kelas/g, '')
+        .replace(/ruang/g, '')
+        .replace(/gedung/g, '')
+        .replace(/[^a-z0-9]/g, '')
+    }
+
+    const deviceClean = cleanClassCode(className)
+    const rawClassLower = (className || '').toLowerCase().trim()
+    const isMultiClassGrade1 = deviceClean === '1' || deviceClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1'
 
     const classStudents = (allStudents || []).filter(student => {
-      const studentClassRaw = (student.class || '').toLowerCase().replace(/\s+/g, '')
+      const studentClean = cleanClassCode(student.class)
       if (isMultiClassGrade1) {
-        return studentClassRaw.includes('1b') || 
-               studentClassRaw.includes('1c') || 
-               studentClassRaw.includes('1d') || 
-               studentClassRaw.includes('1a') ||
-               studentClassRaw.includes('kelas1') ||
-               studentClassRaw.startsWith('1')
+        return studentClean.startsWith('1') || studentClean.includes('1')
       }
-      return studentClassRaw.includes(deviceClassRaw)
+      if (deviceClean) {
+        return studentClean === deviceClean || 
+               studentClean.includes(deviceClean) || 
+               deviceClean.includes(studentClean)
+      }
+      return true
     })
 
     const studentIds = classStudents.map(s => s.id)

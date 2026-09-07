@@ -1,10 +1,8 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { supabase } from '@/lib/supabase'
-
-const JWT_SECRET = process.env.JWT_SECRET!
+import { getJwtSecretKey } from '@/lib/jwt'
 
 export async function GET() {
   try {
@@ -15,13 +13,12 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 401 })
     }
 
-    const secret = new TextEncoder().encode(JWT_SECRET)
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtVerify(token, getJwtSecretKey())
 
     let staffId = null
     if (payload.email) {
-      const { data: staff } = await supabase.from('staffs').select('id').eq('email', payload.email).single()
-      if (staff) staffId = staff.id
+      const { data: staff } = await supabase.from('staffs').select('id').eq('email', payload.email as string).maybeSingle()
+      if (staff) staffId = (staff as any).id
     }
 
     const res = NextResponse.json({

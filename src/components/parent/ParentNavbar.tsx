@@ -38,8 +38,11 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    document.cookie = 'parent_session=; Max-Age=0; path=/';
-    router.push('/parent/login');
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/parent/login';
+    }
   };
 
   const initials = parentName

@@ -303,7 +303,7 @@ export default function AbsenKelas1ClientPage() {
       clearTimeout(scanTimeoutId)
 
       if (e.key === 'Enter') {
-        if (rfidBuffer.length > 0) {
+        if (rfidBuffer.length >= 4) {
           processRfid(rfidBuffer.toUpperCase())
           rfidBuffer = ''
         }
@@ -313,12 +313,13 @@ export default function AbsenKelas1ClientPage() {
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         rfidBuffer += e.key
 
+        // Wait for typing to complete if scanner does not emit Enter
         scanTimeoutId = setTimeout(() => {
-          if (rfidBuffer.length >= 5) {
+          if (rfidBuffer.length >= 4) {
             processRfid(rfidBuffer.toUpperCase())
             rfidBuffer = ''
           }
-        }, 100)
+        }, 350)
       }
     }
 
