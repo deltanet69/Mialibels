@@ -33,9 +33,8 @@ export default function ParentChangePassword() {
       const data = await res.json()
 
       if (res.ok) {
-        // Redirect to dashboard on success
-        router.push('/parent/dashboard')
-        router.refresh()
+        // Hard navigation on success to ensure new session cookie is sent cleanly
+        window.location.href = '/parent/dashboard';
       } else {
         setError(data.error || 'Terjadi kesalahan')
       }

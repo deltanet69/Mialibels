@@ -2,8 +2,7 @@ import { SignJWT, jwtVerify } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
-
-const JWT_SECRET = process.env.JWT_SECRET!
+import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +15,7 @@ export async function POST(request: NextRequest) {
     const token = request.cookies.get('parent_session')?.value
     if (!token) return NextResponse.json({ error: 'Tidak memiliki akses.' }, { status: 401 })
 
-    const secret = new TextEncoder().encode(JWT_SECRET)
+    const secret = getJwtSecretKey()
     let payload: any
     try {
       const verified = await jwtVerify(token, secret)
@@ -75,13 +74,8 @@ export async function POST(request: NextRequest) {
       .sign(secret)
 
     const response = NextResponse.json({ success: true })
-    response.cookies.set('parent_session', newToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: '/',
-    })
+    const cookieOptions = getAuthCookieOptions(request, 30 * 24 * 60 * 60)
+    response.cookies.set('parent_session', newToken, cookieOptions)
 
     return response
   } catch (err: any) {

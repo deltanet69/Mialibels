@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
-import { getJwtSecretKey } from '@/lib/jwt';
+import { getJwtSecretKey, getLogoutCookieOptions } from '@/lib/jwt';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Domain / Subdomain Config
@@ -131,6 +131,18 @@ async function verifyJWT(token: string): Promise<{ payload: any } | null> {
   }
 }
 
+function clearSessionCookie(res: NextResponse, req: NextRequest, name: string) {
+  const cookieOptions = getLogoutCookieOptions(req);
+  res.cookies.set(name, '', cookieOptions);
+  res.cookies.set(name, '', {
+    httpOnly: true,
+    secure: cookieOptions.secure,
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  });
+}
+
 function getSubdomain(req: NextRequest): 'admin' | 'parent' | 'absen' | 'spmb' | null {
   const forwardedHost = req.headers.get('x-forwarded-host') || '';
   const forwardedServer = req.headers.get('x-forwarded-server') || '';
@@ -258,7 +270,7 @@ export async function middleware(request: NextRequest) {
       const verified = await verifyJWT(token);
       if (!verified) {
         const res = NextResponse.json({ error: 'Sesi tidak valid atau sudah kadaluarsa.' }, { status: 401 });
-        res.cookies.delete('admin_session');
+        clearSessionCookie(res, request, 'admin_session');
         return res;
       }
       return NextResponse.next();
@@ -276,7 +288,7 @@ export async function middleware(request: NextRequest) {
       const url = new URL('/login', request.url);
       url.searchParams.set('expired', '1');
       const res = NextResponse.redirect(url);
-      res.cookies.delete('admin_session');
+      clearSessionCookie(res, request, 'admin_session');
       return res;
     }
     const role = verified.payload.role as string;
@@ -324,7 +336,7 @@ export async function middleware(request: NextRequest) {
       const verified = await verifyJWT(token);
       if (!verified) {
         const res = NextResponse.json({ error: 'Sesi tidak valid atau sudah kadaluarsa.' }, { status: 401 });
-        res.cookies.delete('parent_session');
+        clearSessionCookie(res, request, 'parent_session');
         return res;
       }
       return NextResponse.next();
@@ -340,7 +352,7 @@ export async function middleware(request: NextRequest) {
       const url = new URL('/parent/login', request.url);
       url.searchParams.set('expired', '1');
       const res = NextResponse.redirect(url);
-      res.cookies.delete('parent_session');
+      clearSessionCookie(res, request, 'parent_session');
       return res;
     }
     return NextResponse.next();
@@ -365,7 +377,7 @@ export async function middleware(request: NextRequest) {
     const verified = await verifyJWT(token);
     if (!verified) {
       const response = NextResponse.json({ error: 'Sesi tidak valid atau sudah kadaluarsa.' }, { status: 401 });
-      response.cookies.delete('admin_session');
+      clearSessionCookie(response, request, 'admin_session');
       return response;
     }
     return NextResponse.next();
@@ -380,7 +392,7 @@ export async function middleware(request: NextRequest) {
     const verified = await verifyJWT(token);
     if (!verified) {
       const response = NextResponse.json({ error: 'Sesi tidak valid atau sudah kadaluarsa.' }, { status: 401 });
-      response.cookies.delete('parent_session');
+      clearSessionCookie(response, request, 'parent_session');
       return response;
     }
     return NextResponse.next();
@@ -401,7 +413,7 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('expired', '1');
       const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete('admin_session');
+      clearSessionCookie(response, request, 'admin_session');
       return response;
     }
 
@@ -445,7 +457,7 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL('/parent/login', request.url);
       loginUrl.searchParams.set('expired', '1');
       const response = NextResponse.redirect(loginUrl);
-      response.cookies.delete('parent_session');
+      clearSessionCookie(response, request, 'parent_session');
       return response;
     }
 

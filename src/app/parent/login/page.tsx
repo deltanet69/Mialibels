@@ -33,9 +33,8 @@ export default function ParentLoginPage() {
         throw new Error(data.error || 'Login gagal. Periksa kembali ID Siswa dan Password Anda.');
       }
 
-      // Redirect on success
-      router.push('/parent/dashboard');
-      router.refresh();
+      // Hard navigation on success to ensure cookie inclusion and fresh server rendering
+      window.location.href = '/parent/dashboard';
       
     } catch (err: any) {
       console.error('Parent sign in catch block:', err);
