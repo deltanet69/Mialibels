@@ -463,12 +463,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all paths EXCEPT:
-     * - _next/static  (bundled JS/CSS chunks)
+     * Run middleware on EVERYTHING except:
+     * - _next/static  (JS/CSS chunks — must NEVER be intercepted)
      * - _next/image   (image optimization)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - static file extensions (images, fonts, etc.)
+     * - _next/webpack-hmr (HMR in dev)
+     * - favicon.ico and other static file extensions
      */
-    '/((?!_next/static|_next/image|_next/webpack-hmr|favicon\.ico|sitemap\.xml|robots\.txt|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|css|js\.map)).*)',
+    '/((?!_next\/static|_next\/image|_next\/webpack-hmr|favicon\.ico|sitemap\.xml|robots\.txt).*)',
   ],
 };
