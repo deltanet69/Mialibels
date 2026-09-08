@@ -115,8 +115,8 @@ export async function GuruDashboard({ user }: { user: any }) {
       homeroomClass = staffObj.classrooms[0];
       
       const [studentRes, hadirRes] = await Promise.all([
-        supabase.from('students').select('*', { count: 'exact', head: true }).eq('classroom_id', homeroomClass.id).eq('is_active', true),
-        supabase.from('classroom_attendances').select('*', { count: 'exact', head: true }).eq('classroom_id', homeroomClass.id).eq('date', todayStr).ilike('status', '%hadir%')
+        supabase.from('students').select('*', { count: 'exact', head: true }).or(`class_id.eq.${homeroomClass.id},class.eq.${homeroomClass.name}`).eq('is_active', true),
+        supabase.from('student_attendances').select('id, students!inner(id, class_id, class)', { count: 'exact', head: true }).or(`students.class_id.eq.${homeroomClass.id},students.class.eq.${homeroomClass.name}`).eq('date', todayStr).ilike('status', '%hadir%')
       ]);
       
       activeStudents = studentRes.count || 0;

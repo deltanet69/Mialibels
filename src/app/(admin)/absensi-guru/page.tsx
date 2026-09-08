@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Calendar, CheckCircle2, Clock, XCircle, LogIn, LogOut, Activity, AlertCircle, Fingerprint, Filter, X, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Bell, Trash2, ClipboardCheck } from 'lucide-react'
 import Link from 'next/link'
-import { supabase } from '../../../../lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import { canManageTeachers } from '@/lib/rbac'
 
 // Types

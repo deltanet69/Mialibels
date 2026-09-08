@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Download, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Download, AlertCircle, Loader2, Printer, X, CheckCircle2, Eye } from 'lucide-react';
 import { getDirectImageUrl } from '@/lib/imageUtils';
 
 interface Student {
@@ -31,9 +31,20 @@ interface CardDownloaderProps {
   generalInvoices?: any[];
 }
 
-export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, student: initialStudent, sppInvoices: initialSpp, generalInvoices: initialGeneral }) => {
+export const CardDownloader: React.FC<CardDownloaderProps> = ({ 
+  studentId, 
+  student: initialStudent, 
+  sppInvoices: initialSpp, 
+  generalInvoices: initialGeneral 
+}) => {
   const [generatingSiswa, setGeneratingSiswa] = useState(false);
   const [generatingUjian, setGeneratingUjian] = useState(false);
+  const [previewModal, setPreviewModal] = useState<{
+    isOpen: boolean;
+    type: 'siswa' | 'ujian';
+    dataUrl: string;
+    studentName: string;
+  } | null>(null);
 
   const isFeeExempt = (waiverType?: string | null) => {
     if (!waiverType) return false;
@@ -87,6 +98,127 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
   
   const getGeneralPaidAmount = (generalList: any[], key: string) => 
     generalList.flatMap(inv => inv.items || []).filter((item: any) => item.name?.toLowerCase().includes(key.toLowerCase())).reduce((sum, item) => sum + (Number(item.paid_amount) || 0), 0);
+
+  const printCardDirectly = (dataUrl: string, studentName: string, type: 'siswa' | 'ujian') => {
+    const isUjian = type === 'ujian';
+    const title = isUjian ? `Kartu Ujian - ${studentName}` : `Kartu Pelajar - ${studentName}`;
+    const widthCm = isUjian ? '12cm' : '8.56cm';
+    const heightCm = isUjian ? '10cm' : '5.4cm';
+    const cutNote = isUjian 
+      ? 'Garis potong kartu ujian: 12 cm × 10 cm (Kertas HVS/A4)' 
+      : 'Garis potong kartu pelajar: Standar ID Card (Kertas HVS/A4)';
+
+    // Use hidden iframe to trigger seamless print without opening extra tabs
+    let iframe = document.getElementById('card-print-iframe') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'card-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <title>${title}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          .page-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 8mm;
+          }
+          .card-wrapper {
+            width: ${widthCm};
+            height: ${heightCm};
+            max-width: ${widthCm};
+            max-height: ${heightCm};
+            position: relative;
+            box-sizing: border-box;
+            border: 1px dashed #64748b;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 0 auto;
+            page-break-inside: avoid;
+            background: #ffffff;
+          }
+          .card-wrapper img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: fill;
+          }
+          .cut-guide {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #475569;
+            font-weight: 600;
+            text-align: center;
+            font-family: sans-serif;
+            letter-spacing: 0.2px;
+          }
+          .school-footer {
+            margin-top: 3px;
+            font-size: 9px;
+            color: #94a3b8;
+            text-align: center;
+            font-family: sans-serif;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          <div class="card-wrapper">
+            <img src="${dataUrl}" alt="${title}" />
+          </div>
+          <div class="cut-guide">
+            ✂️ ${cutNote}
+          </div>
+          <div class="school-footer">
+            MI Attaqwa 15 Babelan • Dokumen Resmi Siswa
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 350);
+    }
+  };
 
   const drawCard = async (type: 'siswa' | 'ujian') => {
     if (type === 'siswa') setGeneratingSiswa(true);
@@ -261,7 +393,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
           ctx.textBaseline = 'top';
         }
       } else {
-        // Kartu Peserta Ujian / Asesmen Kokurikuler (2834 x 2362 px)
+        // Kartu Peserta Ujian / Asesmen Kokurikuler (2834 x 2362 px - Exact 12cm x 10cm @ 600 DPI)
         canvas.width = 2834;
         canvas.height = 2362;
 
@@ -305,12 +437,16 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
         });
       }
 
-      // Generate Download
+      // Generate Data URL
       const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `Kartu_${type === 'siswa' ? 'Siswa' : 'Ujian'}_${studentData.name.replace(/\s+/g, '_')}.png`;
-      link.href = dataUrl;
-      link.click();
+      
+      // Open Preview & Print Modal
+      setPreviewModal({
+        isOpen: true,
+        type,
+        dataUrl,
+        studentName: studentData.name || 'Siswa'
+      });
 
     } catch (error) {
       console.error('Error generating card:', error);
@@ -334,30 +470,114 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({ studentId, stude
     drawCard('ujian');
   };
 
+  const handleDownloadFile = () => {
+    if (!previewModal) return;
+    const link = document.createElement('a');
+    link.download = `Kartu_${previewModal.type === 'siswa' ? 'Siswa' : 'Ujian'}_${previewModal.studentName.replace(/\s+/g, '_')}.png`;
+    link.href = previewModal.dataUrl;
+    link.click();
+  };
+
   return (
-    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full sm:w-auto">
-      <button
-        onClick={() => drawCard('siswa')}
-        disabled={generatingSiswa}
-        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-5 py-2.5 rounded-xl hover:bg-indigo-100 transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer"
-      >
-        {generatingSiswa ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Download size={18} className="shrink-0" />}
-        Kartu Siswa
-      </button>
-      
-      <button
-        onClick={handleUjianClick}
-        disabled={generatingUjian}
-        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer ${
-          isSppBlocked 
-            ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
-        }`}
-        title={isSppBlocked ? "SPP sampai September belum lunas" : ""}
-      >
-        {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : (isSppBlocked ? <AlertCircle size={18} className="shrink-0" /> : <Download size={18} className="shrink-0" />)}
-        Kartu Ujian
-      </button>
-    </div>
+    <>
+      <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full sm:w-auto">
+        <button
+          onClick={() => drawCard('siswa')}
+          disabled={generatingSiswa}
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-5 py-2.5 rounded-xl hover:bg-indigo-100 transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer shadow-2xs"
+        >
+          {generatingSiswa ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Eye size={18} className="shrink-0" />}
+          Kartu Siswa
+        </button>
+        
+        <button
+          onClick={handleUjianClick}
+          disabled={generatingUjian}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer ${
+            isSppBlocked 
+              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
+          }`}
+          title={isSppBlocked ? "SPP sampai September belum lunas" : ""}
+        >
+          {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : (isSppBlocked ? <AlertCircle size={18} className="shrink-0" /> : <Printer size={18} className="shrink-0" />)}
+          Cetak Kartu Ujian
+        </button>
+      </div>
+
+      {/* ── PREVIEW & PRINT MODAL ── */}
+      {previewModal?.isOpen && (
+        <div className="fixed inset-0 z-[99999] bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 flex flex-col gap-5 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-1">
+                  <span>{previewModal.type === 'ujian' ? 'Kartu Peserta Ujian' : 'Kartu Pelajar Siswa'}</span>
+                </div>
+                <h3 className="font-headline font-bold text-lg sm:text-xl text-slate-800">
+                  {previewModal.studentName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setPreviewModal(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Preview Image Card with Exact Ratio */}
+            <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+              <div 
+                className="w-full max-w-[380px] rounded-xl overflow-hidden shadow-md border border-slate-200"
+                style={{ aspectRatio: previewModal.type === 'ujian' ? '12 / 10' : '3150 / 1800' }}
+              >
+                <img 
+                  src={previewModal.dataUrl} 
+                  alt="Pratinjau Kartu" 
+                  className="w-full h-full object-contain block"
+                />
+              </div>
+
+              {/* Dimensions Badge */}
+              <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200/90 px-3 py-1 rounded-full shadow-2xs">
+                <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                <span>
+                  {previewModal.type === 'ujian'
+                    ? 'Ukuran Cetak Pas: 12 cm × 10 cm (Kertas HVS/A4)'
+                    : 'Ukuran Cetak: Standar ID Card (Kertas HVS/A4)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Info Notice */}
+            <p className="text-xs text-slate-500 leading-relaxed bg-blue-50/60 border border-blue-100/80 rounded-xl p-3 text-center">
+              💡 <strong>Tips Cetak:</strong> Klik <strong>&quot;Cetak Sekarang&quot;</strong> untuk mencetak langsung dengan ukuran pas 12×10 cm di atas kertas HVS/A4 tanpa terpotong atau melebar ke seluruh kertas.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+              <button
+                onClick={() => printCardDirectly(previewModal.dataUrl, previewModal.studentName, previewModal.type)}
+                className="w-full sm:flex-1 flex items-center justify-center gap-2 py-3 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+              >
+                <Printer size={18} />
+                <span>Cetak Sekarang (12x10 CM)</span>
+              </button>
+
+              <button
+                onClick={handleDownloadFile}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all cursor-pointer"
+              >
+                <Download size={18} />
+                <span>Unduh Gambar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

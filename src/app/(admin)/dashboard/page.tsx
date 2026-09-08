@@ -54,7 +54,7 @@ export default async function AdminDashboardPage() {
     safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }), null),
     safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }).eq('is_active', true), null),
     safeQuery(supabase.from('spp_transactions').select('*, admins(name), students(name, class), spp_invoices(title, month, year, amount)').order('created_at', { ascending: false }).limit(6), [] as any[]),
-    safeQuery(supabase.from('classroom_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
+    safeQuery(supabase.from('student_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
     safeQuery(supabase.from('staff_attendance').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
   ]);
 
