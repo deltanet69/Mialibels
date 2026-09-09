@@ -156,10 +156,12 @@ export default function AbsenSiswaPage() {
     }
   }, [rawClassName])
 
-  // Supabase Realtime broadcast listener
+  // Supabase Realtime broadcast listener (Scoped strictly to this class channel)
   useEffect(() => {
     try {
-      const channel = supabase.channel('mia-attendance-siswa-sync')
+      const cleanClassName = (rawClassName || '').toLowerCase().replace(/kelas/g, '').replace(/[^a-z0-9]/g, '').trim()
+      const channelName = isClass1A ? 'mia-attendance-sync-1a' : `mia-attendance-sync-${cleanClassName || 'all'}`
+      const channel = supabase.channel(channelName)
 
       channel
         .on(
@@ -169,39 +171,31 @@ export default function AbsenSiswaPage() {
             const data = payload.payload
             if (data.sender === clientIdRef.current) return
 
+            // Hanya proses scan berhasil untuk kelas ini
+            if (!data.success || !data.student || !data.student.class) return
+
+            const studClean = data.student.class.toLowerCase().replace(/kelas/g, '').replace(/[^a-z0-9]/g, '').trim()
+            const isMatch = isClass1A ? studClean === '1a' : (cleanClassName ? studClean === cleanClassName : true)
+
+            if (!isMatch) return
+
             showPopupRef.current({
-              type: data.success ? 'success' : 'error',
+              type: 'success',
               message: data.message,
               action: data.action,
               student: data.student
             })
 
-            // Only fetch if the student belongs to the displayed class
-            let shouldFetch = false;
-            const devClean = (rawClassName || '').toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '');
-            const rawClassLower = (rawClassName || '').toLowerCase().trim();
-            const isMultiClassGrade1 = devClean === '1' || devClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1';
-            
-            if (data.student && data.student.class) {
-              const studClean = data.student.class.toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '');
-              if (isMultiClassGrade1) {
-                if (studClean.startsWith('1') || studClean.includes('1')) shouldFetch = true;
-              } else if (devClean) {
-                if (studClean === devClean || studClean.includes(devClean) || devClean.includes(studClean)) shouldFetch = true;
-              } else {
-                shouldFetch = true;
-              }
-            } else {
-              shouldFetch = true;
+            if (data.student?.id) {
+              setLastScannedStudentId(data.student.id)
+              setTimeout(() => setLastScannedStudentId(null), 8000)
             }
 
-            if (shouldFetch) {
-              // Debounce to prevent rapid re-fetches if multiple students scan within the same second
-              if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-              fetchTimeoutRef.current = setTimeout(() => {
-                fetchAttendanceList()
-              }, 1500); // 1.5s delay
-            }
+            // Debounce to prevent rapid re-fetches
+            if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
+            fetchTimeoutRef.current = setTimeout(() => {
+              fetchAttendanceList()
+            }, 1000)
           }
         )
         .subscribe((status) => {
@@ -214,7 +208,7 @@ export default function AbsenSiswaPage() {
     } catch (e) {
       console.error('Realtime subscription error', e)
     }
-  }, [rawClassName])
+  }, [rawClassName, isClass1A])
 
   // RFID Scan Locking
   const isScanningRef = useRef(false)
@@ -252,21 +246,21 @@ export default function AbsenSiswaPage() {
 
       if (data.success) {
         fetchAttendanceList()
-      }
 
-      // Broadcast via Supabase
-      if (broadcastChannelRef.current) {
-        broadcastChannelRef.current.send({
-          type: 'broadcast',
-          event: 'scan_result_siswa',
-          payload: {
-            sender: clientIdRef.current,
-            success: data.success,
-            message: data.success ? data.message : (data.error || 'Absensi gagal'),
-            action: data.action,
-            student: data.student
-          }
-        })
+        // Hanya broadcast ke channel jika absensi berhasil
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current.send({
+            type: 'broadcast',
+            event: 'scan_result_siswa',
+            payload: {
+              sender: clientIdRef.current,
+              success: true,
+              message: data.message,
+              action: data.action,
+              student: data.student
+            }
+          })
+        }
       }
     } catch (err: any) {
       showPopup({

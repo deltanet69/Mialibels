@@ -26,10 +26,13 @@ function SkeletonRow() {
   )
 }
 
+const CACHE_KEY_GURU = 'cache_admin_guru_v2'
+
 export default function GuruPage() {
-  // Raw data fetched once from server
+  // Raw data fetched once from server with instant cache hydration
   const [allGuru, setAllGuru] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isRevalidating, setIsRevalidating] = useState(false)
 
   // Client-side search and filters
   const [search, setSearch] = useState('')
@@ -45,31 +48,53 @@ export default function GuruPage() {
   const [editingGuru, setEditingGuru] = useState<any | null>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  const fetchGuru = useCallback(async () => {
-    setLoading(true)
+  // 1. Instant Cache Hydration on Mount (0ms load)
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY_GURU)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllGuru(parsed)
+          setLoading(false)
+        }
+      }
+    } catch (e) {
+      console.warn('Guru cache read error:', e)
+    }
+  }, [])
+
+  // 2. Fetch fresh data (silent if cache exists)
+  const fetchGuru = useCallback(async (isSilent = false) => {
+    if (!isSilent && allGuru.length === 0) setLoading(true)
+    setIsRevalidating(true)
     try {
       const [resGuru, resMe] = await Promise.all([
-        fetch('/api/guru?_t=' + Date.now()),
-        fetch('/api/auth/me')
+        fetch('/api/guru?_t=' + Date.now(), { cache: 'no-store' }),
+        fetch('/api/auth/me', { cache: 'no-store' })
       ])
       const data = await resGuru.json()
       const dataMe = await resMe.json()
       
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setAllGuru(data.data)
+        try {
+          sessionStorage.setItem(CACHE_KEY_GURU, JSON.stringify(data.data))
+        } catch {}
       }
       if (dataMe.success) {
         setCurrentUser(dataMe.user)
       }
     } catch (err) {
-      console.error(err)
+      console.error('Error fetching guru:', err)
     } finally {
       setLoading(false)
+      setIsRevalidating(false)
     }
-  }, [])
+  }, [allGuru.length])
 
   useEffect(() => {
-    fetchGuru()
+    fetchGuru(true)
   }, [fetchGuru])
 
   const canEdit = canManageTeachers(currentUser?.role)

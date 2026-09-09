@@ -146,7 +146,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
           <h2 className="text-base sm:text-xl font-bold text-slate-900 break-words">
             Cek Status &amp; Unggah Berkas Lanjutan
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+          <p className="text-sm text-slate-500 mt-0.5 leading-relaxed">
             Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>MI2027001</code>) atau <strong>Nomor WhatsApp</strong> yang didaftarkan.
           </p>
         </div>
@@ -247,11 +247,11 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
 
           {/* 3-Step Progress Timeline */}
           <div className="p-3 sm:p-4 bg-slate-50 rounded-xl sm:rounded-2xl space-y-2.5 sm:space-y-3">
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+            <span className="text-[12px] sm:text-[12px] font-bold text-slate-500 uppercase tracking-wider block">
               Progres Tahapan Pendaftaran:
             </span>
 
-            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="grid grid-cols-3 gap-2 text-center text-sm">
               <TimelineStep
                 step={1}
                 title="Formulir Masuk"

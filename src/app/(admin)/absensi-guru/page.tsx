@@ -107,21 +107,43 @@ export default function AbsensiGuruPage() {
   const fetchSilentRef = useRef<(d: string, f: FilterType) => void>(() => {})
 
   // Keep refs in sync with state on every render
-  dateRef.current = date
-  filterTypeRef.current = filterType
+  // 1. Instant Cache Hydration on Mount (0ms load)
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('cache_admin_absensi_guru_v2')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed?.data && Array.isArray(parsed.data) && parsed.date === date) {
+          setStaffs(parsed.data)
+          setLoading(false)
+        }
+      }
+    } catch (e) {
+      console.warn('Absensi guru cache read error:', e)
+    }
+  }, [date])
 
-  // FULL fetch (with loading spinner) — for initial load & filter/date change
+  // FULL fetch (with loading spinner only if cache is empty) — for initial load & filter/date change
   const fetchAttendance = async (selectedDate: string, currentFilter: FilterType) => {
-    setLoading(true)
+    if (staffs.length === 0) setLoading(true)
     try {
       const [resAtt, resMe] = await Promise.all([
-        fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`),
-        fetch('/api/auth/me')
+        fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`, { cache: 'no-store' }),
+        fetch('/api/auth/me', { cache: 'no-store' })
       ])
       const data = await resAtt.json()
       const dataMe = await resMe.json()
       
-      if (data.success) setStaffs(data.data)
+      if (data.success && Array.isArray(data.data)) {
+        setStaffs(data.data)
+        try {
+          sessionStorage.setItem('cache_admin_absensi_guru_v2', JSON.stringify({
+            date: selectedDate,
+            filter: currentFilter,
+            data: data.data
+          }))
+        } catch {}
+      }
       if (dataMe.success) setCurrentUser(dataMe.user)
     } catch (err) {
       console.error(err)
@@ -135,9 +157,18 @@ export default function AbsensiGuruPage() {
   const fetchSilent = async (selectedDate: string, currentFilter: FilterType) => {
     setIsSyncing(true)
     try {
-      const res = await fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`)
+      const res = await fetch(`/api/attendance/guru?date=${selectedDate}&filter=${currentFilter}&_t=${Date.now()}`, { cache: 'no-store' })
       const data = await res.json()
-      if (data.success) setStaffs(data.data)
+      if (data.success && Array.isArray(data.data)) {
+        setStaffs(data.data)
+        try {
+          sessionStorage.setItem('cache_admin_absensi_guru_v2', JSON.stringify({
+            date: selectedDate,
+            filter: currentFilter,
+            data: data.data
+          }))
+        } catch {}
+      }
     } catch (err) {
       console.error(err)
     } finally {

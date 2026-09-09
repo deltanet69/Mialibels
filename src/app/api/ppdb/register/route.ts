@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       is_active: true,
       active_batch: 1,
       batch_1_quota: 120,
-      registration_fee: 200000,
+      registration_fee: 300000,
     }
 
     if (!ppdbSettings.is_active) {
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
       document_report_card: document_report_card || null,
       documents_submitted_at: new Date().toISOString(),
       payment_method: payment_method || 'transfer_btn',
-      payment_amount: Number(ppdbSettings.registration_fee) || 200000,
+      payment_amount: Number(ppdbSettings.registration_fee) || 300000,
       payment_proof_url,
       payment_status: 'pending',
       status: 'pending_verification',

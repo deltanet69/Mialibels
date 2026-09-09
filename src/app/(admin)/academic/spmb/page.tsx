@@ -1,6 +1,6 @@
 'use client'
 
-// SPMB Admin Portal T.A 2027/2028 - Auto-compiled
+// SPMB Admin Portal T.A 2027/2028 - Auto-compiled (Cache Invalidated)
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Search,
@@ -503,10 +503,10 @@ export default function AdminSpmbPage() {
       {/* ════════════════════════════════════════════════════════════════════
           HEADER & MASTER CONTROLS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-5 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
               Sistem Penerimaan Murid Baru
             </span>
             {isRevalidating && (
@@ -524,68 +524,76 @@ export default function AdminSpmbPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full xl:w-auto flex-wrap">
+        {/* Action Controls Container (Mobile-first, Cleanly Structured) */}
+        <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
           
-          {/* Master Toggle Status Switch */}
-          {canManage && (
-            <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl">
-              <span className="text-xs font-bold text-slate-700">Status Portal:</span>
-              <button
-                onClick={handleToggleActive}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  settings?.is_active ? 'bg-emerald-500' : 'bg-slate-300'
-                }`}
-                title={settings?.is_active ? 'Klik untuk menutup pendaftaran' : 'Klik untuk membuka pendaftaran'}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                    settings?.is_active ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-              <span className={`text-xs font-extrabold ${settings?.is_active ? 'text-emerald-700' : 'text-slate-500'}`}>
-                {settings?.is_active ? 'Buka' : 'Tutup'}
-              </span>
-            </div>
-          )}
+          {/* Row 1 on Mobile: Status Toggle + Refresh Icon */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {canManage && (
+              <div className="flex-1 sm:flex-initial flex items-center justify-between sm:justify-start gap-2.5 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl">
+                <span className="text-xs font-bold text-slate-700">Status Portal:</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleToggleActive}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      settings?.is_active ? 'bg-emerald-500' : 'bg-slate-300'
+                    }`}
+                    title={settings?.is_active ? 'Klik untuk menutup pendaftaran' : 'Klik untuk membuka pendaftaran'}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        settings?.is_active ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className={`text-xs font-extrabold ${settings?.is_active ? 'text-emerald-700' : 'text-slate-500'}`}>
+                    {settings?.is_active ? 'Buka' : 'Tutup'}
+                  </span>
+                </div>
+              </div>
+            )}
 
-          {/* Refresh Button */}
-          <button
-            onClick={() => fetchData(true)}
-            disabled={isRevalidating}
-            className="btn-tactile flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
-            title="Muat Ulang Data"
-          >
-            <RefreshCw size={14} className={isRevalidating ? 'animate-spin text-blue-600' : ''} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-
-          {/* Settings Modal Button */}
-          {canManage && (
+            {/* Refresh Button (Simple Icon Only) */}
             <button
-              onClick={() => setShowSettingsModal(true)}
-              className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+              onClick={() => fetchData(true)}
+              disabled={isRevalidating}
+              className="btn-tactile flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-700 w-10 h-10 rounded-2xl hover:bg-slate-100 transition shadow-2xs cursor-pointer shrink-0"
+              title="Muat Ulang Data"
+              aria-label="Refresh Data"
             >
-              <Settings2 size={15} />
-              <span>Pengaturan</span>
+              <RefreshCw size={15} className={isRevalidating ? 'animate-spin text-blue-600' : ''} />
             </button>
-          )}
+          </div>
 
-          {/* Export CSV */}
-          <button
-            onClick={handleExportCsv}
-            className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
-          >
-            <Download size={15} />
-            <span>Export CSV</span>
-          </button>
+          {/* Row 2 on Mobile: 2-Columns Grid -> Inlined on sm+ */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            {/* Settings Modal Button */}
+            {canManage && (
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+              >
+                <Settings2 size={15} />
+                <span>Pengaturan</span>
+              </button>
+            )}
 
-          {/* Public Link */}
+            {/* Export CSV */}
+            <button
+              onClick={handleExportCsv}
+              className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+            >
+              <Download size={15} />
+              <span>Export CSV</span>
+            </button>
+          </div>
+
+          {/* Public Link (Full-width on Mobile, inline on sm+) */}
           <a
             href={spmbUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-tactile flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl transition text-xs font-bold shadow-md shadow-blue-600/20"
+            className="btn-tactile flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl transition text-xs font-bold shadow-md shadow-blue-600/20 w-full sm:w-auto whitespace-nowrap"
           >
             <ExternalLink size={15} />
             <span>Halaman Publik</span>
@@ -600,63 +608,63 @@ export default function AdminSpmbPage() {
       {loading && !summary ? (
         <SkeletonStats />
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 font-sans">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 font-sans">
           
           {/* Total Pendaftar */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-blue-200 transition">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-blue-200 transition">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Pendaftar</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-900">{summary?.total || applicants.length}</h3>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Total Pendaftar</span>
+              <h3 className="font-extrabold text-xl sm:text-3xl text-slate-900">{summary?.total || applicants.length}</h3>
             </div>
-            <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
-              <UserPlus size={20} />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-blue-50 text-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
+              <UserPlus size={18} />
             </div>
           </div>
 
           {/* Kelas Fullday */}
-          <div className="bg-white p-5 rounded-3xl border border-indigo-200/80 shadow-2xs flex items-center justify-between hover:border-indigo-300 transition">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-indigo-200/80 shadow-2xs flex items-center justify-between hover:border-indigo-300 transition">
             <div>
-              <span className="text-[11px] font-bold text-indigo-500 uppercase tracking-wider block mb-1">Kelas Fullday</span>
+              <span className="text-[10px] sm:text-[11px] font-bold text-indigo-500 uppercase tracking-wider block mb-0.5 sm:mb-1">Kelas Fullday</span>
               <div className="flex items-baseline gap-1">
-                <h3 className="font-extrabold text-2xl sm:text-3xl text-indigo-700">{fulldayCount}</h3>
-                <span className="text-xs font-bold text-slate-400">/ 30 Siswa</span>
+                <h3 className="font-extrabold text-xl sm:text-3xl text-indigo-700">{fulldayCount}</h3>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400">/ 30</span>
               </div>
             </div>
-            <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
-              <Sparkles size={20} />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
+              <Sparkles size={18} />
             </div>
           </div>
 
           {/* Kelas Regular */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-teal-200 transition">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-teal-200 transition">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Kelas Regular</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-800">{regularCount}</h3>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Kelas Regular</span>
+              <h3 className="font-extrabold text-xl sm:text-3xl text-slate-800">{regularCount}</h3>
             </div>
-            <div className="w-11 h-11 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-bold">
-              <School size={20} />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-teal-50 text-teal-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
+              <School size={18} />
             </div>
           </div>
 
           {/* Menunggu Verifikasi */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-amber-200 transition">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-amber-200 transition">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Verifikasi</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-amber-600">{summary?.pending || 0}</h3>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Verifikasi</span>
+              <h3 className="font-extrabold text-xl sm:text-3xl text-amber-600">{summary?.pending || 0}</h3>
             </div>
-            <div className="w-11 h-11 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center font-bold">
-              <Clock size={20} />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-50 text-amber-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
+              <Clock size={18} />
             </div>
           </div>
 
           {/* Lulus / Approved */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-emerald-200 transition col-span-2 lg:col-span-1">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-emerald-200 transition col-span-2 sm:col-span-2 lg:col-span-1">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Approved / Diterima</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-emerald-600">{summary?.approved || 0}</h3>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Approved / Diterima</span>
+              <h3 className="font-extrabold text-xl sm:text-3xl text-emerald-600">{summary?.approved || 0}</h3>
             </div>
-            <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold">
-              <CheckCircle2 size={20} />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-emerald-50 text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
+              <CheckCircle2 size={18} />
             </div>
           </div>
 
@@ -666,38 +674,39 @@ export default function AdminSpmbPage() {
       {/* ════════════════════════════════════════════════════════════════════
           PROGRAM TABS & FILTERS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80 space-y-6">
+      <div className="bg-white p-4 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80 space-y-5 sm:space-y-6">
         
         {/* Program Selector Pills */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto max-w-full">
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto max-w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <button
               onClick={() => setProgramFilter('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                 programFilter === 'all' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua Program ({applicants.length})
+              Semua ({applicants.length})
             </button>
             <button
               onClick={() => setProgramFilter('fullday')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                 programFilter === 'fullday' ? 'bg-white shadow-2xs text-indigo-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Kelas Fullday ({fulldayCount} / 30)
+              Fullday ({fulldayCount} / 30)
             </button>
             <button
               onClick={() => setProgramFilter('regular')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
                 programFilter === 'regular' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Kelas Regular ({regularCount})
+              Regular ({regularCount})
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* View Mode Toggle - Only shown on Desktop/Tablet, on mobile always card */}
+          <div className="hidden sm:flex items-center gap-2">
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-700'}`}
@@ -716,12 +725,12 @@ export default function AdminSpmbPage() {
         </div>
 
         {/* Search & Status Filter */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-wrap">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Cari nama, no registrasi, atau kontak..."
+              placeholder="Cari nama, no registrasi, kontak..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
@@ -736,28 +745,30 @@ export default function AdminSpmbPage() {
             )}
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
-          >
-            <option value="all">Semua Status</option>
-            <option value="pending_verification">Menunggu Verifikasi</option>
-            <option value="approved">Approved / Disetujui</option>
-            <option value="documents_submitted">Berkas Terunggah</option>
-            <option value="rejected">Perlu Perbaikan / Ditolak</option>
-          </select>
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
+            >
+              <option value="all">Semua Status</option>
+              <option value="pending_verification">Menunggu Verifikasi</option>
+              <option value="approved">Approved / Disetujui</option>
+              <option value="documents_submitted">Berkas Terunggah</option>
+              <option value="rejected">Revisi / Ditolak</option>
+            </select>
 
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as any)}
-            className="w-full sm:w-auto px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
-          >
-            <option value="newest">Pendaftar Terbaru</option>
-            <option value="oldest">Pendaftar Terlama</option>
-          </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as any)}
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
+            >
+              <option value="newest">Pendaftar Terbaru</option>
+              <option value="oldest">Pendaftar Terlama</option>
+            </select>
+          </div>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center justify-between sm:justify-end gap-2 sm:ml-auto w-full sm:w-auto">
             <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100 whitespace-nowrap">
               {filteredApplicants.length} Calon Siswa
             </span>
@@ -765,7 +776,7 @@ export default function AdminSpmbPage() {
         </div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            LIST VIEW TABLE
+            LIST VIEW TABLE (Desktop only)
            ════════════════════════════════════════════════════════════════════ */}
         {viewMode === 'list' && (
           <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-100">
@@ -918,7 +929,7 @@ export default function AdminSpmbPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            CARD VIEW (Grid mode)
+            CARD VIEW (Always on Mobile, Grid on Desktop when card mode chosen)
            ════════════════════════════════════════════════════════════════════ */}
         <div className={`${viewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'sm:hidden space-y-3.5'}`}>
           {loading && applicants.length === 0 ? (
@@ -928,82 +939,130 @@ export default function AdminSpmbPage() {
               <SkeletonCard />
             </>
           ) : paginatedApplicants.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-slate-400 text-xs">
-              Tidak ada pendaftar yang sesuai filter.
+            <div className="col-span-full py-12 text-center text-slate-400 text-xs bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-6">
+              <SlidersHorizontal size={24} className="text-slate-300 mx-auto mb-2" />
+              <span className="font-semibold text-slate-600 block">Tidak ada calon siswa yang sesuai filter.</span>
             </div>
           ) : (
             paginatedApplicants.map((app) => {
               const isF = (app.student_nickname && app.student_nickname.toLowerCase().includes('fullday')) || (app.special_needs && app.special_needs.toLowerCase().includes('fullday'))
+              const phoneClean = (app.father_phone || app.mother_phone || '').replace(/[^0-9]/g, '')
+              const waLink = phoneClean.startsWith('0') ? `https://wa.me/62${phoneClean.slice(1)}` : `https://wa.me/${phoneClean}`
+
               return (
                 <div
                   key={app.id}
-                  className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-4 font-sans"
+                  className="bg-white border border-slate-200/90 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-3.5 font-sans relative overflow-hidden"
                 >
+                  {/* Top Bar: Reg number + Program + Status */}
                   <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
-                        {app.registration_number}
-                      </span>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                          {app.registration_number}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                          isF ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        }`}>
+                          {isF ? <Sparkles size={11} /> : <School size={11} />}
+                          <span>{isF ? 'Fullday' : 'Regular'}</span>
+                        </span>
+                      </div>
                       <StatusBadge status={app.status} />
                     </div>
 
+                    {/* Student Identity */}
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
-                          isF ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {isF ? 'Kelas Fullday' : 'Kelas Regular'}
-                        </span>
-                      </div>
                       <h4 
                         onClick={() => {
                           setSelectedApplicant(app)
                           setActionNotes(app.admin_notes || '')
                         }}
-                        className="font-bold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
+                        className="font-extrabold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
                       >
                         {app.student_name}
                       </h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {app.birth_place}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'}
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                        <span>{app.birth_place || '—'}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'}</span>
+                        {app.gender && <span>• ({app.gender})</span>}
                       </p>
                     </div>
 
-                    <div className="bg-slate-50 rounded-2xl p-3 text-xs text-slate-600 space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Orang Tua:</span>
-                        <span className="font-bold text-slate-800">{app.father_name || app.mother_name || '—'}</span>
+                    {/* Compact Info Box */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-3 text-xs text-slate-600 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-400 font-medium">Orang Tua / Wali:</span>
+                        <span className="font-bold text-slate-800 truncate max-w-[55%]">{app.father_name || app.mother_name || '—'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">WhatsApp:</span>
-                        <span className="font-semibold text-slate-700">{app.father_phone || app.mother_phone || '—'}</span>
+
+                      {(app.father_phone || app.mother_phone) && (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-slate-400 font-medium">No. WhatsApp:</span>
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
+                          >
+                            <Phone size={11} />
+                            <span>{app.father_phone || app.mother_phone}</span>
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-400 font-medium">Biaya Masuk:</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-slate-900">
+                            Rp {(Number(app.payment_amount) || 300000).toLocaleString('id-ID')}
+                          </span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                            app.payment_status === 'verified' 
+                              ? 'bg-emerald-100 text-emerald-700' 
+                              : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {app.payment_status === 'verified' ? 'Lunas' : 'Menunggu'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  {/* Card Footer Actions */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2">
                     {app.payment_proof_url ? (
                       <button
                         onClick={() => setPreviewImage(app.payment_proof_url)}
-                        className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                        className="btn-tactile inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-100 transition cursor-pointer"
                       >
                         <ImageIcon size={13} />
-                        <span>Struk Bayar</span>
+                        <span>Lihat Struk</span>
                       </button>
                     ) : (
-                      <span className="text-xs text-slate-400 italic">Belum bayar</span>
+                      <span className="text-xs text-slate-400 italic">Belum ada struk</span>
                     )}
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 ml-auto">
                       <button
                         onClick={() => {
                           setSelectedApplicant(app)
                           setActionNotes(app.admin_notes || '')
                         }}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                        className="btn-tactile px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1"
                       >
-                        Detail &amp; Verifikasi
+                        <Eye size={13} />
+                        <span>Detail &amp; Verifikasi</span>
                       </button>
+
+                      {canManage && (
+                        <button
+                          onClick={() => handleDeleteApplicant(app.id, app.student_name)}
+                          className="btn-tactile p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                          title="Hapus Data"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1178,10 +1237,10 @@ export default function AdminSpmbPage() {
 
               {/* Data Calon Siswa */}
               <div className="space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  👤 Data Calon Siswa
+                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                  Data Calon Siswa
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                   <div>
                     <span className="text-slate-400 block">Tempat, Tanggal Lahir</span>
                     <span className="font-bold text-slate-800">{selectedApplicant.birth_place || '—'}, {selectedApplicant.birth_date ? new Date(selectedApplicant.birth_date).toLocaleDateString('id-ID') : '—'}</span>
@@ -1207,10 +1266,10 @@ export default function AdminSpmbPage() {
 
               {/* Data Orang Tua */}
               <div className="space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  👨‍👩‍👧 Data Orang Tua / Wali
+                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                  Data Orang Tua / Wali
                 </h4>
-                <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-xs">
+                <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-sm">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <span className="text-slate-400 block">Nama Lengkap Orang Tua / Wali:</span>
@@ -1246,13 +1305,13 @@ export default function AdminSpmbPage() {
 
               {/* Pembayaran & Bukti Struk */}
               <div className="space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  💳 Pembayaran Biaya Pendaftaran (Bank BTN)
+                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                  Pembayaran Biaya Pendaftaran (Bank BTN)
                 </h4>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs bg-slate-50 p-4 rounded-2xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm bg-slate-50 p-4 rounded-2xl">
                   <div>
                     <span className="text-slate-500">Nominal Transfer: </span>
-                    <span className="font-bold text-slate-900">Rp {(Number(selectedApplicant.payment_amount) || 200000).toLocaleString('id-ID')}</span>
+                    <span className="font-bold text-slate-900">Rp {(Number(selectedApplicant.payment_amount) || 300000).toLocaleString('id-ID')}</span>
                     <span className="text-slate-400 block mt-0.5">Status Pembayaran: <strong>{selectedApplicant.payment_status === 'verified' ? '✓ Terverifikasi' : 'Menunggu Verifikasi'}</strong></span>
                   </div>
 
@@ -1270,10 +1329,10 @@ export default function AdminSpmbPage() {
 
               {/* Dokumen Terunggah */}
               <div className="space-y-3">
-                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  📁 Dokumen Persyaratan Pendaftaran
+                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                  Dokumen Persyaratan Pendaftaran
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm">
                   <DocLink title="Akta Kelahiran" url={selectedApplicant.document_birth_certificate} onPreview={setPreviewImage} />
                   <DocLink title="Kartu Keluarga" url={selectedApplicant.document_family_card} onPreview={setPreviewImage} />
                   <DocLink title="KTP Orang Tua" url={selectedApplicant.document_parent_id} onPreview={setPreviewImage} />
@@ -1331,7 +1390,7 @@ export default function AdminSpmbPage() {
                 <label className="block text-xs font-bold text-slate-700">Biaya Formulir &amp; Pendaftaran (Rp)</label>
                 <input
                   type="number"
-                  value={settingsForm.registration_fee || 200000}
+                  value={settingsForm.registration_fee || 300000}
                   onChange={(e) => setSettingsForm({ ...settingsForm, registration_fee: Number(e.target.value) })}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
                 />

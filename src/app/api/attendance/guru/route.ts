@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -53,10 +53,10 @@ export async function GET(request: NextRequest) {
 
     if (staffsError) throw staffsError
 
-    // Get attendance for the specified range
+    // Get attendance for the specified range (selecting only required columns)
     const { data: attendance, error: attendanceError } = await supabase
       .from('staff_attendance')
-      .select('*')
+      .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
       .gte('date', startDate)
       .lte('date', endDate)
 

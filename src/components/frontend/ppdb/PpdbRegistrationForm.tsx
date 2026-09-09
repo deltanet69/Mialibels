@@ -328,7 +328,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
   }
 
   return (
-    <div className="font-sans w-full max-w-4xl mx-auto">
+    <div className="font-sans w-full max-w-5xl mx-auto">
       
       {/* ── STEP INDICATOR (4 STEPS) ── */}
       <div className="mb-8">
@@ -347,7 +347,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 key={item.step}
                 className={`flex flex-col items-center p-3 rounded-2xl border transition-all text-center ${
                   isCurrent
-                    ? 'bg-blue-50/80 border-blue-500/40 text-blue-700 shadow-xs'
+                    ? 'bg-gray-100 border-blue-500 text-blue-700 shadow-xs'
                     : isPassed
                     ? 'bg-emerald-50/70 border-emerald-300/60 text-emerald-700'
                     : 'bg-white border-slate-200/80 text-slate-400'
@@ -998,7 +998,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 <div className="bg-white/10 p-4 rounded-2xl border border-white/15 text-left sm:text-right">
                   <span className="text-xs text-blue-200 block">Biaya Formulir &amp; Pendaftaran:</span>
                   <span className="text-2xl font-black text-amber-300">
-                    Rp {(Number(settings.registration_fee) || 200000).toLocaleString('id-ID')}
+                    Rp {(Number(settings.registration_fee) || 300000).toLocaleString('id-ID')}
                   </span>
                 </div>
               </div>

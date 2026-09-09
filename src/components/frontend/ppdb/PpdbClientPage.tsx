@@ -158,7 +158,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             </div>
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
               <GraduationCap size={14} className="text-amber-400 shrink-0" />
-              <span>Biaya Rp {(Number(currentSettings.registration_fee) || 200000).toLocaleString('id-ID')}</span>
+              <span>Biaya Rp {(Number(currentSettings.registration_fee) || 300000).toLocaleString('id-ID')}</span>
             </div>
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
               <ShieldCheck size={14} className="text-teal-400 shrink-0" />
@@ -167,7 +167,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
           </div>
 
           {/* Direct CTA Buttons */}
-          <div className="flex flex-col xs:flex-row items-center justify-center gap-3 pt-3">
+          <div className="max-w-5xl mx-auto flex flex-col xs:flex-row items-center justify-center gap-3 pt-3">
             {currentSettings.is_active && !isTotalFull ? (
               <button
                 onClick={() => scrollToForm('register')}
@@ -202,8 +202,8 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         <div ref={formRef} className="pt-2 scroll-mt-24">
           
           {/* Tab Switcher */}
-          <div className="flex items-center justify-center mb-8">
-            <div className="bg-slate-200/80 p-1.5 rounded-2xl flex items-center gap-1 shadow-inner max-w-md w-full">
+          {/* <div className="flex items-center justify-center mb-8">
+            <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1 shadow-inner max-w-md w-full">
               <button
                 onClick={() => setActiveTab('register')}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
@@ -228,7 +228,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                 <span>Cek Status Pendaftaran</span>
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* Tab Content Display */}
           {activeTab === 'register' ? (

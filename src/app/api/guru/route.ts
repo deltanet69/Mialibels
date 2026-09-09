@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
@@ -10,7 +10,15 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('staffs')
       .select(`
-        *,
+        id,
+        name,
+        position,
+        phone,
+        email,
+        rfid,
+        image,
+        is_active,
+        created_at,
         homeroom_classrooms:classrooms!homeroom_teacher_id(id, name),
         schedules:classroom_schedules(id, classroom:classrooms(name))
       `)

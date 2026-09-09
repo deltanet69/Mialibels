@@ -13,6 +13,45 @@ const supabase = createClient(
   supabaseServiceKey
 )
 
+// Fast in-memory cache for teacher schedule lookup (5 mins TTL) to reduce database load during peak scan hours
+const teacherScheduleCache = new Map<string, { timestamp: number; schedules: any[] }>()
+const SCHEDULE_CACHE_TTL = 5 * 60 * 1000
+
+async function getTeacherSchedules(teacherId: string) {
+  const cached = teacherScheduleCache.get(teacherId)
+  if (cached && Date.now() - cached.timestamp < SCHEDULE_CACHE_TTL) {
+    return cached.schedules
+  }
+
+  const [{ data: schedulesData }, { data: homeroomClassrooms }] = await Promise.all([
+    supabase
+      .from('classroom_schedules')
+      .select('id, day, time, classroom_id, classroom:classrooms(id, name, level)')
+      .eq('teacher_id', teacherId),
+    supabase
+      .from('classrooms')
+      .select('id, name, level')
+      .eq('homeroom_teacher_id', teacherId)
+  ])
+
+  const allTeacherSchedules = [
+    ...(schedulesData || []),
+    ...(homeroomClassrooms || []).map(c => ({
+      day: '',
+      time: '',
+      classroom: { name: c.name },
+      classroom_name: c.name
+    }))
+  ]
+
+  teacherScheduleCache.set(teacherId, {
+    timestamp: Date.now(),
+    schedules: allTeacherSchedules
+  })
+
+  return allTeacherSchedules
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { rfid } = await request.json()
@@ -26,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     const { data: staffs, error: staffError } = await supabase
       .from('staffs')
-      .select('*')
+      .select('id, name, position, rfid, image, is_active')
       .in('rfid', rfidVariants)
       .eq('is_active', true)
       .limit(1)
@@ -56,27 +95,8 @@ export async function POST(request: NextRequest) {
     const daysIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
     const todayDayName = daysIndo[localDate.getUTCDay()]
 
-    // Fetch schedules & homeroom class to detect Shift (Pagi vs Siang)
-    const [{ data: schedulesData }, { data: homeroomClassrooms }] = await Promise.all([
-      supabase
-        .from('classroom_schedules')
-        .select('id, day, time, classroom_id, classroom:classrooms(id, name, level)')
-        .eq('teacher_id', staff.id),
-      supabase
-        .from('classrooms')
-        .select('id, name, level')
-        .eq('homeroom_teacher_id', staff.id)
-    ])
-
-    const allTeacherSchedules = [
-      ...(schedulesData || []),
-      ...(homeroomClassrooms || []).map(c => ({
-        day: '',
-        time: '',
-        classroom: { name: c.name },
-        classroom_name: c.name
-      }))
-    ]
+    // Fetch schedules & homeroom class from memory cache / fast query
+    const allTeacherSchedules = await getTeacherSchedules(staff.id)
 
     // Determine shift (Pagi vs Siang vs Khusus)
     const shiftData = determineTeacherShift(staff, allTeacherSchedules as any, todayDayName)
@@ -90,7 +110,7 @@ export async function POST(request: NextRequest) {
     // 2. Check existing attendance for today
     const { data: existingRecords, error: checkError } = await supabase
       .from('staff_attendance')
-      .select('*')
+      .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
       .eq('staff_id', staff.id)
       .eq('date', dateStr)
       .limit(1)
@@ -113,7 +133,7 @@ export async function POST(request: NextRequest) {
           check_in_time: nowIso,
           updated_at: nowIso
         })
-        .select()
+        .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
         .single()
 
       if (insertError) throw insertError

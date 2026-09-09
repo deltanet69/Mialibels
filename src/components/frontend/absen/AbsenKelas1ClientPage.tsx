@@ -188,10 +188,12 @@ export default function AbsenKelas1ClientPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Supabase Realtime Sync
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Supabase Realtime Sync (Scoped khusus Pos Kelas 1 Gedung 2: 1B, 1C, 1D)
   useEffect(() => {
     try {
-      const channel = supabase.channel('mia-attendance-siswa-sync')
+      const channel = supabase.channel('mia-attendance-sync-kelas1')
 
       channel
         .on(
@@ -201,14 +203,28 @@ export default function AbsenKelas1ClientPage() {
             const data = payload.payload
             if (data.sender === clientIdRef.current) return
 
+            // Hanya proses scan berhasil untuk kelas 1B, 1C, 1D
+            if (!data.success || !data.student || !data.student.class) return
+
+            const studClean = data.student.class.toLowerCase().replace(/kelas/g, '').replace(/[^a-z0-9]/g, '').trim()
+            if (!['1b', '1c', '1d'].includes(studClean)) return
+
             showPopupRef.current({
-              type: data.success ? 'success' : 'error',
+              type: 'success',
               message: data.message,
               action: data.action,
               student: data.student
             })
 
-            fetchAttendanceList()
+            if (data.student?.id) {
+              setLastScannedStudentId(data.student.id)
+              setTimeout(() => setLastScannedStudentId(null), 8000)
+            }
+
+            if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
+            fetchTimeoutRef.current = setTimeout(() => {
+              fetchAttendanceList()
+            }, 1000)
           }
         )
         .subscribe((status) => {
@@ -217,7 +233,10 @@ export default function AbsenKelas1ClientPage() {
           }
         })
 
-      return () => { supabase.removeChannel(channel) }
+      return () => { 
+        if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
+        supabase.removeChannel(channel) 
+      }
     } catch (e) {
       console.error('Realtime subscription error', e)
     }
@@ -259,21 +278,21 @@ export default function AbsenKelas1ClientPage() {
 
       if (data.success) {
         fetchAttendanceList()
-      }
 
-      // Broadcast via Supabase
-      if (broadcastChannelRef.current) {
-        broadcastChannelRef.current.send({
-          type: 'broadcast',
-          event: 'scan_result_siswa',
-          payload: {
-            sender: clientIdRef.current,
-            success: data.success,
-            message: data.success ? data.message : (data.error || 'Absensi gagal'),
-            action: data.action,
-            student: data.student
-          }
-        })
+        // Hanya broadcast ke channel jika absensi berhasil
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current.send({
+            type: 'broadcast',
+            event: 'scan_result_siswa',
+            payload: {
+              sender: clientIdRef.current,
+              success: true,
+              message: data.message,
+              action: data.action,
+              student: data.student
+            }
+          })
+        }
       }
     } catch (err: any) {
       showPopup({

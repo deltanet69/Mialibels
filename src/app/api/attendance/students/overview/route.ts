@@ -12,12 +12,13 @@ const supabase = createClient(
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const viewMode = searchParams.get('viewMode') || 'daily' // 'daily' | 'weekly' | 'monthly'
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
     const classId = searchParams.get('classId') || 'ALL'
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!, 10) : new Date().getMonth() + 1
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!, 10) : new Date().getFullYear()
 
-    // Current local time (WIB UTC+7) to determine if lock cutoff (07:15) has passed
+    // 1. Current local time (WIB UTC+7) to determine if lock cutoff (07:15) has passed
     const today = new Date()
     const offset = 7 * 60 * 60 * 1000 // UTC+7
     const localDate = new Date(today.getTime() + offset)
@@ -31,86 +32,126 @@ export async function GET(request: NextRequest) {
     const isTodayPastCutoff = (date === todayStr) && (currentMinutes > cutoffMinutes)
     const isAfterLockTime = isPastDate || isTodayPastCutoff
 
-    // 1. Fetch all classrooms (only confirmed existing columns)
-    const { data: classroomsData, error: classroomsError } = await supabase
-      .from('classrooms')
-      .select('id, name, homeroom_teacher_id')
-      .order('name', { ascending: true })
+    // 2. Compute date bounds based on viewMode
+    let startDate = date
+    let endDate = date
+    let weekDays: { date: string; dayName: string; dayLabel: string }[] = []
 
+    if (viewMode === 'weekly') {
+      const d = new Date(date + 'T00:00:00Z')
+      const dayOfWeek = d.getUTCDay() // 0 = Sun, 1 = Mon ... 6 = Sat
+      const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+      const monDate = new Date(d)
+      monDate.setUTCDate(d.getUTCDate() + diffToMon)
+
+      const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+      weekDays = dayNames.map((name, i) => {
+        const cur = new Date(monDate)
+        cur.setUTCDate(monDate.getUTCDate() + i)
+        const dStr = cur.toISOString().split('T')[0]
+        const dParts = dStr.split('-')
+        return {
+          date: dStr,
+          dayName: name,
+          dayLabel: `${name} (${dParts[2]}/${dParts[1]})`
+        }
+      })
+
+      startDate = weekDays[0].date
+      endDate = weekDays[weekDays.length - 1].date
+    } else if (viewMode === 'monthly') {
+      startDate = `${year}-${String(month).padStart(2, '0')}-01`
+      const lastDay = new Date(year, month, 0).getDate()
+      endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    }
+
+    // 3. Fetch Master Reference Data (Classrooms, Staffs, Students)
+    const [
+      { data: classroomsData, error: classroomsError },
+      { data: staffsData, error: staffsError },
+      { data: studentsData, error: studentsError }
+    ] = await Promise.all([
+      supabase.from('classrooms').select('id, name, homeroom_teacher_id').order('name', { ascending: true }),
+      supabase.from('staffs').select('id, name'),
+      supabase.from('students').select('id, name, student_number, nisn, class, class_id, is_active').eq('is_active', true).order('name', { ascending: true })
+    ])
 
     if (classroomsError) throw classroomsError
-
-    // 2. Fetch staffs separately and build a lookup map
-    const { data: staffsData } = await supabase
-      .from('staffs')
-      .select('id, name')
+    if (studentsError) throw studentsError
 
     const staffMap: Record<string, string> = {}
     ;(staffsData || []).forEach((s: any) => {
       staffMap[s.id] = s.name || 'Belum Ditentukan'
     })
 
-
-
-    // 3. Fetch all active students (filter per class done in JS after)
-    const { data: studentsData, error: studentsError } = await supabase
-      .from('students')
-      .select('id, name, student_number, nisn, gender, class, class_id, is_active')
-      .eq('is_active', true)
-      .order('name', { ascending: true })
-
-    if (studentsError) throw studentsError
-
-    // 3. Fetch RFID Scans for this date
-    const { data: rfidData, error: rfidError } = await supabase
-      .from('student_attendances')
-      .select('id, student_id, date, entry_time, exit_time, status, notes')
-      .eq('date', date)
+    // 4. Fetch Attendances in date range (RFID + Manual Classroom)
+    const [
+      { data: rfidData, error: rfidError },
+      { data: manualData, error: manualError }
+    ] = await Promise.all([
+      supabase
+        .from('student_attendances')
+        .select('id, student_id, date, entry_time, exit_time, status')
+        .gte('date', startDate)
+        .lte('date', endDate),
+      supabase
+        .from('classroom_attendances')
+        .select('id, student_id, classroom_id, date, status, reason')
+        .gte('date', startDate)
+        .lte('date', endDate)
+    ])
 
     if (rfidError) throw rfidError
-
-    // 4. Fetch Classroom manual attendances for this date
-    const { data: manualData, error: manualError } = await supabase
-      .from('classroom_attendances')
-      .select('id, student_id, classroom_id, date, status, reason')
-      .eq('date', date)
-
     if (manualError) throw manualError
 
-    // Map attendances per student
-    const rfidMap: Record<string, any> = {}
-    rfidData?.forEach(r => { rfidMap[r.student_id] = r })
+    // 5. Structure Attendance Maps for fast lookups
+    // Lookup: studentMap[studentId][date] = { status, entry_time, exit_time, is_manual, reason }
+    const studentAttendanceMatrix: Record<string, Record<string, any>> = {}
+    ;(studentsData || []).forEach((s) => {
+      studentAttendanceMatrix[s.id] = {}
+    })
 
-    const manualMap: Record<string, any> = {}
-    manualData?.forEach(m => { manualMap[m.student_id] = m })
+    ;(rfidData || []).forEach((r) => {
+      if (!studentAttendanceMatrix[r.student_id]) studentAttendanceMatrix[r.student_id] = {}
+      studentAttendanceMatrix[r.student_id][r.date] = {
+        status: r.status || 'Hadir',
+        entry_time: r.entry_time,
+        exit_time: r.exit_time,
+        is_manual: false,
+        reason: ''
+      }
+    })
 
-    // Merge student attendance records
-    let totalPresent = 0
-    let totalLate = 0
-    let totalIzin = 0
-    let totalSakit = 0
-    let totalAlpha = 0
-    let totalBelum = 0
+    ;(manualData || []).forEach((m) => {
+      if (!studentAttendanceMatrix[m.student_id]) studentAttendanceMatrix[m.student_id] = {}
+      const existing = studentAttendanceMatrix[m.student_id][m.date]
+      studentAttendanceMatrix[m.student_id][m.date] = {
+        status: m.status || existing?.status || 'Hadir',
+        entry_time: existing?.entry_time || null,
+        exit_time: existing?.exit_time || null,
+        is_manual: true,
+        reason: m.reason || ''
+      }
+    })
 
-    const processedStudents = (studentsData || []).map((student) => {
-      const rRec = rfidMap[student.id]
-      const mRec = manualMap[student.id]
+    // 6. Compute Daily Specific Data (if viewing single date or daily tab)
+    let dailyTotalPresent = 0
+    let dailyTotalLate = 0
+    let dailyTotalIzin = 0
+    let dailyTotalSakit = 0
+    let dailyTotalAlpha = 0
+    let dailyTotalBelum = 0
 
-      let status = ''
-      let reason = ''
-      let entryTime = rRec?.entry_time || null
-      let exitTime = rRec?.exit_time || null
-      let isManual = false
+    const processedDailyStudents = (studentsData || []).map((student) => {
+      const att = studentAttendanceMatrix[student.id]?.[date]
 
-      if (mRec && mRec.status) {
-        status = mRec.status
-        reason = mRec.reason || ''
-        isManual = true
-      } else if (rRec && rRec.status) {
-        status = rRec.status
-        reason = rRec.notes || ''
-      } else if (isAfterLockTime) {
-        // Otomatis menjadi Alpha setelah lewat batas 07:15 WIB
+      let status = att?.status || ''
+      let reason = att?.reason || ''
+      let entryTime = att?.entry_time || null
+      let exitTime = att?.exit_time || null
+      let isManual = !!att?.is_manual
+
+      if (!status && isAfterLockTime) {
         status = 'Alpha'
         reason = 'Tidak melakukan presensi sebelum 07:15 WIB'
       }
@@ -119,29 +160,28 @@ export async function GET(request: NextRequest) {
       const isPresent = statusLower === 'hadir' || statusLower === 'present' || statusLower === 'tepat waktu' || statusLower === 'terlambat'
 
       if (isPresent) {
-        totalPresent++
-        if (statusLower === 'terlambat') totalLate++
+        dailyTotalPresent++
+        if (statusLower === 'terlambat') dailyTotalLate++
       } else if (statusLower === 'izin' || statusLower === 'permitted') {
-        totalIzin++
+        dailyTotalIzin++
       } else if (statusLower === 'sakit' || statusLower === 'sick') {
-        totalSakit++
+        dailyTotalSakit++
       } else if (statusLower === 'alpha' || statusLower === 'alpa') {
-        totalAlpha++
+        dailyTotalAlpha++
       } else {
-        totalBelum++
+        dailyTotalBelum++
       }
 
-      // Resolve classroom name
-      const classroom = classroomsData?.find(c => c.id === student.class_id)
+      const classroom = classroomsData?.find((c) => c.id === student.class_id || c.name === student.class)
       const className = classroom ? classroom.name : (student.class || '-')
+      const resolvedClassId = classroom ? classroom.id : student.class_id
 
       return {
         id: student.id,
         name: student.name,
         student_number: student.student_number,
         nisn: student.nisn,
-        gender: student.gender,
-        class_id: student.class_id,
+        class_id: resolvedClassId,
         class_name: className,
         attendance: {
           status: status || null,
@@ -155,17 +195,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Compute classroom summary cards
+    // Daily classroom summaries
     const classroomsSummary = (classroomsData || []).map((c) => {
-      const classStudents = processedStudents.filter(s => s.class_id === c.id)
+      const classStudents = processedDailyStudents.filter((s) => s.class_id === c.id || s.class_name === c.name)
       const total = classStudents.length
-      const present = classStudents.filter(s => s.attendance.is_present).length
-      const izin = classStudents.filter(s => (s.attendance.status || '').toLowerCase() === 'izin').length
-      const sakit = classStudents.filter(s => (s.attendance.status || '').toLowerCase() === 'sakit').length
-      const alpha = classStudents.filter(s => (s.attendance.status || '').toLowerCase() === 'alpha').length
+      const present = classStudents.filter((s) => s.attendance.is_present).length
+      const izin = classStudents.filter((s) => (s.attendance.status || '').toLowerCase() === 'izin').length
+      const sakit = classStudents.filter((s) => (s.attendance.status || '').toLowerCase() === 'sakit').length
+      const alpha = classStudents.filter((s) => (s.attendance.status || '').toLowerCase() === 'alpha').length
       const belum = total - (present + izin + sakit + alpha)
       const percentage = total > 0 ? Math.round((present / total) * 100) : 0
-
       const teacherName = c.homeroom_teacher_id ? (staffMap[c.homeroom_teacher_id] || 'Belum Ditentukan') : 'Belum Ditentukan'
 
       return {
@@ -183,74 +222,161 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Filter students if specific classId requested
-    const filteredStudents = classId === 'ALL'
-      ? processedStudents
-      : processedStudents.filter(s => s.class_id === classId)
+    // 7. Compute Weekly Matrix & Weekly Student Data
+    let weeklyTotalPresentRecords = 0
+    let weeklyTotalPossibleSlots = 0
+    let weeklyTotalIzinRecords = 0
+    let weeklyTotalSakitRecords = 0
+    let weeklyTotalAlphaRecords = 0
 
-    const totalStudentsCount = studentsData?.length || 0
-    const attendancePercentage = totalStudentsCount > 0
-      ? Math.round((totalPresent / totalStudentsCount) * 100)
-      : 0
+    // Weekly Matrix per Classroom
+    const weeklyClassroomsMatrix = (classroomsData || []).map((c) => {
+      const classStudents = (studentsData || []).filter((s) => s.class_id === c.id || s.class === c.name)
+      const total = classStudents.length
 
-    // 5. Compute Monthly Recap per Class (for ranking & comparison)
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+      let classPresentTotal = 0
+      let classSlotsTotal = 0
 
-    const { data: monthClassAtts } = await supabase
-      .from('classroom_attendances')
-      .select('student_id, classroom_id, status, date')
-      .gte('date', startDate)
-      .lte('date', endDate)
+      const days = weekDays.map((day) => {
+        const presentCount = classStudents.filter((s) => {
+          const att = studentAttendanceMatrix[s.id]?.[day.date]
+          const st = (att?.status || '').toLowerCase()
+          return st === 'hadir' || st === 'present' || st === 'tepat waktu' || st === 'terlambat'
+        }).length
 
-    const { data: monthRfidAtts } = await supabase
-      .from('student_attendances')
-      .select('student_id, status, date')
-      .gte('date', startDate)
-      .lte('date', endDate)
+        const pct = total > 0 ? Math.round((presentCount / total) * 100) : 0
+        classPresentTotal += presentCount
+        classSlotsTotal += total
 
-    // Build monthly breakdown per classroom
+        return {
+          date: day.date,
+          dayName: day.dayName,
+          dayLabel: day.dayLabel,
+          present_count: presentCount,
+          total_students: total,
+          percentage: pct
+        }
+      })
+
+      weeklyTotalPresentRecords += classPresentTotal
+      weeklyTotalPossibleSlots += classSlotsTotal
+
+      const weeklyAverage = classSlotsTotal > 0 ? Math.round((classPresentTotal / classSlotsTotal) * 100) : 0
+      const teacherName = c.homeroom_teacher_id ? (staffMap[c.homeroom_teacher_id] || 'Belum Ditentukan') : 'Belum Ditentukan'
+
+      return {
+        id: c.id,
+        name: c.name,
+        slug: c.name.toLowerCase().replace(/\s+/g, '-'),
+        homeroom_teacher: teacherName,
+        total_students: total,
+        days,
+        weekly_average: weeklyAverage
+      }
+    })
+
+    // Weekly Students Breakdown
+    const processedWeeklyStudents = (studentsData || []).map((student) => {
+      const classroom = classroomsData?.find((c) => c.id === student.class_id || c.name === student.class)
+      const className = classroom ? classroom.name : (student.class || '-')
+      const resolvedClassId = classroom ? classroom.id : student.class_id
+
+      let hadirCount = 0
+      let izinCount = 0
+      let sakitCount = 0
+      let alphaCount = 0
+      const dayStatuses: Record<string, any> = {}
+
+      weekDays.forEach((day) => {
+        const att = studentAttendanceMatrix[student.id]?.[day.date]
+        const st = att?.status || (day.date < todayStr ? 'Alpha' : null)
+        const stLower = (st || '').toLowerCase()
+
+        if (stLower === 'hadir' || stLower === 'present' || stLower === 'tepat waktu' || stLower === 'terlambat') {
+          hadirCount++
+        } else if (stLower === 'izin' || stLower === 'permitted') {
+          izinCount++
+          weeklyTotalIzinRecords++
+        } else if (stLower === 'sakit' || stLower === 'sick') {
+          sakitCount++
+          weeklyTotalSakitRecords++
+        } else if (stLower === 'alpha' || stLower === 'alpa') {
+          alphaCount++
+          weeklyTotalAlphaRecords++
+        }
+
+        dayStatuses[day.date] = {
+          status: st,
+          entry_time: att?.entry_time || null,
+          exit_time: att?.exit_time || null
+        }
+      })
+
+      const totalSchoolDays = weekDays.length
+      const percentage = totalSchoolDays > 0 ? Math.round((hadirCount / totalSchoolDays) * 100) : 0
+
+      return {
+        id: student.id,
+        name: student.name,
+        student_number: student.student_number,
+        nisn: student.nisn,
+        class_id: resolvedClassId,
+        class_name: className,
+        days: dayStatuses,
+        summary: {
+          hadir: hadirCount,
+          izin: izinCount,
+          sakit: sakitCount,
+          alpha: alphaCount,
+          total_days: totalSchoolDays,
+          percentage
+        }
+      }
+    })
+
+    // 8. Compute Monthly Classroom Leaderboard & Monthly Student Data
+    let monthlyTotalHadirRecords = 0
+    let monthlyTotalIzinRecords = 0
+    let monthlyTotalSakitRecords = 0
+    let monthlyTotalAlphaRecords = 0
+    let monthlyTotalRecordedSlots = 0
+
     const monthlyClassRecap = (classroomsData || []).map((c) => {
-      const classStudents = (studentsData || []).filter(s => s.class_id === c.id)
-      const studentIds = new Set(classStudents.map(s => s.id))
-
-      const cAtts = (monthClassAtts || []).filter(a => studentIds.has(a.student_id))
-      const rAtts = (monthRfidAtts || []).filter(a => studentIds.has(a.student_id))
-
-      // Combine unique dates
-      const studentMap: Record<string, Record<string, string>> = {}
-      classStudents.forEach(s => { studentMap[s.id] = {} })
-
-      rAtts.forEach(a => {
-        if (studentMap[a.student_id]) studentMap[a.student_id][a.date] = a.status || 'Hadir'
-      })
-      cAtts.forEach(a => {
-        if (studentMap[a.student_id] && a.status) studentMap[a.student_id][a.date] = a.status
-      })
-
+      const classStudents = (studentsData || []).filter((s) => s.class_id === c.id || s.class === c.name)
       let hadir = 0
       let izin = 0
       let sakit = 0
       let alpha = 0
       let totalAttRecords = 0
 
-      Object.values(studentMap).forEach(dates => {
-        Object.values(dates).forEach(st => {
-          totalAttRecords++
-          const s = (st || '').toLowerCase()
-          if (s === 'hadir' || s === 'present' || s === 'tepat waktu' || s === 'terlambat') hadir++
-          else if (s === 'izin' || s === 'permitted') izin++
-          else if (s === 'sakit' || s === 'sick') sakit++
-          else if (s === 'alpha' || s === 'alpa') alpha++
+      classStudents.forEach((s) => {
+        const datesMap = studentAttendanceMatrix[s.id] || {}
+        Object.keys(datesMap).forEach((dStr) => {
+          if (dStr >= startDate && dStr <= endDate) {
+            const st = (datesMap[dStr]?.status || '').toLowerCase()
+            totalAttRecords++
+            if (st === 'hadir' || st === 'present' || st === 'tepat waktu' || st === 'terlambat') hadir++
+            else if (st === 'izin' || st === 'permitted') izin++
+            else if (st === 'sakit' || st === 'sick') sakit++
+            else if (st === 'alpha' || st === 'alpa') alpha++
+          }
         })
       })
 
+      monthlyTotalHadirRecords += hadir
+      monthlyTotalIzinRecords += izin
+      monthlyTotalSakitRecords += sakit
+      monthlyTotalAlphaRecords += alpha
+      monthlyTotalRecordedSlots += totalAttRecords
+
       const percentage = totalAttRecords > 0 ? Math.round((hadir / totalAttRecords) * 100) : 0
+      const teacherName = c.homeroom_teacher_id ? (staffMap[c.homeroom_teacher_id] || 'Belum Ditentukan') : 'Belum Ditentukan'
 
       return {
         id: c.id,
         name: c.name,
         slug: c.name.toLowerCase().replace(/\s+/g, '-'),
+        homeroom_teacher: teacherName,
         total_students: classStudents.length,
         total_records: totalAttRecords,
         hadir,
@@ -261,27 +387,113 @@ export async function GET(request: NextRequest) {
       }
     }).sort((a, b) => b.percentage - a.percentage)
 
+    // Monthly Students Breakdown
+    const processedMonthlyStudents = (studentsData || []).map((student) => {
+      const classroom = classroomsData?.find((c) => c.id === student.class_id || c.name === student.class)
+      const className = classroom ? classroom.name : (student.class || '-')
+      const resolvedClassId = classroom ? classroom.id : student.class_id
+
+      let hadir = 0
+      let izin = 0
+      let sakit = 0
+      let alpha = 0
+      let totalRecords = 0
+
+      const datesMap = studentAttendanceMatrix[student.id] || {}
+      Object.keys(datesMap).forEach((dStr) => {
+        if (dStr >= startDate && dStr <= endDate) {
+          const st = (datesMap[dStr]?.status || '').toLowerCase()
+          totalRecords++
+          if (st === 'hadir' || st === 'present' || st === 'tepat waktu' || st === 'terlambat') hadir++
+          else if (st === 'izin' || st === 'permitted') izin++
+          else if (st === 'sakit' || st === 'sick') sakit++
+          else if (st === 'alpha' || st === 'alpa') alpha++
+        }
+      })
+
+      const percentage = totalRecords > 0 ? Math.round((hadir / totalRecords) * 100) : 0
+
+      return {
+        id: student.id,
+        name: student.name,
+        student_number: student.student_number,
+        nisn: student.nisn,
+        class_id: resolvedClassId,
+        class_name: className,
+        summary: {
+          hadir,
+          izin,
+          sakit,
+          alpha,
+          total_records: totalRecords,
+          percentage
+        }
+      }
+    })
+
+    // 9. Filter students according to requested classId
+    const filterByClass = (list: any[]) => {
+      if (classId === 'ALL') return list
+      return list.filter((s) => s.class_id === classId || s.class_name === classId)
+    }
+
+    const totalStudentsCount = studentsData?.length || 0
+    const dailyPercentage = totalStudentsCount > 0 ? Math.round((dailyTotalPresent / totalStudentsCount) * 100) : 0
+    const weeklyPercentage = weeklyTotalPossibleSlots > 0 ? Math.round((weeklyTotalPresentRecords / weeklyTotalPossibleSlots) * 100) : 0
+    const monthlyPercentage = monthlyTotalRecordedSlots > 0 ? Math.round((monthlyTotalHadirRecords / monthlyTotalRecordedSlots) * 100) : 0
+
     return NextResponse.json({
       success: true,
       data: {
+        viewMode,
         date,
+        startDate,
+        endDate,
+        weekDays,
+        month,
+        year,
         kpi: {
           total_students: totalStudentsCount,
-          total_present: totalPresent,
-          total_late: totalLate,
-          total_izin: totalIzin,
-          total_sakit: totalSakit,
-          total_alpha: totalAlpha,
-          total_belum: totalBelum,
-          percentage: attendancePercentage
+          daily: {
+            total_present: dailyTotalPresent,
+            total_late: dailyTotalLate,
+            total_izin: dailyTotalIzin,
+            total_sakit: dailyTotalSakit,
+            total_alpha: dailyTotalAlpha,
+            total_belum: dailyTotalBelum,
+            percentage: dailyPercentage
+          },
+          weekly: {
+            total_present_slots: weeklyTotalPresentRecords,
+            total_possible_slots: weeklyTotalPossibleSlots,
+            total_izin: weeklyTotalIzinRecords,
+            total_sakit: weeklyTotalSakitRecords,
+            total_alpha: weeklyTotalAlphaRecords,
+            percentage: weeklyPercentage
+          },
+          monthly: {
+            total_hadir: monthlyTotalHadirRecords,
+            total_izin: monthlyTotalIzinRecords,
+            total_sakit: monthlyTotalSakitRecords,
+            total_alpha: monthlyTotalAlphaRecords,
+            percentage: monthlyPercentage
+          }
         },
         classrooms: classroomsSummary,
-        students: filteredStudents,
-        monthly_recap: monthlyClassRecap
+        weekly_matrix: weeklyClassroomsMatrix,
+        monthly_recap: monthlyClassRecap,
+        students: {
+          daily: filterByClass(processedDailyStudents),
+          weekly: filterByClass(processedWeeklyStudents),
+          monthly: filterByClass(processedMonthlyStudents)
+        }
       }
     })
   } catch (error: any) {
-    console.error('Error in students overview route', error)
-    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.', detail: error?.message, code: error?.code }, { status: 500 })
+    console.error('Error in students overview route:', error)
+    return NextResponse.json(
+      { success: false, error: 'Terjadi kesalahan saat memuat data absensi siswa.', detail: error?.message, code: error?.code },
+      { status: 500 }
+    )
   }
 }

@@ -27,7 +27,7 @@ export async function GET() {
       batch_1_name: 'Periode Pendaftaran 2027/2028',
       batch_1_period: 'Oktober – Kuota Terpenuhi',
       batch_1_quota: 120,
-      registration_fee: 200000,
+      registration_fee: 300000,
       bank_name: 'Bank BTN',
       bank_account_number: '00129-01-30-00015-9',
       bank_account_holder: 'MI ATTAQWA 15 BABELAN',

@@ -33,7 +33,21 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('students')
       .select(`
-        *,
+        id,
+        student_number,
+        name,
+        class,
+        class_id,
+        gender,
+        nisn,
+        rfid_number,
+        parent_name,
+        parent_phone,
+        parent_email,
+        fee_waiver_type,
+        is_active,
+        created_at,
+        photo_url,
         spp_invoices (id, month, year, status),
         general_invoices (id, items)
       `)

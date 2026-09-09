@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'className and date are required' }, { status: 400 })
     }
 
-    const deviceClean = (className || '').toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '');
+    const deviceClean = (className || '').toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '').trim();
     const rawClassLower = (className || '').toLowerCase().trim();
-    const isMultiClassGrade1 = deviceClean === '1' || deviceClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1';
+    const isMultiClassGrade1 = rawClassLower === 'kelas1' || deviceClean === 'kelas1' || deviceClean === '1bcd';
 
     // 1. Fetch active students ONLY for the specific class
     let studentQuery = supabase
@@ -28,8 +28,12 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true);
 
     if (isMultiClassGrade1) {
-      studentQuery = studentQuery.ilike('class', '1%');
-    } else if (className) {
+      // Pos Gedung 2: hanya Kelas 1B, 1C, 1D (tidak memuat 1A)
+      studentQuery = studentQuery.or('class.ilike.%1b%,class.ilike.%1c%,class.ilike.%1d%');
+    } else if (deviceClean === '1a' || rawClassLower === '1a') {
+      // Pos Gedung 1: hanya Kelas 1A
+      studentQuery = studentQuery.ilike('class', '%1a%');
+    } else if (deviceClean) {
       studentQuery = studentQuery.ilike('class', `%${deviceClean}%`);
     }
 
@@ -42,12 +46,12 @@ export async function GET(request: NextRequest) {
 
     const studentIds = classStudents.map(s => s.id)
 
-    // 3. Fetch attendance for these students on the given date
+    // 3. Fetch attendance for these students on the given date (hanya kolom yang diperlukan)
     let attendances: any[] = []
     if (studentIds.length > 0) {
       const { data: attData, error: attError } = await supabase
         .from('student_attendances')
-        .select('*')
+        .select('id, student_id, date, status, entry_time, exit_time')
         .in('student_id', studentIds)
         .eq('date', date)
 

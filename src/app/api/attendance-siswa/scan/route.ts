@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const { data: students, error: studentError } = await supabase
       .from('students')
-      .select('*')
+      .select('id, name, class, rfid_number, is_active')
       .in('rfid_number', rfidVariants)
       .eq('is_active', true)
       .limit(1)
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         .replace(/ruang/g, '')
         .replace(/gedung/g, '')
         .replace(/[^a-z0-9]/g, '')
+        .trim()
     }
 
     const studentClean = cleanClassCode(student.class)
@@ -55,19 +56,57 @@ export async function POST(request: NextRequest) {
     const rawClassLower = (className || '').toLowerCase().trim()
     
     let isClassAllowed = false
-    if (deviceClean === '1' || deviceClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1') {
-      // Allow Grade 1 students (1A, 1B, 1C, 1D)
-      isClassAllowed = studentClean.startsWith('1') || studentClean.includes('1')
-    } else if (deviceClean) {
-      isClassAllowed = studentClean === deviceClean || 
-                       studentClean.includes(deviceClean) || 
-                       deviceClean.includes(studentClean)
-    } else {
+    let rejectionReason = ''
+
+    // 1. Kiosk Gedung 2 (Kelas 1B, 1C, 1D): /kelas1
+    if (rawClassLower === 'kelas1' || deviceClean === 'kelas1' || deviceClean === '1bcd') {
+      if (['1b', '1c', '1d'].includes(studentClean)) {
+        isClassAllowed = true
+      } else if (studentClean === '1a') {
+        isClassAllowed = false
+        rejectionReason = `Siswa ${student.name} (Kelas 1A) terdaftar di Pos Gedung 1. Silakan lakukan absensi di Pos Kelas 1A.`
+      } else {
+        isClassAllowed = false
+        rejectionReason = `Siswa ${student.name} (${student.class || 'Tanpa Kelas'}) tidak diizinkan di Pos Absensi Gedung 2.`
+      }
+    }
+    // 2. Kiosk Gedung 1 (Kelas 1A): /1a
+    else if (deviceClean === '1a' || rawClassLower === '1a') {
+      if (studentClean === '1a') {
+        isClassAllowed = true
+      } else if (['1b', '1c', '1d'].includes(studentClean)) {
+        isClassAllowed = false
+        rejectionReason = `Siswa ${student.name} (${student.class}) terdaftar di Pos Gedung 2. Silakan lakukan absensi di Pos Kelas 1 (Gedung 2).`
+      } else {
+        isClassAllowed = false
+        rejectionReason = `Siswa ${student.name} (${student.class || 'Tanpa Kelas'}) tidak diizinkan di Pos Absensi Kelas 1A.`
+      }
+    }
+    // 3. Kiosk kelas tunggal lainnya (misal: /2a, /2b, /3a, dll)
+    else if (deviceClean) {
+      if (studentClean === deviceClean) {
+        isClassAllowed = true
+      } else {
+        isClassAllowed = false
+        rejectionReason = `Siswa ${student.name} (${student.class || 'Tanpa Kelas'}) tidak diizinkan di Pos Kelas ${className.toUpperCase()}. Silakan absensi di pos kelas yang sesuai.`
+      }
+    }
+    // 4. Default / Tanpa pembatasan kelas (jika parameter className kosong)
+    else {
       isClassAllowed = true
     }
     
     if (!isClassAllowed) {
-       return NextResponse.json({ success: false, error: `Siswa ${student.name} dari (${student.class}) tidak diizinkan di mesin absensi ini.` }, { status: 403 })
+      return NextResponse.json({ 
+        success: false, 
+        action: 'wrong-class',
+        error: rejectionReason || `Siswa ${student.name} (${student.class}) tidak diizinkan di mesin absensi ini.`,
+        student: {
+          id: student.id,
+          name: student.name,
+          class: student.class
+        }
+      }, { status: 403 })
     }
 
     // Get today's date in local YYYY-MM-DD (Asia/Jakarta UTC+7)
@@ -84,7 +123,7 @@ export async function POST(request: NextRequest) {
     // 2. Check existing attendance for today
     const { data: existingRecords, error: checkError } = await supabase
       .from('student_attendances')
-      .select('*')
+      .select('id, student_id, date, status, entry_time, exit_time')
       .eq('student_id', student.id)
       .eq('date', dateStr)
       .limit(1)
@@ -137,7 +176,7 @@ export async function POST(request: NextRequest) {
           status: status,
           entry_time: currentTimeStr,
         })
-        .select()
+        .select('id, student_id, date, status, entry_time, exit_time')
         .single()
 
       if (insertError) throw insertError
@@ -146,20 +185,16 @@ export async function POST(request: NextRequest) {
         ? `Absen Masuk [Terlambat Datang] (${currentTimeStr}): ${student.name}` 
         : `Absen Masuk [Tepat Waktu] (${currentTimeStr}): ${student.name}`
 
-      // Send Push Notification
-      try {
-        await createNotification(
-          student.id,
-          'parent',
-          'ATTENDANCE',
-          'Info Kehadiran',
-          msg,
-          '/parent/dashboard/attendance',
-          true
-        )
-      } catch (err) {
-        console.error('Push Notif Error:', err)
-      }
+      // Non-blocking fire-and-forget push notification (doesn't delay the RFID response)
+      createNotification(
+        student.id,
+        'parent',
+        'ATTENDANCE',
+        'Info Kehadiran',
+        msg,
+        '/parent/dashboard/attendance',
+        true
+      ).catch((err) => console.error('Background Push Notif Error:', err))
 
       return NextResponse.json({ 
         success: true, 
@@ -212,27 +247,23 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('id', existingRecord.id)
-          .select()
+          .select('id, student_id, date, status, entry_time, exit_time')
           .single()
 
         if (updateError) throw updateError
 
         const msg = `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`
         
-        // Send Push Notification
-        try {
-          await createNotification(
-            student.id,
-            'parent',
-            'ATTENDANCE',
-            'Info Kepulangan',
-            msg,
-            '/parent/dashboard/attendance',
-            true
-          )
-        } catch (err) {
-          console.error('Push Notif Error:', err)
-        }
+        // Non-blocking fire-and-forget push notification
+        createNotification(
+          student.id,
+          'parent',
+          'ATTENDANCE',
+          'Info Kepulangan',
+          msg,
+          '/parent/dashboard/attendance',
+          true
+        ).catch((err) => console.error('Background Push Notif Error:', err))
 
         return NextResponse.json({ 
           success: true, 

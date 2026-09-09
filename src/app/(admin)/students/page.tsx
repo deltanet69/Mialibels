@@ -88,9 +88,12 @@ function SkeletonRow() {
   )
 }
 
+const CACHE_KEY_STUDENTS = 'cache_admin_students_v2'
+
 export default function StudentsPage() {
   const [allStudents, setAllStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isRevalidating, setIsRevalidating] = useState(false)
 
   const [search, setSearch] = useState('')
   const [classFilter, setClassFilter] = useState('all')
@@ -111,17 +114,38 @@ export default function StudentsPage() {
   const [generatingAccess, setGeneratingAccess] = useState(false)
   const [isResettingPasswords, setIsResettingPasswords] = useState(false)
 
-  const fetchStudents = useCallback(async () => {
-    setLoading(true)
+  // 1. Instant Cache Hydration on Mount (0ms load)
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY_STUDENTS)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAllStudents(parsed)
+          setLoading(false)
+        }
+      }
+    } catch (e) {
+      console.warn('Students cache read error:', e)
+    }
+  }, [])
+
+  // 2. Fetch fresh data (silent if cache exists)
+  const fetchStudents = useCallback(async (isSilent = false) => {
+    if (!isSilent && allStudents.length === 0) setLoading(true)
+    setIsRevalidating(true)
     try {
       const [resStudents, resMe] = await Promise.all([
-        fetch('/api/students?_t=' + Date.now()),
-        fetch('/api/auth/me')
+        fetch('/api/students?_t=' + Date.now(), { cache: 'no-store' }),
+        fetch('/api/auth/me', { cache: 'no-store' })
       ])
       const data = await resStudents.json()
       const dataMe = await resMe.json()
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setAllStudents(data.data)
+        try {
+          sessionStorage.setItem(CACHE_KEY_STUDENTS, JSON.stringify(data.data))
+        } catch {}
       }
       if (dataMe.success) {
         setCurrentUser(dataMe.user)
@@ -130,11 +154,12 @@ export default function StudentsPage() {
       console.error(err)
     } finally {
       setLoading(false)
+      setIsRevalidating(false)
     }
-  }, [])
+  }, [allStudents.length])
 
   useEffect(() => {
-    fetchStudents()
+    fetchStudents(true)
   }, [fetchStudents])
 
   const canEdit = canManageStudents(currentUser?.role)
