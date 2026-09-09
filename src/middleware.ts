@@ -97,6 +97,8 @@ const ADMIN_API_PREFIXES: string[] = [
   '/api/logs',
   '/api/notifications',
   '/api/infos',
+  '/api/spmb/admin',
+  '/api/ppdb/admin',
 ];
 
 /** Parent portal — requires valid parent_session */

@@ -1,8 +1,31 @@
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { Plus, Search, Trash2, Edit3, Eye, Phone, Mail, UploadCloud, Download, CheckCircle2, Clock, XCircle, AlertCircle, FileText, Filter, LayoutGrid, List, Key, ShieldCheck, UserPlus, Sparkles, ExternalLink, Image as ImageIcon, Check, X, Settings2, Loader2, ArrowRight } from 'lucide-react'
+import {
+  Search,
+  Trash2,
+  Eye,
+  Phone,
+  Download,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  FileText,
+  LayoutGrid,
+  List,
+  UserPlus,
+  ExternalLink,
+  Image as ImageIcon,
+  X,
+  Settings2,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  SlidersHorizontal,
+  RotateCcw
+} from 'lucide-react'
 import Link from 'next/link'
+import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
 
 // Types
 type Applicant = {
@@ -50,19 +73,87 @@ type Applicant = {
   created_at: string
 }
 
+// Skeleton Components for Instant Perceived Performance
+function SkeletonStats() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 font-sans animate-pulse">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-3 bg-slate-200 rounded-md w-20" />
+            <div className="h-7 bg-slate-200 rounded-lg w-12" />
+          </div>
+          <div className="w-11 h-11 bg-slate-100 rounded-2xl" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse border-b border-slate-100">
+      <td className="py-4 pr-4 pl-5"><div className="h-5 bg-slate-100 rounded-xl w-24" /></td>
+      <td className="py-4 pr-4">
+        <div className="h-4.5 bg-slate-100 rounded-lg w-36 mb-1.5" />
+        <div className="h-3.5 bg-slate-100 rounded-lg w-28" />
+      </td>
+      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-16" /></td>
+      <td className="py-4 pr-4">
+        <div className="h-4 bg-slate-100 rounded-lg w-28 mb-1" />
+        <div className="h-3 bg-slate-100 rounded-lg w-20" />
+      </td>
+      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-xl w-24" /></td>
+      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-28" /></td>
+      <td className="py-4 pr-5 text-right"><div className="h-8 bg-slate-100 rounded-xl w-16 ml-auto" /></td>
+    </tr>
+  )
+}
+
+function SkeletonCard() {
+  return (
+    <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs animate-pulse space-y-4">
+      <div className="flex justify-between items-start">
+        <div className="h-5 bg-slate-100 rounded-xl w-24" />
+        <div className="h-5 bg-slate-100 rounded-full w-20" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-5 bg-slate-100 rounded-lg w-40" />
+        <div className="h-3.5 bg-slate-100 rounded-lg w-32" />
+      </div>
+      <div className="bg-slate-50 rounded-2xl p-3 space-y-2">
+        <div className="h-3.5 bg-slate-100 rounded w-full" />
+        <div className="h-3.5 bg-slate-100 rounded w-3/4" />
+      </div>
+      <div className="pt-3 border-t border-slate-100 flex justify-between">
+        <div className="h-4 bg-slate-100 rounded w-20" />
+        <div className="h-7 bg-slate-100 rounded-xl w-28" />
+      </div>
+    </div>
+  )
+}
+
+const CACHE_KEY_DATA = 'spmb_admin_cache_data_v1'
+const CACHE_KEY_SETTINGS = 'spmb_admin_cache_settings_v1'
+
 export default function AdminSpmbPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([])
   const [settings, setSettings] = useState<any>(null)
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isRevalidating, setIsRevalidating] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  // Filters & State
+  // Filters & Search
   const [search, setSearch] = useState('')
   const [batchFilter, setBatchFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list')
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(15)
 
   // Modals
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null)
@@ -89,16 +180,38 @@ export default function AdminSpmbPage() {
       } else {
         setSpmbUrl('https://spmb.miattaqwa15.sch.id')
       }
+
+      // ── Instant Cache Hydration (0ms load time) ──
+      try {
+        const cachedData = sessionStorage.getItem(CACHE_KEY_DATA)
+        const cachedSettings = sessionStorage.getItem(CACHE_KEY_SETTINGS)
+        if (cachedData) {
+          const parsed = JSON.parse(cachedData)
+          if (parsed?.data) setApplicants(parsed.data)
+          if (parsed?.summary) setSummary(parsed.summary)
+          setLoading(false)
+        }
+        if (cachedSettings) {
+          const parsedSet = JSON.parse(cachedSettings)
+          if (parsedSet) {
+            setSettings(parsedSet)
+            setSettingsForm(parsedSet)
+          }
+        }
+      } catch (err) {
+        console.warn('SPMB cache read failed:', err)
+      }
     }
   }, [])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  // Fetch / Revalidate Data
+  const fetchData = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) setIsRevalidating(true)
     try {
       const [resApps, resSettings, resMe] = await Promise.all([
-        fetch('/api/spmb/admin?_t=' + Date.now()),
-        fetch('/api/spmb/admin/settings?_t=' + Date.now()),
-        fetch('/api/auth/me')
+        fetch('/api/spmb/admin?_t=' + Date.now(), { cache: 'no-store' }),
+        fetch('/api/spmb/admin/settings?_t=' + Date.now(), { cache: 'no-store' }),
+        fetch('/api/auth/me', { cache: 'no-store' })
       ])
 
       const dataApps = await resApps.json()
@@ -108,11 +221,24 @@ export default function AdminSpmbPage() {
       if (dataApps.success) {
         setApplicants(dataApps.data || [])
         setSummary(dataApps.summary || null)
+        try {
+          sessionStorage.setItem(CACHE_KEY_DATA, JSON.stringify({
+            data: dataApps.data || [],
+            summary: dataApps.summary || null
+          }))
+        } catch {
+          // ignore quota error
+        }
       }
 
       if (dataSettings.success && dataSettings.data) {
         setSettings(dataSettings.data)
         setSettingsForm(dataSettings.data)
+        try {
+          sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify(dataSettings.data))
+        } catch {
+          // ignore
+        }
       }
 
       if (dataMe.success) {
@@ -122,6 +248,7 @@ export default function AdminSpmbPage() {
       console.error('Error fetching SPMB admin data:', err)
     } finally {
       setLoading(false)
+      setIsRevalidating(false)
     }
   }, [])
 
@@ -129,10 +256,18 @@ export default function AdminSpmbPage() {
     fetchData()
   }, [fetchData])
 
+  // RBAC checks
+  const userRole = currentUser?.role || null
+  const hasAccess = canAccessSpmb(userRole)
+  const canManage = canManageSpmb(userRole)
+
   // Toggle Master Switch (Active/Inactive)
   const handleToggleActive = async () => {
-    if (!settings) return
+    if (!settings || !canManage) return
     const newActive = !settings.is_active
+
+    // Optimistic UI
+    setSettings((prev: any) => ({ ...prev, is_active: newActive }))
 
     try {
       const res = await fetch('/api/spmb/admin/settings', {
@@ -142,10 +277,15 @@ export default function AdminSpmbPage() {
       })
 
       const json = await res.json()
-      if (json.success) {
-        setSettings((prev: any) => ({ ...prev, is_active: newActive }))
+      if (!json.success) {
+        // Revert on failure
+        setSettings((prev: any) => ({ ...prev, is_active: !newActive }))
+        alert('Gagal mengubah status SPMB: ' + json.error)
+      } else {
+        sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify({ ...settings, is_active: newActive }))
       }
     } catch (err) {
+      setSettings((prev: any) => ({ ...prev, is_active: !newActive }))
       console.error('Failed to toggle SPMB status:', err)
     }
   }
@@ -165,11 +305,12 @@ export default function AdminSpmbPage() {
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(a =>
-        a.student_name.toLowerCase().includes(q) ||
-        a.registration_number.toLowerCase().includes(q) ||
-        a.father_name.toLowerCase().includes(q) ||
-        a.father_phone.includes(q) ||
-        a.mother_name.toLowerCase().includes(q)
+        a.student_name?.toLowerCase().includes(q) ||
+        a.registration_number?.toLowerCase().includes(q) ||
+        a.father_name?.toLowerCase().includes(q) ||
+        a.father_phone?.includes(q) ||
+        a.mother_name?.toLowerCase().includes(q) ||
+        a.mother_phone?.includes(q)
       )
     }
 
@@ -182,11 +323,38 @@ export default function AdminSpmbPage() {
     return list
   }, [applicants, batchFilter, statusFilter, search, sortOrder])
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, batchFilter, statusFilter, sortOrder])
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / itemsPerPage))
+  const paginatedApplicants = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    return filteredApplicants.slice(start, start + itemsPerPage)
+  }, [filteredApplicants, currentPage, itemsPerPage])
+
   // Status Action handler (Approve / Reject)
   const handleUpdateStatus = async (status: string) => {
-    if (!selectedApplicant) return
+    if (!selectedApplicant || !canManage) return
 
     setProcessingAction(true)
+    const prevApplicant = { ...selectedApplicant }
+    const updatedStatus = status
+    const updatedPaymentStatus = status === 'approved' ? 'verified' : selectedApplicant.payment_status
+
+    // Optimistic update
+    const updatedRecord = {
+      ...selectedApplicant,
+      status: updatedStatus,
+      assigned_batch: targetBatch,
+      admin_notes: actionNotes.trim() || undefined,
+      payment_status: updatedPaymentStatus
+    }
+    setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? updatedRecord : a))
+    setSelectedApplicant(updatedRecord)
+
     try {
       const res = await fetch('/api/spmb/admin', {
         method: 'PUT',
@@ -196,18 +364,24 @@ export default function AdminSpmbPage() {
           status,
           assigned_batch: targetBatch,
           admin_notes: actionNotes.trim() || null,
-          payment_status: status === 'approved' ? 'verified' : selectedApplicant.payment_status
+          payment_status: updatedPaymentStatus
         })
       })
 
       const json = await res.json()
-      if (json.success) {
+      if (json.success && json.data) {
         setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? json.data : a))
         setSelectedApplicant(json.data)
+        fetchData(false) // refresh summary in background
       } else {
-        alert('Gagal update status: ' + json.error)
+        // Revert on error
+        setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? prevApplicant : a))
+        setSelectedApplicant(prevApplicant)
+        alert('Gagal update status: ' + (json.error || 'Terjadi kesalahan'))
       }
     } catch (err: any) {
+      setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? prevApplicant : a))
+      setSelectedApplicant(prevApplicant)
       alert('Terjadi kesalahan: ' + err.message)
     } finally {
       setProcessingAction(false)
@@ -216,19 +390,25 @@ export default function AdminSpmbPage() {
 
   // Delete applicant
   const handleDeleteApplicant = async (id: string, name: string) => {
+    if (!canManage) return
     if (!confirm(`Hapus permanen data pendaftar ${name}? Tindakan ini tidak dapat dibatalkan.`)) return
+
+    // Optimistic deletion
+    setApplicants(prev => prev.filter(a => a.id !== id))
+    if (selectedApplicant?.id === id) setSelectedApplicant(null)
 
     try {
       const res = await fetch(`/api/spmb/admin?id=${id}`, { method: 'DELETE' })
       const json = await res.json()
-      if (json.success) {
-        setApplicants(prev => prev.filter(a => a.id !== id))
-        if (selectedApplicant?.id === id) setSelectedApplicant(null)
-      } else {
+      if (!json.success) {
         alert('Gagal menghapus: ' + json.error)
+        fetchData(false)
+      } else {
+        fetchData(false)
       }
     } catch (err: any) {
       alert('Error: ' + err.message)
+      fetchData(false)
     }
   }
 
@@ -239,11 +419,11 @@ export default function AdminSpmbPage() {
       return
     }
 
-    let csv = 'No. Registrasi,Nama Lengkap,Panggilan,JK,Tempat Lahir,Tanggal Lahir,Batch,Status,Ayah,No WA Ayah,Ibu,No WA Ibu,Metode Bayar,Status Bayar,Tgl Daftar\n'
+    let csv = 'No. Registrasi,Nama Lengkap,Panggilan,JK,Tempat Lahir,Tanggal Lahir,Batch,Status,Ayah,NIK Ayah,Pekerjaan Ayah,No WA Ayah,Email Ayah,Ibu,NIK Ibu,Pekerjaan Ibu,No WA Ibu,Metode Bayar,Nominal Bayar,Status Bayar,Tgl Daftar\n'
 
     filteredApplicants.forEach(row => {
-      const clean = (val: string) => `"${(val || '').replace(/"/g, '""')}"`
-      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(row.student_nickname || '')},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${row.batch},${clean(row.status)},${clean(row.father_name)},${clean(row.father_phone)},${clean(row.mother_name)},${clean(row.mother_phone)},${clean(row.payment_method)},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))}\n`
+      const clean = (val: any) => `"${String(val || '').replace(/"/g, '""')}"`
+      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(row.student_nickname || '')},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${row.batch},${clean(row.status)},${clean(row.father_name)},${clean(row.father_nik)},${clean(row.father_occupation)},${clean(row.father_phone)},${clean(row.father_email)},${clean(row.mother_name)},${clean(row.mother_nik)},${clean(row.mother_occupation)},${clean(row.mother_phone)},${clean(row.payment_method)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))}\n`
     })
 
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -256,6 +436,7 @@ export default function AdminSpmbPage() {
   // Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canManage) return
     setSavingSettings(true)
     try {
       const res = await fetch('/api/spmb/admin/settings', {
@@ -266,8 +447,9 @@ export default function AdminSpmbPage() {
       const json = await res.json()
       if (json.success) {
         setSettings(json.data)
+        sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify(json.data))
         setShowSettingsModal(false)
-        fetchData()
+        fetchData(false)
       } else {
         alert('Gagal simpan: ' + json.error)
       }
@@ -278,12 +460,18 @@ export default function AdminSpmbPage() {
     }
   }
 
-  if (!loading && currentUser && currentUser.role !== 'superadmin') {
+  // If user role is determined and does NOT have access
+  if (!loading && currentUser && !hasAccess) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+        <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mb-4">
+          <XCircle size={32} />
+        </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Akses Ditolak</h2>
-        <p className="text-slate-500 mb-6">Hanya Superadmin yang memiliki izin untuk mengakses halaman SPMB.</p>
-        <Link href="/dashboard" className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition">
+        <p className="text-slate-500 max-w-md mb-6 text-sm">
+          Akun Anda tidak memiliki izin untuk mengakses halaman Manajemen SPMB. Hubungi Super Administrator atau Staff TU jika membutuhkan akses.
+        </p>
+        <Link href="/dashboard" className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition shadow-sm text-sm">
           Kembali ke Dashboard
         </Link>
       </div>
@@ -296,50 +484,74 @@ export default function AdminSpmbPage() {
       {/* ════════════════════════════════════════════════════════════════════
           HEADER BAR
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2.5">
             <UserPlus size={13} />
             <span>Manajemen Sistem Penerimaan Murid Baru (SPMB)</span>
           </div>
-          <h1 className="font-sans font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
-            SPMB T.A {settings?.academic_year || '2027/2028'}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-sans font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
+              SPMB T.A {settings?.academic_year || '2027/2028'}
+            </h1>
+            {isRevalidating && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full animate-pulse">
+                <RefreshCw size={11} className="animate-spin" />
+                <span>Menyelaraskan data...</span>
+              </span>
+            )}
+          </div>
           <p className="font-sans text-xs sm:text-sm text-slate-500 mt-1">
-            Kelola pendaftaran siswa baru, verifikasi berkas transfer, dan plotting 3 gelombang batch.
+            Kelola pendaftaran siswa baru, verifikasi berkas transfer, dan pendataan 3 gelombang batch penerimaan.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full xl:w-auto flex-wrap">
+        <div className="flex items-center gap-2.5 w-full xl:w-auto flex-wrap">
           
           {/* Master Toggle Status Switch */}
-          <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl">
-            <span className="text-xs font-bold text-slate-700">Status SPMB:</span>
-            <button
-              onClick={handleToggleActive}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                settings?.is_active ? 'bg-emerald-500' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                  settings?.is_active ? 'translate-x-5' : 'translate-x-0'
+          {canManage && (
+            <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl">
+              <span className="text-xs font-bold text-slate-700">Status Portal:</span>
+              <button
+                onClick={handleToggleActive}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  settings?.is_active ? 'bg-emerald-500' : 'bg-slate-300'
                 }`}
-              />
-            </button>
-            <span className={`text-xs font-extrabold ${settings?.is_active ? 'text-emerald-700' : 'text-slate-500'}`}>
-              {settings?.is_active ? 'Buka' : 'Tutup'}
-            </span>
-          </div>
+                title={settings?.is_active ? 'Klik untuk menutup pendaftaran' : 'Klik untuk membuka pendaftaran'}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    settings?.is_active ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+              <span className={`text-xs font-extrabold ${settings?.is_active ? 'text-emerald-700' : 'text-slate-500'}`}>
+                {settings?.is_active ? 'Buka' : 'Tutup'}
+              </span>
+            </div>
+          )}
+
+          {/* Refresh Button */}
+          <button
+            onClick={() => fetchData(true)}
+            disabled={isRevalidating}
+            className="btn-tactile flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+            title="Muat Ulang Data"
+          >
+            <RefreshCw size={14} className={isRevalidating ? 'animate-spin text-blue-600' : ''} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
 
           {/* Settings Modal Button */}
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
-          >
-            <Settings2 size={15} />
-            <span>Pengaturan</span>
-          </button>
+          {canManage && (
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+            >
+              <Settings2 size={15} />
+              <span>Pengaturan</span>
+            </button>
+          )}
 
           {/* Export CSV */}
           <button
@@ -367,136 +579,148 @@ export default function AdminSpmbPage() {
       {/* ════════════════════════════════════════════════════════════════════
           STATS BENTO CARDS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 font-sans">
-        
-        {/* Total Pendaftar */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Pendaftar</span>
-            <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-900">{summary?.total || 0}</h3>
+      {loading && !summary ? (
+        <SkeletonStats />
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 font-sans">
+          
+          {/* Total Pendaftar */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-blue-200 transition">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Pendaftar</span>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-900">{summary?.total || 0}</h3>
+            </div>
+            <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
+              <UserPlus size={20} />
+            </div>
           </div>
-          <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
-            <UserPlus size={20} />
-          </div>
-        </div>
 
-        {/* Menunggu Verifikasi */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Verifikasi</span>
-            <h3 className="font-extrabold text-2xl sm:text-3xl text-amber-600">{summary?.pending || 0}</h3>
+          {/* Menunggu Verifikasi */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-amber-200 transition">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Verifikasi</span>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-amber-600">{summary?.pending || 0}</h3>
+            </div>
+            <div className="w-11 h-11 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center font-bold">
+              <Clock size={20} />
+            </div>
           </div>
-          <div className="w-11 h-11 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center font-bold">
-            <Clock size={20} />
-          </div>
-        </div>
 
-        {/* Lulus / Approved */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Approved</span>
-            <h3 className="font-extrabold text-2xl sm:text-3xl text-emerald-600">{summary?.approved || 0}</h3>
+          {/* Lulus / Approved */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-emerald-200 transition">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Approved</span>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-emerald-600">{summary?.approved || 0}</h3>
+            </div>
+            <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold">
+              <CheckCircle2 size={20} />
+            </div>
           </div>
-          <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold">
-            <CheckCircle2 size={20} />
-          </div>
-        </div>
 
-        {/* Dokumen Masuk */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Berkas Masuk</span>
-            <h3 className="font-extrabold text-2xl sm:text-3xl text-indigo-600">{summary?.documents_submitted || 0}</h3>
+          {/* Dokumen Masuk */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-indigo-200 transition">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Berkas Masuk</span>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-indigo-600">{summary?.documents_submitted || 0}</h3>
+            </div>
+            <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
+              <FileText size={20} />
+            </div>
           </div>
-          <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
-            <FileText size={20} />
-          </div>
-        </div>
 
-        {/* Rejected */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between col-span-2 lg:col-span-1">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Ditolak / Revisi</span>
-            <h3 className="font-extrabold text-2xl sm:text-3xl text-rose-600">{summary?.rejected || 0}</h3>
+          {/* Rejected */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between col-span-2 lg:col-span-1 hover:border-rose-200 transition">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Ditolak / Revisi</span>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-rose-600">{summary?.rejected || 0}</h3>
+            </div>
+            <div className="w-11 h-11 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center font-bold">
+              <XCircle size={20} />
+            </div>
           </div>
-          <div className="w-11 h-11 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center font-bold">
-            <XCircle size={20} />
-          </div>
-        </div>
 
-      </div>
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════════════════════════════
           BATCH TABS & FILTERS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-sm border border-slate-200/80 space-y-6">
+      <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80 space-y-6">
         
         {/* Batch Selector Pills */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto max-w-full">
             <button
               onClick={() => setBatchFilter('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                batchFilter === 'all' ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                batchFilter === 'all' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua Batch ({summary?.total || 0})
+              Semua Gelombang ({summary?.total || applicants.length})
             </button>
             <button
               onClick={() => setBatchFilter('1')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                batchFilter === '1' ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                batchFilter === '1' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Batch 1 ({summary?.batch1 || 0}/75)
+              Gelombang 1 ({summary?.batch1 ?? applicants.filter(a => a.batch === 1).length}/{settings?.batch_1_quota || 75})
             </button>
             <button
               onClick={() => setBatchFilter('2')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                batchFilter === '2' ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                batchFilter === '2' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Batch 2 ({summary?.batch2 || 0}/75)
+              Gelombang 2 ({summary?.batch2 ?? applicants.filter(a => a.batch === 2).length}/{settings?.batch_2_quota || 75})
             </button>
             <button
               onClick={() => setBatchFilter('3')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                batchFilter === '3' ? 'bg-white shadow-2xs text-blue-700' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                batchFilter === '3' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Batch 3 ({summary?.batch3 || 0}/75)
+              Gelombang 3 ({summary?.batch3 ?? applicants.filter(a => a.batch === 3).length}/{settings?.batch_3_quota || 75})
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400'}`}
+              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-700'}`}
               title="Tampilan Tabel"
             >
-              <List size={17} />
+              <List size={18} />
             </button>
             <button
               onClick={() => setViewMode('card')}
-              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'card' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400'}`}
+              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'card' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-700'}`}
               title="Tampilan Kartu"
             >
-              <LayoutGrid size={17} />
+              <LayoutGrid size={18} />
             </button>
           </div>
         </div>
 
         {/* Search & Status Filter */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Cari nama, no reg, atau no WA..."
+              placeholder="Cari nama, no registrasi, atau no WA..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           <select
@@ -520,19 +744,19 @@ export default function AdminSpmbPage() {
             <option value="oldest">Pendaftar Terlama</option>
           </select>
 
-          {!loading && (
-            <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100 whitespace-nowrap shrink-0 ml-auto sm:ml-0">
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100 whitespace-nowrap">
               {filteredApplicants.length} Calon Siswa
             </span>
-          )}
+          </div>
         </div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            LIST VIEW TABLE
+            LIST VIEW TABLE (Responsive & Fast)
            ════════════════════════════════════════════════════════════════════ */}
         {viewMode === 'list' && (
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[780px]">
+          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-100">
+            <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-4 pr-4 pl-5">No. Registrasi</th>
@@ -545,20 +769,34 @@ export default function AdminSpmbPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-sans">
-                {loading ? (
+                {loading && applicants.length === 0 ? (
+                  <>
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                  </>
+                ) : paginatedApplicants.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                      Memuat data SPMB...
-                    </td>
-                  </tr>
-                ) : filteredApplicants.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                      Tidak ada pendaftar yang sesuai filter.
+                    <td colSpan={7} className="py-14 text-center text-slate-400 text-xs">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <SlidersHorizontal size={24} className="text-slate-300" />
+                        <span className="font-semibold text-slate-600">Tidak ada pendaftar yang sesuai filter.</span>
+                        {(search || batchFilter !== 'all' || statusFilter !== 'all') && (
+                          <button
+                            onClick={() => { setSearch(''); setBatchFilter('all'); setStatusFilter('all'); }}
+                            className="text-xs text-blue-600 hover:underline mt-1 font-bold inline-flex items-center gap-1"
+                          >
+                            <RotateCcw size={12} />
+                            <span>Reset Filter</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  filteredApplicants.map((app) => (
+                  paginatedApplicants.map((app) => (
                     <tr key={app.id} className="hover:bg-blue-50/30 transition-colors group">
                       
                       {/* Reg Number */}
@@ -571,7 +809,11 @@ export default function AdminSpmbPage() {
                       {/* Student Name */}
                       <td className="py-4 pr-4">
                         <div 
-                          onClick={() => { setSelectedApplicant(app); setTargetBatch(app.assigned_batch || app.batch); setActionNotes(app.admin_notes || ''); }}
+                          onClick={() => {
+                            setSelectedApplicant(app)
+                            setTargetBatch(app.assigned_batch || app.batch || 1)
+                            setActionNotes(app.admin_notes || '')
+                          }}
                           className="font-sans font-bold text-[14px] text-slate-900 hover:text-blue-600 transition cursor-pointer"
                         >
                           {app.student_name}
@@ -584,18 +826,18 @@ export default function AdminSpmbPage() {
                       {/* Batch */}
                       <td className="py-4 pr-4">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          Batch {app.batch}
+                          Batch {app.assigned_batch || app.batch}
                         </span>
                       </td>
 
                       {/* Parent */}
                       <td className="py-4 pr-4">
                         <div className="font-sans text-xs sm:text-sm font-semibold text-slate-800">
-                          {app.father_name}
+                          {app.father_name || app.mother_name || '—'}
                         </div>
                         <div className="font-sans text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                           <Phone size={12} />
-                          <span>{app.father_phone}</span>
+                          <span>{app.father_phone || app.mother_phone || '—'}</span>
                         </div>
                       </td>
 
@@ -623,19 +865,25 @@ export default function AdminSpmbPage() {
                       <td className="py-4 pr-5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => { setSelectedApplicant(app); setTargetBatch(app.assigned_batch || app.batch); setActionNotes(app.admin_notes || ''); }}
+                            onClick={() => {
+                              setSelectedApplicant(app)
+                              setTargetBatch(app.assigned_batch || app.batch || 1)
+                              setActionNotes(app.admin_notes || '')
+                            }}
                             className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
-                            title="Verifikasi & Detail"
+                            title="Detail & Verifikasi"
                           >
                             <Eye size={16} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteApplicant(app.id, app.student_name)}
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                            title="Hapus"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {canManage && (
+                            <button
+                              onClick={() => handleDeleteApplicant(app.id, app.student_name)}
+                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                              title="Hapus Data"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -648,81 +896,166 @@ export default function AdminSpmbPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            CARD VIEW (Modern Grid)
+            CARD VIEW (Modern Grid or Mobile default)
            ════════════════════════════════════════════════════════════════════ */}
-        {(viewMode === 'card' || true) && (
-          <div className={`${viewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'sm:hidden space-y-3.5'}`}>
-            {loading ? (
-              <div className="col-span-full py-12 text-center text-slate-400 text-xs">
-                Memuat data SPMB...
-              </div>
-            ) : filteredApplicants.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-slate-400 text-xs">
-                Tidak ada pendaftar yang sesuai filter.
-              </div>
-            ) : (
-              filteredApplicants.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-4 font-sans"
-                >
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start">
-                      <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
-                        {app.registration_number}
-                      </span>
-                      <StatusBadge status={app.status} />
-                    </div>
-
-                    <div>
-                      <h4 
-                        onClick={() => { setSelectedApplicant(app); setTargetBatch(app.assigned_batch || app.batch); setActionNotes(app.admin_notes || ''); }}
-                        className="font-bold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
-                      >
-                        {app.student_name}
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {app.birth_place}, {new Date(app.birth_date).toLocaleDateString('id-ID')} &bull; Gelombang {app.batch}
-                      </p>
-                    </div>
-
-                    <div className="bg-slate-50 rounded-2xl p-3 text-xs text-slate-600 space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Ayah:</span>
-                        <span className="font-bold text-slate-800">{app.father_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">WhatsApp:</span>
-                        <span className="font-semibold text-slate-700">{app.father_phone}</span>
-                      </div>
-                    </div>
+        <div className={`${viewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'sm:hidden space-y-3.5'}`}>
+          {loading && applicants.length === 0 ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : paginatedApplicants.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-slate-400 text-xs">
+              Tidak ada pendaftar yang sesuai filter.
+            </div>
+          ) : (
+            paginatedApplicants.map((app) => (
+              <div
+                key={app.id}
+                className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-4 font-sans"
+              >
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                      {app.registration_number}
+                    </span>
+                    <StatusBadge status={app.status} />
                   </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    {app.payment_proof_url ? (
-                      <button
-                        onClick={() => setPreviewImage(app.payment_proof_url)}
-                        className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <ImageIcon size={13} />
-                        <span>Struk Bayar</span>
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Belum bayar</span>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setSelectedApplicant(app); setTargetBatch(app.assigned_batch || app.batch); setActionNotes(app.admin_notes || ''); }}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
-                      >
-                        Detail &amp; Verifikasi
-                      </button>
-                    </div>
+                  <div>
+                    <h4 
+                      onClick={() => {
+                        setSelectedApplicant(app)
+                        setTargetBatch(app.assigned_batch || app.batch || 1)
+                        setActionNotes(app.admin_notes || '')
+                      }}
+                      className="font-bold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
+                    >
+                      {app.student_name}
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {app.birth_place}, {new Date(app.birth_date).toLocaleDateString('id-ID')} &bull; Gelombang {app.assigned_batch || app.batch}
+                    </p>
                   </div>
 
+                  <div className="bg-slate-50 rounded-2xl p-3 text-xs text-slate-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Ayah:</span>
+                      <span className="font-bold text-slate-800">{app.father_name || '—'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">WhatsApp:</span>
+                      <span className="font-semibold text-slate-700">{app.father_phone || '—'}</span>
+                    </div>
+                  </div>
                 </div>
-              ))
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  {app.payment_proof_url ? (
+                    <button
+                      onClick={() => setPreviewImage(app.payment_proof_url)}
+                      className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <ImageIcon size={13} />
+                      <span>Struk Bayar</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">Belum bayar</span>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedApplicant(app)
+                        setTargetBatch(app.assigned_batch || app.batch || 1)
+                        setActionNotes(app.admin_notes || '')
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                    >
+                      Detail &amp; Verifikasi
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ════════════════════════════════════════════════════════════════════
+            PAGINATION CONTROLS
+           ════════════════════════════════════════════════════════════════════ */}
+        {filteredApplicants.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <span>Menampilkan</span>
+              <span className="font-bold text-slate-800">
+                {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredApplicants.length)}
+              </span>
+              <span>dari</span>
+              <span className="font-bold text-slate-800">{filteredApplicants.length}</span>
+              <span>calon siswa</span>
+
+              <select
+                value={itemsPerPage}
+                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="ml-2 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer outline-none"
+              >
+                <option value={10}>10 / hal</option>
+                <option value={15}>15 / hal</option>
+                <option value={25}>25 / hal</option>
+                <option value={50}>50 / hal</option>
+              </select>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = i + 1
+                    if (totalPages > 5) {
+                      if (currentPage > 3) {
+                        pageNum = currentPage - 2 + i
+                      }
+                      if (pageNum > totalPages) {
+                        pageNum = totalPages - (4 - i)
+                      }
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  title="Halaman Selanjutnya"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -766,54 +1099,60 @@ export default function AdminSpmbPage() {
                       <StatusBadge status={selectedApplicant.status} />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-600">Assign Gelombang:</span>
-                    <select
-                      value={targetBatch}
-                      onChange={(e) => setTargetBatch(Number(e.target.value))}
-                      className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                    >
-                      <option value={1}>Batch 1</option>
-                      <option value={2}>Batch 2</option>
-                      <option value={3}>Batch 3</option>
-                    </select>
-                  </div>
+                  {canManage && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-600">Assign Gelombang:</span>
+                      <select
+                        value={targetBatch}
+                        onChange={(e) => setTargetBatch(Number(e.target.value))}
+                        className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer shadow-2xs"
+                      >
+                        <option value={1}>Batch 1</option>
+                        <option value={2}>Batch 2</option>
+                        <option value={3}>Batch 3</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Notes Input */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Catatan untuk Orang Tua (Opsional / Alasan Penolakan):
-                  </label>
-                  <textarea
-                    value={actionNotes}
-                    onChange={(e) => setActionNotes(e.target.value)}
-                    placeholder="Contoh: Bukti transfer tidak jelas / Usia belum memenuhi syarat..."
-                    rows={2}
-                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-500"
-                  />
-                </div>
+                {canManage && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Catatan Administrasi / Alasan Penolakan:
+                    </label>
+                    <textarea
+                      value={actionNotes}
+                      onChange={(e) => setActionNotes(e.target.value)}
+                      placeholder="Contoh: Bukti transfer valid / Berkas lengkap / Mohon unggah ulang foto..."
+                      rows={2}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                    />
+                  </div>
+                )}
 
                 {/* Action Buttons */}
-                <div className="flex items-center gap-2.5 pt-1">
-                  <button
-                    onClick={() => handleUpdateStatus('approved')}
-                    disabled={processingAction}
-                    className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
-                  >
-                    <CheckCircle2 size={15} />
-                    <span>Approve / Terima Siswa</span>
-                  </button>
+                {canManage && (
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <button
+                      onClick={() => handleUpdateStatus('approved')}
+                      disabled={processingAction}
+                      className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                    >
+                      <CheckCircle2 size={15} />
+                      <span>{processingAction ? 'Memproses...' : 'Approve / Terima Siswa'}</span>
+                    </button>
 
-                  <button
-                    onClick={() => handleUpdateStatus('rejected')}
-                    disabled={processingAction}
-                    className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer"
-                  >
-                    <XCircle size={15} />
-                    <span>Tolak / Perlu Revisi</span>
-                  </button>
-                </div>
+                    <button
+                      onClick={() => handleUpdateStatus('rejected')}
+                      disabled={processingAction}
+                      className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                    >
+                      <XCircle size={15} />
+                      <span>{processingAction ? 'Memproses...' : 'Tolak / Perlu Revisi'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Data Calon Siswa */}
@@ -824,11 +1163,11 @@ export default function AdminSpmbPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                   <div>
                     <span className="text-slate-400 block">Tempat, Tanggal Lahir</span>
-                    <span className="font-bold text-slate-800">{selectedApplicant.birth_place}, {new Date(selectedApplicant.birth_date).toLocaleDateString('id-ID')}</span>
+                    <span className="font-bold text-slate-800">{selectedApplicant.birth_place || '—'}, {selectedApplicant.birth_date ? new Date(selectedApplicant.birth_date).toLocaleDateString('id-ID') : '—'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block">Jenis Kelamin</span>
-                    <span className="font-bold text-slate-800">{selectedApplicant.gender}</span>
+                    <span className="font-bold text-slate-800">{selectedApplicant.gender === 'L' ? 'Laki-laki' : selectedApplicant.gender === 'P' ? 'Perempuan' : selectedApplicant.gender || '—'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block">Fisik (BB / TB)</span>
@@ -856,17 +1195,17 @@ export default function AdminSpmbPage() {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="bg-slate-50 p-3.5 rounded-2xl space-y-1">
-                    <span className="font-bold text-blue-900 block">Ayah: {selectedApplicant.father_name}</span>
-                    <p className="text-slate-500">NIK: {selectedApplicant.father_nik}</p>
-                    <p className="text-slate-500">Pekerjaan: {selectedApplicant.father_occupation}</p>
-                    <p className="text-slate-500">No WA: {selectedApplicant.father_phone}</p>
-                    <p className="text-slate-500">Email: {selectedApplicant.father_email}</p>
+                    <span className="font-bold text-blue-900 block">Ayah: {selectedApplicant.father_name || '—'}</span>
+                    <p className="text-slate-500">NIK: {selectedApplicant.father_nik || '—'}</p>
+                    <p className="text-slate-500">Pekerjaan: {selectedApplicant.father_occupation || '—'}</p>
+                    <p className="text-slate-500">No WA: {selectedApplicant.father_phone || '—'}</p>
+                    <p className="text-slate-500">Email: {selectedApplicant.father_email || '—'}</p>
                   </div>
                   <div className="bg-slate-50 p-3.5 rounded-2xl space-y-1">
-                    <span className="font-bold text-teal-900 block">Ibu: {selectedApplicant.mother_name}</span>
-                    <p className="text-slate-500">NIK: {selectedApplicant.mother_nik}</p>
-                    <p className="text-slate-500">Pekerjaan: {selectedApplicant.mother_occupation}</p>
-                    <p className="text-slate-500">No WA: {selectedApplicant.mother_phone}</p>
+                    <span className="font-bold text-teal-900 block">Ibu: {selectedApplicant.mother_name || '—'}</span>
+                    <p className="text-slate-500">NIK: {selectedApplicant.mother_nik || '—'}</p>
+                    <p className="text-slate-500">Pekerjaan: {selectedApplicant.mother_occupation || '—'}</p>
+                    <p className="text-slate-500">No WA: {selectedApplicant.mother_phone || '—'}</p>
                   </div>
                 </div>
               </div>
@@ -880,13 +1219,13 @@ export default function AdminSpmbPage() {
                   <div>
                     <span className="text-slate-500">Nominal: </span>
                     <span className="font-bold text-slate-900">Rp {(Number(selectedApplicant.payment_amount) || 200000).toLocaleString('id-ID')}</span>
-                    <span className="text-slate-400 block mt-0.5">Metode: {selectedApplicant.payment_method} &bull; Status: {selectedApplicant.payment_status}</span>
+                    <span className="text-slate-400 block mt-0.5">Metode: {selectedApplicant.payment_method || 'Transfer Bank'} &bull; Status: {selectedApplicant.payment_status}</span>
                   </div>
 
                   {selectedApplicant.payment_proof_url && (
                     <button
                       onClick={() => setPreviewImage(selectedApplicant.payment_proof_url)}
-                      className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition"
                     >
                       <ImageIcon size={14} />
                       <span>Buka Bukti Bayar</span>
@@ -948,7 +1287,7 @@ export default function AdminSpmbPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Kuota Batch 1</label>
+                  <label className="block text-xs font-bold text-slate-700">Kuota Gelombang 1</label>
                   <input
                     type="number"
                     value={settingsForm.batch_1_quota || 75}
@@ -957,7 +1296,7 @@ export default function AdminSpmbPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Kuota Batch 2</label>
+                  <label className="block text-xs font-bold text-slate-700">Kuota Gelombang 2</label>
                   <input
                     type="number"
                     value={settingsForm.batch_2_quota || 75}
@@ -966,7 +1305,7 @@ export default function AdminSpmbPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Kuota Batch 3</label>
+                  <label className="block text-xs font-bold text-slate-700">Kuota Gelombang 3</label>
                   <input
                     type="number"
                     value={settingsForm.batch_3_quota || 75}
@@ -997,7 +1336,7 @@ export default function AdminSpmbPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">No. WA Panitia</label>
+                  <label className="block text-xs font-bold text-slate-700">No. WA Panitia SPMB</label>
                   <input
                     type="text"
                     value={settingsForm.whatsapp_contact || ''}
@@ -1011,14 +1350,14 @@ export default function AdminSpmbPage() {
                 <button
                   type="button"
                   onClick={() => setShowSettingsModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={savingSettings}
-                  className="btn-tactile px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm"
+                  className="btn-tactile px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
                 >
                   {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}
                 </button>
@@ -1039,7 +1378,7 @@ export default function AdminSpmbPage() {
             <img src={previewImage} alt="Preview Dokumen" className="w-full h-full max-h-[80vh] object-contain rounded-xl" />
             <button
               onClick={() => setPreviewImage(null)}
-              className="absolute top-4 right-4 p-2 bg-slate-900/70 text-white rounded-full hover:bg-slate-900"
+              className="absolute top-4 right-4 p-2 bg-slate-900/70 text-white rounded-full hover:bg-slate-900 transition"
             >
               <X size={16} />
             </button>

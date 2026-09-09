@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSupabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
+import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    const session = await getSession()
+    if (!session || !canAccessSpmb(session.role)) {
+      return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 })
+    }
+
     const supabase: any = getAdminSupabase()
     const { data: settings, error } = await supabase
       .from('ppdb_settings')
@@ -24,6 +31,10 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session || !canManageSpmb(session.role)) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda tidak memiliki izin untuk mengubah pengaturan SPMB.' }, { status: 403 })
+    }
     const body = await request.json()
     const supabase: any = getAdminSupabase()
 

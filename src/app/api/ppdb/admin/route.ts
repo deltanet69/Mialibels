@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSupabase } from '@/lib/supabase'
+import { getSession } from '@/lib/session'
+import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
 
 export const dynamic = 'force-dynamic'
 
 // GET: List all PPDB applicants
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session || !canAccessSpmb(session.role)) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda tidak memiliki izin untuk melihat data SPMB.' }, { status: 403 })
+    }
     const { searchParams } = new URL(request.url)
     const batch = searchParams.get('batch')
     const status = searchParams.get('status')
@@ -72,6 +78,11 @@ export async function GET(request: NextRequest) {
 // PUT: Update single applicant status / batch / notes / payment verification
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session || !canManageSpmb(session.role)) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda tidak memiliki izin untuk mengubah data SPMB.' }, { status: 403 })
+    }
+
     const body = await request.json()
     const {
       id,
@@ -127,6 +138,11 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete single applicant
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await getSession()
+    if (!session || !canManageSpmb(session.role)) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus data SPMB.' }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 

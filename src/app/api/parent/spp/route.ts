@@ -101,9 +101,10 @@ export async function PUT(request: NextRequest) {
 
     // Insert Notifications for Admin and Parent
     try {
-      await adminSupabase.from('notifications').insert([
+      await adminSupabase.from('in_app_notifications').insert([
         {
           role: 'admin',
+          user_id: null, // Broadcast to all admins
           type: 'PAYMENT',
           title: 'Pembayaran SPP Baru',
           message: `Pembayaran ${invoiceCheck.title || 'Infaq/SPP'} atas nama ${studentName} (${studentClass}) menunggu verifikasi.`

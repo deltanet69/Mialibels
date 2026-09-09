@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { ATTENDANCE_CONFIG, evaluateStudentCheckIn } from '@/config/attendanceRules'
 import { generateRfidVariants } from '@/lib/rfidUtils'
+import { createNotification } from '@/lib/push'
 
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(
@@ -145,6 +146,21 @@ export async function POST(request: NextRequest) {
         ? `Absen Masuk [Terlambat Datang] (${currentTimeStr}): ${student.name}` 
         : `Absen Masuk [Tepat Waktu] (${currentTimeStr}): ${student.name}`
 
+      // Send Push Notification
+      try {
+        await createNotification(
+          student.id,
+          'parent',
+          'ATTENDANCE',
+          'Info Kehadiran',
+          msg,
+          '/parent/dashboard/attendance',
+          true
+        )
+      } catch (err) {
+        console.error('Push Notif Error:', err)
+      }
+
       return NextResponse.json({ 
         success: true, 
         action: 'check-in', 
@@ -201,12 +217,29 @@ export async function POST(request: NextRequest) {
 
         if (updateError) throw updateError
 
+        const msg = `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`
+        
+        // Send Push Notification
+        try {
+          await createNotification(
+            student.id,
+            'parent',
+            'ATTENDANCE',
+            'Info Kepulangan',
+            msg,
+            '/parent/dashboard/attendance',
+            true
+          )
+        } catch (err) {
+          console.error('Push Notif Error:', err)
+        }
+
         return NextResponse.json({ 
           success: true, 
           action: 'check-out', 
           status: existingRecord.status || 'Hadir',
           exit_time: currentTimeStr,
-          message: `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`,
+          message: msg,
           data: updateRecord,
           student: {
             ...student,

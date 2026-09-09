@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { canManageFinance } from '@/lib/rbac'
+import { createNotification } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,28 @@ export async function POST(request: NextRequest) {
     // The RPC returns a JSON object { success, error?, new_balance, student_id }
     if (!data.success) {
       return NextResponse.json({ error: data.error || 'Transaksi ditolak oleh sistem.' }, { status: 400 })
+    }
+
+    // Format IDR helper
+    const formatIDR = (value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+    
+    // Trigger notification
+    const msg = type === 'DEPOSIT' 
+      ? `Setoran sebesar ${formatIDR(amount)} berhasil ditambahkan ke saldo tabungan.`
+      : `Penarikan sebesar ${formatIDR(amount)} berhasil dilakukan.`;
+
+    try {
+      await createNotification(
+        studentId,
+        'parent',
+        'INFO',
+        type === 'DEPOSIT' ? 'Setoran Tabungan Berhasil' : 'Penarikan Tabungan Berhasil',
+        msg,
+        '/parent/dashboard/savings',
+        true
+      );
+    } catch (err) {
+      console.error('Savings Notif Error:', err);
     }
 
     return NextResponse.json({ success: true, data })

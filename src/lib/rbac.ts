@@ -86,3 +86,19 @@ export function canManageUsers(role?: string | null): boolean {
   const r = role.toLowerCase().trim();
   return r === 'superadmin' || r === 'staff_operator';
 }
+
+/** Hak akses modul SPMB (Superadmin, Administrasi, Staff Operator, Kepsek) */
+export function canAccessSpmb(role?: string | null): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase().trim();
+  return r === 'superadmin' || r === 'administrasi' || r === 'staff_operator' || r === 'kepsek';
+}
+
+/** Hak kelola data pendaftar & status SPMB (Superadmin, Administrasi, Staff Operator) */
+export function canManageSpmb(role?: string | null): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase().trim();
+  return r === 'superadmin' || r === 'administrasi' || r === 'staff_operator';
+}
+
+
