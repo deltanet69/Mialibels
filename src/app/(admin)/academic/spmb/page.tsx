@@ -28,7 +28,19 @@ import {
   FileCheck
 } from 'lucide-react'
 import Link from 'next/link'
-import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
+
+// Resilient RBAC check functions
+function checkCanAccessSpmb(role?: string | null): boolean {
+  if (!role) return false
+  const r = role.toLowerCase().trim()
+  return r === 'superadmin' || r === 'administrasi' || r === 'staff_operator' || r === 'kepsek'
+}
+
+function checkCanManageSpmb(role?: string | null): boolean {
+  if (!role) return false
+  const r = role.toLowerCase().trim()
+  return r === 'superadmin' || r === 'administrasi' || r === 'staff_operator'
+}
 
 // Types
 type Applicant = {
@@ -260,8 +272,8 @@ export default function AdminSpmbPage() {
 
   // RBAC checks
   const userRole = currentUser?.role || null
-  const hasAccess = canAccessSpmb(userRole)
-  const canManage = canManageSpmb(userRole)
+  const hasAccess = checkCanAccessSpmb(userRole)
+  const canManage = checkCanManageSpmb(userRole)
 
   // Toggle Master Switch (Active/Inactive)
   const handleToggleActive = async () => {

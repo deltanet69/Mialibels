@@ -4,6 +4,7 @@ import AnimatedSection from '@/components/frontend/AnimatedSection';
 
 import PpdbHero from '@/components/frontend/ppdb/PpdbHero';
 import PpdbWhyChooseUs from '@/components/frontend/ppdb/PpdbWhyChooseUs';
+import PpdbBatchQuotas from '@/components/frontend/ppdb/PpdbBatchQuotas';
 import PpdbSchedule from '@/components/frontend/ppdb/PpdbSchedule';
 import PpdbRequirements from '@/components/frontend/ppdb/PpdbRequirements';
 import PpdbFacilitiesFlow from '@/components/frontend/ppdb/PpdbFacilitiesFlow';
@@ -12,7 +13,7 @@ import PpdbCTA from '@/components/frontend/ppdb/PpdbCTA';
 
 export const metadata: Metadata = {
   title: 'SPMB 2027/2028 | MI Attaqwa 15 Babelan',
-  description: 'Sistem Penerimaan Murid Baru (SPMB) MI Attaqwa 15 Babelan Tahun Ajaran 2027/2028. Dapatkan informasi syarat pendaftaran, skema gelombang, jadwal, dan alur pendaftaran.',
+  description: 'Sistem Penerimaan Murid Baru (SPMB) MI Attaqwa 15 Babelan Tahun Ajaran 2027/2028. Dapatkan informasi syarat pendaftaran, pilihan program kelas fullday & regular, jadwal, dan alur pendaftaran.',
 };
 
 export default function SpmbPage() {
@@ -24,6 +25,10 @@ export default function SpmbPage() {
       
       <AnimatedSection direction="up" delay={0.2}>
         <PpdbWhyChooseUs />
+      </AnimatedSection>
+
+      <AnimatedSection direction="up">
+        <PpdbBatchQuotas />
       </AnimatedSection>
       
       <AnimatedSection direction="left">

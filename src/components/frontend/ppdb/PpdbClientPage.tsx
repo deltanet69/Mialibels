@@ -22,7 +22,6 @@ import {
   ExternalLink,
   Users
 } from 'lucide-react'
-import PpdbBatchQuotas from './PpdbBatchQuotas'
 import PpdbRegistrationForm from './PpdbRegistrationForm'
 import PpdbStatusChecker from './PpdbStatusChecker'
 
@@ -195,20 +194,12 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════
-          MAIN CONTENT AREA (Bento Grid & Form Tabs)
+          MAIN CONTENT AREA (Direct Form & Status Tabs)
          ════════════════════════════════════════════════════════════════════ */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-8">
         
-        {/* ── PROGRAM CHOICES & QUOTAS SECTION ── */}
-        <section className="bg-white p-6 sm:p-8 rounded-[2rem] border border-slate-200/80 shadow-sm">
-          <PpdbBatchQuotas 
-            settings={currentSettings} 
-            onRegisterClick={() => scrollToForm('register')}
-          />
-        </section>
-
         {/* ── MAIN INTERACTIVE TABS (DAFTAR vs CEK STATUS) ── */}
-        <div ref={formRef} className="pt-4 scroll-mt-24">
+        <div ref={formRef} className="pt-2 scroll-mt-24">
           
           {/* Tab Switcher */}
           <div className="flex items-center justify-center mb-8">
