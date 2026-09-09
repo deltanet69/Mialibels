@@ -391,7 +391,7 @@ export function ParentDashboardClient({
               <span>Kartu Identitas Siswa</span>
             </div>
             <h3 className="font-headline font-black text-lg text-slate-800 tracking-tight">
-              Unduh Kartu Pelajar & Ujian
+              Unduh Kartu Ujian Semester 1
             </h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               Dapatkan dokumen kartu resmi langsung berformat cetak untuk Ananda.
@@ -413,6 +413,7 @@ export function ParentDashboardClient({
               }}
               sppInvoices={data.allSppInvoices}
               generalInvoices={data.generalInvoices}
+              disableKartuSiswa={true}
             />
 
             <button

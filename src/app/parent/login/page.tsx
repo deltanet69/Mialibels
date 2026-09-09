@@ -72,7 +72,7 @@ export default function ParentLoginPage() {
           </div>
 
           <h2 className="font-headline font-black text-4xl xl:text-4xl leading-tight mb-5 text-white">
-            Pantau Akademik &amp; Administrasi Ananda Terpadu
+            Pantau Akademik &amp; Administrasi Ananda
           </h2>
           <p className="font-body text-blue-100 text-base leading-relaxed mb-8">
             Platform terintegrasi bagi orang tua &amp; wali murid untuk memantau presensi harian, tabungan, tagihan SPP, dan kartu ujian di MI Attaqwa 15 Babelan.
@@ -108,12 +108,12 @@ export default function ParentLoginPage() {
                 priority
               />
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[11px] font-bold uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[12px] font-bold uppercase tracking-wider mb-2">
               <Sparkles size={12} className="text-amber-500" />
               <span>Portal Wali Murid</span>
             </div>
             <h1 className="font-headline font-black text-2xl text-secondary">
-              Masuk ke Portal Orang Tua
+              MI Attaqwa 15 Babelan
             </h1>
             <p className="font-body text-xs text-slate-500 mt-1">
               Gunakan ID Siswa &amp; Kata Sandi yang diberikan madrasah

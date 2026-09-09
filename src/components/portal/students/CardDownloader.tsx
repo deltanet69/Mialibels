@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Download, AlertCircle, Loader2, Printer, X, CheckCircle2, Eye } from 'lucide-react';
+import { Download, AlertCircle, Loader2, Printer, X, CheckCircle2, Eye, Lock } from 'lucide-react';
 import { getDirectImageUrl } from '@/lib/imageUtils';
 
 interface Student {
@@ -29,13 +29,15 @@ interface CardDownloaderProps {
   student?: Student;
   sppInvoices?: SPPInvoice[];
   generalInvoices?: any[];
+  disableKartuSiswa?: boolean;
 }
 
 export const CardDownloader: React.FC<CardDownloaderProps> = ({ 
   studentId, 
   student: initialStudent, 
   sppInvoices: initialSpp, 
-  generalInvoices: initialGeneral 
+  generalInvoices: initialGeneral,
+  disableKartuSiswa = false
 }) => {
   const [generatingSiswa, setGeneratingSiswa] = useState(false);
   const [generatingUjian, setGeneratingUjian] = useState(false);
@@ -487,11 +489,25 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
     <>
       <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full sm:w-auto">
         <button
-          onClick={() => drawCard('siswa')}
-          disabled={generatingSiswa}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-200 text-indigo-700 px-5 py-2.5 rounded-xl hover:bg-indigo-100 transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer shadow-2xs"
+          onClick={() => {
+            if (disableKartuSiswa) return;
+            drawCard('siswa');
+          }}
+          disabled={generatingSiswa || disableKartuSiswa}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium w-full sm:w-auto whitespace-nowrap transition ${
+            disableKartuSiswa
+              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none'
+              : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 cursor-pointer shadow-2xs'
+          }`}
+          title={disableKartuSiswa ? "Fitur Kartu Siswa dinonaktifkan sementara" : "Lihat / Unduh Kartu Siswa"}
         >
-          {generatingSiswa ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Eye size={18} className="shrink-0" />}
+          {generatingSiswa ? (
+            <Loader2 size={18} className="animate-spin shrink-0" />
+          ) : disableKartuSiswa ? (
+            <Lock size={16} className="shrink-0 text-slate-400" />
+          ) : (
+            <Eye size={18} className="shrink-0" />
+          )}
           Kartu Siswa
         </button>
         
