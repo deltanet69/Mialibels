@@ -58,11 +58,28 @@ export default function ParentFinancePage() {
     }
   };
 
+  const openPaymentModal = (inv: Invoice) => {
+    const sisa = inv.amount - (inv.paid_amount || 0);
+    setTransferAmount(sisa > 0 ? String(sisa) : String(inv.amount));
+    setUploadFile(null);
+    setPreviewUrl(null);
+    setErrorMsg("");
+    setSuccessMsg("");
+    setSelectedInvoice(inv); // set last so render has correct transferAmount
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("Hanya format gambar"); return; }
-    if (file.size > 5 * 1024 * 1024) { alert("Maks 5MB"); return; }
+    setErrorMsg("");
+    if (!file.type.startsWith("image/")) { 
+      setErrorMsg("Hanya file format gambar (JPG, PNG, WebP) yang diizinkan"); 
+      return; 
+    }
+    if (file.size > 15 * 1024 * 1024) { 
+      setErrorMsg("Ukuran file maksimal 15MB"); 
+      return; 
+    }
     setUploadFile(file);
     setPreviewUrl(URL.createObjectURL(file));
   };
@@ -74,39 +91,51 @@ export default function ParentFinancePage() {
   };
 
   const handleSubmitProof = async () => {
-    if (!uploadFile || !selectedInvoice) return;
+    if (!uploadFile || !selectedInvoice) {
+      setErrorMsg("Pilih gambar bukti transfer terlebih dahulu.");
+      return;
+    }
     setUploading(true);
-    setErrorMsg(""); setSuccessMsg("");
+    setErrorMsg(""); 
+    setSuccessMsg("");
     try {
+      // Step 1: Upload gambar
       const formData = new FormData();
       formData.append("file", uploadFile);
       const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) throw new Error(uploadData.error || "Gagal upload");
+      let uploadData: any;
+      try { uploadData = await uploadRes.json(); } catch { uploadData = {}; }
+      if (!uploadRes.ok) throw new Error(uploadData?.error || `Upload gagal (HTTP ${uploadRes.status})`);
+      if (!uploadData?.url) throw new Error("Server tidak mengembalikan URL gambar.");
 
+      // Step 2: Kirim data bukti ke API
+      const sisa = selectedInvoice.amount - (selectedInvoice.paid_amount || 0);
+      const nominal = transferAmount ? Number(transferAmount) : sisa;
       const submitRes = await fetch("/api/parent/spp", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invoice_id: selectedInvoice.id,
           bukti_transfer: uploadData.url,
-          note: transferAmount ? `Telah transfer sejumlah Rp ${Number(transferAmount).toLocaleString('id-ID')}` : undefined
+          note: `Telah transfer sejumlah Rp ${nominal.toLocaleString('id-ID')}`,
         }),
       });
-      const submitData = await submitRes.json();
-      if (!submitRes.ok) throw new Error(submitData.error || "Gagal mengirim");
+      let submitData: any;
+      try { submitData = await submitRes.json(); } catch { submitData = {}; }
+      if (!submitRes.ok) throw new Error(submitData?.error || `Pengiriman gagal (HTTP ${submitRes.status})`);
 
-      setSuccessMsg("Bukti transfer berhasil diunggah. Menunggu verifikasi admin.");
+      setSuccessMsg("Bukti transfer berhasil diunggah! Sedang menunggu verifikasi admin.");
       setSelectedInvoice(null);
       setTransferAmount("");
       handleCancelUpload();
       fetchInvoices();
     } catch (err: any) {
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || "Terjadi kesalahan saat memproses bukti transfer.");
     } finally {
       setUploading(false);
     }
   };
+
 
   const totalTagihan = invoices.reduce((s, i) => s + i.amount, 0);
   const totalLunas = invoices.reduce((s, i) => s + (i.paid_amount || 0), 0);
@@ -226,7 +255,7 @@ export default function ParentFinancePage() {
                         )}
                         {['UNPAID','PARTIAL','LATE'].includes(inv.status) && (
                           <button
-                            onClick={() => setSelectedInvoice(inv)}
+                            onClick={() => openPaymentModal(inv)}
                             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm"
                           >
                             <UploadCloud size={15} /> Bayar Sekarang
@@ -309,7 +338,7 @@ export default function ParentFinancePage() {
                     min="1"
                     value={transferAmount}
                     onChange={(e) => setTransferAmount(e.target.value)}
-                    placeholder="Contoh: 150000"
+                    placeholder={`Contoh: ${selectedInvoice.amount - (selectedInvoice.paid_amount || 0)}`}
                     className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition text-sm font-medium"
                   />
                 </div>
@@ -326,7 +355,7 @@ export default function ParentFinancePage() {
                   >
                     <UploadCloud className="w-10 h-10 text-slate-300 group-hover:text-blue-400 mx-auto mb-3 transition-colors" />
                     <p className="text-sm font-semibold text-slate-600">Klik untuk upload gambar struk</p>
-                    <p className="text-xs text-slate-400 mt-1">JPG, PNG — Maks 5MB</p>
+                    <p className="text-xs text-slate-400 mt-1">JPG, PNG, WebP — Maks 15MB (Otomatis dikompres)</p>
                   </div>
                 ) : (
                   <div className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
@@ -359,7 +388,7 @@ export default function ParentFinancePage() {
                 </button>
                 <button
                   onClick={handleSubmitProof}
-                  disabled={!uploadFile || uploading || !transferAmount}
+                  disabled={!uploadFile || uploading}
                   className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {uploading ? <><Loader2 size={15} className="animate-spin" /> Mengirim...</> : 'Kirim Bukti'}

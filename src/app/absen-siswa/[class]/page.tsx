@@ -117,6 +117,8 @@ export default function AbsenSiswaPage() {
   const closePopup = () => setPopup({ type: 'idle', message: '' })
   showPopupRef.current = showPopup
 
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const fetchAttendanceList = async () => {
     try {
       const today = new Date()
@@ -144,10 +146,14 @@ export default function AbsenSiswaPage() {
     if (typeof window !== 'undefined' && 'NDEFReader' in window) setNfcSupported(true)
 
     if (rawClassName) {
+      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
       fetchAttendanceList()
     }
 
-    return () => clearInterval(timer)
+    return () => {
+      clearInterval(timer)
+      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+    }
   }, [rawClassName])
 
   // Supabase Realtime broadcast listener
@@ -170,7 +176,32 @@ export default function AbsenSiswaPage() {
               student: data.student
             })
 
-            fetchAttendanceList()
+            // Only fetch if the student belongs to the displayed class
+            let shouldFetch = false;
+            const devClean = (rawClassName || '').toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '');
+            const rawClassLower = (rawClassName || '').toLowerCase().trim();
+            const isMultiClassGrade1 = devClean === '1' || devClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1';
+            
+            if (data.student && data.student.class) {
+              const studClean = data.student.class.toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '');
+              if (isMultiClassGrade1) {
+                if (studClean.startsWith('1') || studClean.includes('1')) shouldFetch = true;
+              } else if (devClean) {
+                if (studClean === devClean || studClean.includes(devClean) || devClean.includes(studClean)) shouldFetch = true;
+              } else {
+                shouldFetch = true;
+              }
+            } else {
+              shouldFetch = true;
+            }
+
+            if (shouldFetch) {
+              // Debounce to prevent rapid re-fetches if multiple students scan within the same second
+              if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+              fetchTimeoutRef.current = setTimeout(() => {
+                fetchAttendanceList()
+              }, 1500); // 1.5s delay
+            }
           }
         )
         .subscribe((status) => {

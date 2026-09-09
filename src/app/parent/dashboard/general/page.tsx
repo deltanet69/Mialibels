@@ -80,13 +80,13 @@ export default function ParentGeneralFinancePage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setErrorMsg(""); // Clear past error
+    setErrorMsg("");
     if (!file.type.startsWith("image/")) {
-      setErrorMsg("Hanya format gambar yang diizinkan");
+      setErrorMsg("Hanya file format gambar (JPG, PNG, WebP) yang diizinkan");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg("Ukuran file maksimal 5MB");
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMsg("Ukuran file maksimal 15MB");
       return;
     }
     setUploadFile(file);
@@ -100,16 +100,33 @@ export default function ParentGeneralFinancePage() {
   };
 
   const handleSubmitProof = async () => {
-    if (!uploadFile || !selectedInvoice) return;
+    if (!uploadFile || !selectedInvoice) {
+      setErrorMsg("Pilih gambar bukti transfer terlebih dahulu.");
+      return;
+    }
+    if (selectedPaymentItems.length === 0) {
+      setErrorMsg("Centang minimal satu item tagihan yang akan dibayar.");
+      return;
+    }
     setUploading(true);
     setErrorMsg("");
     setSuccessMsg("");
     try {
+      // Step 1: Upload gambar bukti
       const formData = new FormData();
       formData.append("file", uploadFile);
       const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) throw new Error(uploadData.error || "Gagal upload bukti");
+      let uploadData: any;
+      try { uploadData = await uploadRes.json(); } catch { uploadData = {}; }
+      if (!uploadRes.ok) throw new Error(uploadData?.error || `Upload gagal (HTTP ${uploadRes.status})`);
+      if (!uploadData?.url) throw new Error("Server tidak mengembalikan URL gambar.");
+
+      // Step 2: Kirim data bukti ke API
+      const totalBayar = selectedPaymentItems.reduce((acc, idx) => {
+        const item = selectedInvoice.items[idx];
+        return acc + ((Number(item.amount) || 0) - (Number((item as any).paid_amount) || 0));
+      }, 0);
+      const namaItem = selectedPaymentItems.map(idx => selectedInvoice.items[idx].name).join(', ');
 
       const submitRes = await fetch("/api/parent/general", {
         method: "PUT",
@@ -118,21 +135,20 @@ export default function ParentGeneralFinancePage() {
           invoice_id: selectedInvoice.id,
           bukti_transfer: uploadData.url,
           payment_method: paymentMethod,
-          note: selectedPaymentItems.length > 0 
-            ? `Pembayaran untuk: ${selectedPaymentItems.map(idx => selectedInvoice.items[idx].name).join(', ')}. Total transfer: Rp ${Number(selectedPaymentItems.reduce((acc, idx) => acc + ((Number(selectedInvoice.items[idx].amount) || 0) - (Number((selectedInvoice.items[idx] as any).paid_amount) || 0)), 0)).toLocaleString('id-ID')}`
-            : undefined,
+          note: `Pembayaran untuk: ${namaItem}. Total transfer: Rp ${totalBayar.toLocaleString('id-ID')}`,
         }),
       });
-      const submitData = await submitRes.json();
-      if (!submitRes.ok) throw new Error(submitData.error || "Gagal mengirim bukti");
+      let submitData: any;
+      try { submitData = await submitRes.json(); } catch { submitData = {}; }
+      if (!submitRes.ok) throw new Error(submitData?.error || `Pengiriman gagal (HTTP ${submitRes.status})`);
 
-      setSuccessMsg("Bukti transfer berhasil dikirim. Menunggu verifikasi admin.");
+      setSuccessMsg("Bukti transfer berhasil dikirim! Sedang menunggu verifikasi admin.");
       setSelectedInvoice(null);
       setSelectedPaymentItems([]);
       handleCancelUpload();
       fetchInvoices();
     } catch (err: any) {
-      setErrorMsg(err.message);
+      setErrorMsg(err.message || "Terjadi kesalahan saat memproses bukti pembayaran.");
     } finally {
       setUploading(false);
     }
@@ -292,7 +308,10 @@ export default function ParentGeneralFinancePage() {
                             <button
                               onClick={() => {
                                 setSelectedInvoice(inv);
-                                setSelectedPaymentItems([]);
+                                const unpaidIndexes = (inv.items || [])
+                                  .map((item, idx) => ((Number(item.amount) || 0) - (Number((item as any).paid_amount) || 0) > 0 ? idx : -1))
+                                  .filter(idx => idx !== -1);
+                                setSelectedPaymentItems(unpaidIndexes);
                                 setPaymentMethod('TRANSFER');
                                 setErrorMsg("");
                               }}
@@ -478,7 +497,7 @@ export default function ParentGeneralFinancePage() {
                   >
                     <UploadCloud className="w-10 h-10 text-slate-300 group-hover:text-purple-400 mx-auto mb-3 transition-colors" />
                     <p className="text-sm font-semibold text-slate-600">Klik untuk upload foto struk</p>
-                    <p className="text-xs text-slate-400 mt-1">JPG, PNG — Maks 5MB</p>
+                    <p className="text-xs text-slate-400 mt-1">JPG, PNG, WebP — Maks 15MB (Otomatis dikompres)</p>
                   </div>
                 ) : (
                   <div className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">

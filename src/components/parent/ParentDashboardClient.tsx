@@ -283,7 +283,7 @@ export function ParentDashboardClient({
             <Sparkles className="w-3.5 h-3.5 text-accent" />
             <span>Portal Wali Murid MI Attaqwa 15</span>
           </div>
-          <h1 className="font-headline font-black text-2xl sm:text-3xl text-secondary tracking-tight">
+          <h1 className="font-headline font-black text-2xl sm:text-3xl text-secondary tracking-tight" suppressHydrationWarning>
             {greeting}, {student.parentName} 👋
           </h1>
           <p className="font-body text-slate-500 text-xs sm:text-sm mt-1">
@@ -293,7 +293,7 @@ export function ParentDashboardClient({
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-200/80">
           <Calendar size={16} className="text-blue-600 shrink-0" />
-          <span className="text-xs font-bold text-slate-700">{todayDateStr}</span>
+          <span className="text-xs font-bold text-slate-700" suppressHydrationWarning>{todayDateStr}</span>
         </div>
       </div>
 

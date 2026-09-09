@@ -17,41 +17,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'className and date are required' }, { status: 400 })
     }
 
-    // 1. Fetch all active students
-    const { data: allStudents, error: studentError } = await supabase
+    const deviceClean = (className || '').toLowerCase().replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '').replace(/[^a-z0-9]/g, '');
+    const rawClassLower = (className || '').toLowerCase().trim();
+    const isMultiClassGrade1 = deviceClean === '1' || deviceClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1';
+
+    // 1. Fetch active students ONLY for the specific class
+    let studentQuery = supabase
       .from('students')
       .select('id, name, class')
-      .eq('is_active', true)
+      .eq('is_active', true);
 
-    if (studentError) throw studentError
-
-    // 2. Filter students by class
-    const cleanClassCode = (raw?: string | null): string => {
-      if (!raw) return ''
-      return raw
-        .toLowerCase()
-        .replace(/kelas/g, '')
-        .replace(/ruang/g, '')
-        .replace(/gedung/g, '')
-        .replace(/[^a-z0-9]/g, '')
+    if (isMultiClassGrade1) {
+      studentQuery = studentQuery.ilike('class', '1%');
+    } else if (className) {
+      studentQuery = studentQuery.ilike('class', `%${deviceClean}%`);
     }
 
-    const deviceClean = cleanClassCode(className)
-    const rawClassLower = (className || '').toLowerCase().trim()
-    const isMultiClassGrade1 = deviceClean === '1' || deviceClean === '1bcd' || rawClassLower === 'kelas1' || rawClassLower === '1'
+    const { data: allStudents, error: studentError } = await studentQuery;
 
-    const classStudents = (allStudents || []).filter(student => {
-      const studentClean = cleanClassCode(student.class)
-      if (isMultiClassGrade1) {
-        return studentClean.startsWith('1') || studentClean.includes('1')
-      }
-      if (deviceClean) {
-        return studentClean === deviceClean || 
-               studentClean.includes(deviceClean) || 
-               deviceClean.includes(studentClean)
-      }
-      return true
-    })
+    if (studentError) throw studentError;
+
+    // 2. We already filtered students in the database query.
+    const classStudents = allStudents || [];
 
     const studentIds = classStudents.map(s => s.id)
 
@@ -96,6 +83,10 @@ export async function GET(request: NextRequest) {
       present_count: attendances.filter(a => a.entry_time && a.status !== 'Alpha').length,
       class_breakdown: classBreakdown,
       data: result
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0' // Prevent caching for realtime data
+      }
     })
 
   } catch (error: any) {

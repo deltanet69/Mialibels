@@ -54,46 +54,76 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 });
     }
 
-    // Verify the invoice belongs to this student
-    const { data: invoiceCheck, error: checkError } = await supabase
+    console.log(`[SPP PUT] studentId from JWT: ${studentId}, invoice_id: ${invoice_id}`);
+
+    const adminSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } }
+    );
+
+    // Verify the invoice exists and belongs to this student
+    const { data: invoiceCheck, error: checkError } = await adminSupabase
       .from('spp_invoices')
-      .select('id, status, note')
+      .select('id, title, status, amount, paid_amount, student_id, students(name, class)')
       .eq('id', invoice_id)
-      .eq('student_id', studentId)
-      .single();
+      .maybeSingle();
+
+    console.log(`[SPP PUT] DB student_id: ${invoiceCheck?.student_id}, JWT studentId: ${studentId}`);
 
     if (checkError || !invoiceCheck) {
-      return NextResponse.json({ error: 'Tagihan tidak ditemukan' }, { status: 404 });
+      return NextResponse.json({ error: `Tagihan tidak ditemukan (id: ${invoice_id})` }, { status: 404 });
     }
 
-    if (invoiceCheck.status === 'PENDING_VERIFICATION') {
-      return NextResponse.json({ error: 'Tagihan ini sudah menunggu verifikasi.' }, { status: 400 });
+    // Verify ownership
+    if (invoiceCheck.student_id !== studentId) {
+      return NextResponse.json({ error: `Akses ditolak: student_id tidak cocok (DB: ${invoiceCheck.student_id}, JWT: ${studentId})` }, { status: 403 });
     }
+
+
     if (invoiceCheck.status === 'PAID') {
       return NextResponse.json({ error: 'Tagihan ini sudah lunas.' }, { status: 400 });
     }
 
-    let updatedNote = invoiceCheck.note;
-    if (note) {
-      updatedNote = invoiceCheck.note ? `${invoiceCheck.note} | ${note}` : note;
-    }
+    const studentInfo = (invoiceCheck as any)?.students;
+    const studentName = studentInfo?.name || payload.studentName || 'Siswa';
+    const studentClass = studentInfo?.class || payload.class || '';
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminSupabase
       .from('spp_invoices')
       .update({
         status: 'PENDING_VERIFICATION',
-        bukti_transfer,
-        payment_method: 'TRANSFER',
-        note: updatedNote,
-        updated_at: new Date().toISOString()
+        bukti_transfer
       })
       .eq('id', invoice_id);
 
     if (updateError) throw updateError;
 
+    // Insert Notifications for Admin and Parent
+    try {
+      await adminSupabase.from('notifications').insert([
+        {
+          role: 'admin',
+          type: 'PAYMENT',
+          title: 'Pembayaran SPP Baru',
+          message: `Pembayaran ${invoiceCheck.title || 'Infaq/SPP'} atas nama ${studentName} (${studentClass}) menunggu verifikasi.`
+        },
+        {
+          role: 'parent',
+          user_id: studentId,
+          type: 'PAYMENT',
+          title: 'Bukti Pembayaran SPP Terkirim',
+          message: `Bukti pembayaran untuk ${invoiceCheck.title || 'Infaq/SPP'} berhasil dikirim dan sedang menunggu verifikasi admin.`
+        }
+      ]);
+    } catch (notifErr) {
+      console.warn('Notification insert failed:', notifErr);
+    }
+
     return NextResponse.json({ success: true, message: 'Bukti transfer berhasil diunggah' });
   } catch (error: any) {
-    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
+    console.error('Parent SPP PUT error:', error);
+    return NextResponse.json({ error: error?.message || 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
 

@@ -39,12 +39,17 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
 }) => {
   const [generatingSiswa, setGeneratingSiswa] = useState(false);
   const [generatingUjian, setGeneratingUjian] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean;
     type: 'siswa' | 'ujian';
     dataUrl: string;
     studentName: string;
   } | null>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isFeeExempt = (waiverType?: string | null) => {
     if (!waiverType) return false;
