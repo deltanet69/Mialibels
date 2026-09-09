@@ -58,7 +58,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     academic_year: '2027/2028',
     is_active: true,
     batch_1_quota: 120,
-    registration_fee: 200000,
+    registration_fee: 300000,
     bank_name: 'Bank BTN',
     bank_account_number: '00129-01-30-00015-9',
     bank_account_holder: 'MI ATTAQWA 15 BABELAN',
@@ -132,8 +132,8 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         <div className="max-w-6xl mx-auto relative z-10 text-center space-y-5">
           
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
-            <Sparkles size={14} className="text-amber-400" />
+          <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
+            {/* <Sparkles size={14} className="text-amber-400" /> */}
             <span>Sistem Penerimaan Murid Baru (SPMB) Online</span>
           </div>
 
@@ -196,7 +196,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
       {/* ════════════════════════════════════════════════════════════════════
           MAIN CONTENT AREA (Direct Form & Status Tabs)
          ════════════════════════════════════════════════════════════════════ */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-8">
+      <main className="max-w-f mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-8">
         
         {/* ── MAIN INTERACTIVE TABS (DAFTAR vs CEK STATUS) ── */}
         <div ref={formRef} className="pt-2 scroll-mt-24">
