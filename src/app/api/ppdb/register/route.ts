@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSupabase } from '@/lib/supabase'
+import { sendSpmbRegistrationEmail } from '@/lib/spmb-email'
 
 export const runtime = 'nodejs'
 
@@ -206,124 +207,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Gagal menyimpan pendaftaran: ' + insertError.message }, { status: 500 })
     }
 
-    // 9. Send Resend Confirmation Email to Parent
-    const RESEND_KEY = process.env.RESEND_API_KEY
-    if (RESEND_KEY) {
-      try {
-        const { Resend } = await import('resend')
-        const resend = new Resend(RESEND_KEY)
-        const senderEmail = 'ppdb@miattaqwa15.sch.id'
-        const adminEmail = process.env.ADMIN_EMAIL || 'admin@miattaqwa15.sch.id'
-        const programLabel = isFullday ? 'Kelas Fullday (Maks 30 Siswa)' : 'Kelas Regular'
-
-        const parentHtml = `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; color: #1e293b;">
-            <div style="background: linear-gradient(135deg, #001d3d 0%, #003566 100%); padding: 36px 30px; text-align: center;">
-              <span style="display: inline-block; background-color: #ffd60a; color: #001d3d; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">SPMB ONLINE T.A ${ppdbSettings.academic_year}</span>
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Bukti Pendaftaran Siswa Baru</h1>
-              <p style="color: #93c5fd; margin: 8px 0 0 0; font-size: 14px;">MI Attaqwa 15 Babelan Kota, Kab. Bekasi</p>
-            </div>
-            
-            <div style="padding: 32px 28px; background-color: #ffffff;">
-              <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6;">
-                Yth. Bapak/Ibu <strong>${parent_name}</strong> (${parent_relation}),
-              </p>
-              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
-                Alhamdulillah, berkas formulir dan bukti pembayaran pendaftaran SPMB calon murid baru atas nama <strong>${student_name}</strong> telah berhasil kami terima.
-              </p>
-              
-              <!-- Registration Card -->
-              <div style="background-color: #f0fdf4; border: 1.5px dashed #22c55e; border-radius: 16px; padding: 22px; margin-bottom: 24px; text-align: center;">
-                <span style="font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">NOMOR REGISTRASI RESMI</span>
-                <span style="font-size: 32px; font-weight: 900; color: #166534; letter-spacing: 2px; font-family: monospace;">${regNumber}</span>
-                <div style="margin-top: 8px; font-size: 13px; color: #16a34a; font-weight: 700;">
-                  Program Pilihan: ${programLabel}
-                </div>
-              </div>
-
-              <!-- Student Summary Table -->
-              <h3 style="font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 12px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">Rangkuman Data Calon Siswa</h3>
-              <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; width: 40%;">Nama Lengkap</td>
-                  <td style="padding: 8px 0; font-weight: 700; color: #1e293b;">${student_name}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">NISN</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${nisn || '-'}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Tempat, Tanggal Lahir</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${birth_place}, ${new Date(birth_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Jenis Kelamin &amp; Agama</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${gender} &bull; ${religion}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Orang Tua / Wali</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${parent_name} (${parent_phone})</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Status Pendaftaran</td>
-                  <td style="padding: 8px 0; font-weight: 700; color: #d97706; border-top: 1px solid #f8fafc;">Menunggu Verifikasi Panitia</td>
-                </tr>
-              </table>
-
-              <!-- Declaration & Verification Notice -->
-              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
-                <span style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Langkah Selanjutnya:</span>
-                <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-                  1. Panitia SPMB akan memverifikasi berkas dan bukti pembayaran Anda dalam 1x24 jam.<br/>
-                  2. Setelah pendaftaran disetujui (di-approve) oleh pihak madrasah, Anda akan menerima <strong>Email Konfirmasi Penerimaan Resmi</strong> ke email ini (${parent_email}).<br/>
-                  3. Anda juga dapat memantau status secara berkala melalui menu <strong>Cek Status SPMB</strong> menggunakan Nomor Registrasi: <strong>${regNumber}</strong> atau No. WhatsApp: <strong>${parent_phone}</strong>.
-                </p>
-              </div>
-
-              <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569; line-height: 1.6;">
-                Terima kasih atas kepercayaan Bapak/Ibu memilih MI Attaqwa 15 Babelan sebagai mitra pendidikan ananda tercinta.
-              </p>
-            </div>
-            
-            <div style="background-color: #f1f5f9; padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0; font-size: 12px; color: #64748b;">
-                Butuh bantuan? Hubungi WhatsApp Panitia SPMB: <strong>${ppdbSettings.whatsapp_contact || '+62 812-3456-7890'}</strong>
-              </p>
-              <p style="margin: 6px 0 0 0; font-size: 11px; color: #94a3b8;">
-                &copy; ${new Date().getFullYear()} MI Attaqwa 15 Babelan. All rights reserved.
-              </p>
-            </div>
-          </div>
-        `
-
-        // Send to parent
-        await resend.emails.send({
-          from: 'Panitia SPMB MI Attaqwa 15 <' + senderEmail + '>',
-          to: parent_email,
-          subject: `[SPMB ${ppdbSettings.academic_year}] Pendaftaran Berhasil - ${regNumber} (${student_name})`,
-          html: parentHtml
-        })
-
-        // Notify school admin
-        await resend.emails.send({
-          from: 'Notifikasi SPMB <' + senderEmail + '>',
-          to: adminEmail,
-          subject: `[Pendaftar SPMB Baru] ${regNumber} - ${student_name} (${programLabel})`,
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; max-width: 500px;">
-              <h2>Pendaftar SPMB Baru Masuk</h2>
-              <p><strong>Nomor Registrasi:</strong> ${regNumber}</p>
-              <p><strong>Nama Calon Siswa:</strong> ${student_name}</p>
-              <p><strong>Program Pilihan:</strong> ${programLabel}</p>
-              <p><strong>Orang Tua/Wali:</strong> ${parent_name} (${parent_phone})</p>
-              <p><strong>Email Ortu:</strong> ${parent_email}</p>
-              <p>Silakan verifikasi berkas & bukti transfer di Dashboard Admin [AKADEMIK] &gt; SPMB Baru.</p>
-            </div>
-          `
-        })
-      } catch (emailErr) {
-        console.error('Failed to send SPMB notification email:', emailErr)
-      }
+    // 9. Send Resend Confirmation Email to Parent & Notify Admin
+    try {
+      await sendSpmbRegistrationEmail({
+        registration: newReg,
+        settings: ppdbSettings
+      })
+    } catch (emailErr) {
+      console.error('[SPMB Register] Failed to send notification email:', emailErr)
     }
 
     return NextResponse.json({

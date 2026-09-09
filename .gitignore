@@ -19,6 +19,8 @@
 
 # production
 /build
+/public/_next/
+/.temp_public_next/
 
 # misc
 .DS_Store
