@@ -22,7 +22,10 @@ import {
   ChevronRight,
   RefreshCw,
   SlidersHorizontal,
-  RotateCcw
+  RotateCcw,
+  Sparkles,
+  School,
+  FileCheck
 } from 'lucide-react'
 import Link from 'next/link'
 import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
@@ -35,7 +38,7 @@ type Applicant = {
   batch: number
   assigned_batch: number
   student_name: string
-  student_nickname?: string
+  student_nickname?: string // 'fullday' | 'regular'
   birth_place: string
   birth_date: string
   gender: string
@@ -43,9 +46,9 @@ type Applicant = {
   height?: number
   blood_type?: string
   nisn?: string
-  previous_school?: string
-  special_needs?: string
-  medical_history?: string
+  previous_school?: string // 'Agama: Islam'
+  special_needs?: string // 'Program Kelas Fullday' | 'Program Kelas Regular'
+  medical_history?: string // 'Hubungan: Ayah Kandung | Agama Ortu: Islam'
   father_name: string
   father_nik: string
   father_occupation: string
@@ -73,7 +76,7 @@ type Applicant = {
   created_at: string
 }
 
-// Skeleton Components for Instant Perceived Performance
+// Skeleton Components
 function SkeletonStats() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 font-sans animate-pulse">
@@ -98,7 +101,7 @@ function SkeletonRow() {
         <div className="h-4.5 bg-slate-100 rounded-lg w-36 mb-1.5" />
         <div className="h-3.5 bg-slate-100 rounded-lg w-28" />
       </td>
-      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-16" /></td>
+      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-20" /></td>
       <td className="py-4 pr-4">
         <div className="h-4 bg-slate-100 rounded-lg w-28 mb-1" />
         <div className="h-3 bg-slate-100 rounded-lg w-20" />
@@ -133,8 +136,8 @@ function SkeletonCard() {
   )
 }
 
-const CACHE_KEY_DATA = 'spmb_admin_cache_data_v1'
-const CACHE_KEY_SETTINGS = 'spmb_admin_cache_settings_v1'
+const CACHE_KEY_DATA = 'spmb_admin_cache_data_v2'
+const CACHE_KEY_SETTINGS = 'spmb_admin_cache_settings_v2'
 
 export default function AdminSpmbPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([])
@@ -146,7 +149,7 @@ export default function AdminSpmbPage() {
 
   // Filters & Search
   const [search, setSearch] = useState('')
-  const [batchFilter, setBatchFilter] = useState('all')
+  const [programFilter, setProgramFilter] = useState<'all' | 'fullday' | 'regular'>('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list')
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
@@ -162,14 +165,13 @@ export default function AdminSpmbPage() {
 
   // Action state in detail modal
   const [actionNotes, setActionNotes] = useState('')
-  const [targetBatch, setTargetBatch] = useState<number>(1)
   const [processingAction, setProcessingAction] = useState(false)
 
   // Settings update state
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsForm, setSettingsForm] = useState<any>({})
 
-  // Dynamic SPMB Subdomain URL (dev & prod support)
+  // Dynamic SPMB Subdomain URL
   const [spmbUrl, setSpmbUrl] = useState('https://spmb.miattaqwa15.sch.id')
 
   useEffect(() => {
@@ -181,7 +183,7 @@ export default function AdminSpmbPage() {
         setSpmbUrl('https://spmb.miattaqwa15.sch.id')
       }
 
-      // ── Instant Cache Hydration (0ms load time) ──
+      // Instant Cache Hydration
       try {
         const cachedData = sessionStorage.getItem(CACHE_KEY_DATA)
         const cachedSettings = sessionStorage.getItem(CACHE_KEY_SETTINGS)
@@ -227,7 +229,7 @@ export default function AdminSpmbPage() {
             summary: dataApps.summary || null
           }))
         } catch {
-          // ignore quota error
+          // ignore
         }
       }
 
@@ -278,7 +280,6 @@ export default function AdminSpmbPage() {
 
       const json = await res.json()
       if (!json.success) {
-        // Revert on failure
         setSettings((prev: any) => ({ ...prev, is_active: !newActive }))
         alert('Gagal mengubah status SPMB: ' + json.error)
       } else {
@@ -290,12 +291,35 @@ export default function AdminSpmbPage() {
     }
   }
 
+  // Count Fullday vs Regular
+  const fulldayCount = useMemo(() => {
+    return applicants.filter(a => 
+      (a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
+      (a.special_needs && a.special_needs.toLowerCase().includes('fullday'))
+    ).length
+  }, [applicants])
+
+  const regularCount = useMemo(() => {
+    return applicants.filter(a => 
+      !((a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
+        (a.special_needs && a.special_needs.toLowerCase().includes('fullday')))
+    ).length
+  }, [applicants])
+
   // Filtered applicants
   const filteredApplicants = useMemo(() => {
     let list = [...applicants]
 
-    if (batchFilter !== 'all') {
-      list = list.filter(a => a.batch === Number(batchFilter))
+    if (programFilter === 'fullday') {
+      list = list.filter(a => 
+        (a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
+        (a.special_needs && a.special_needs.toLowerCase().includes('fullday'))
+      )
+    } else if (programFilter === 'regular') {
+      list = list.filter(a => 
+        !((a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
+          (a.special_needs && a.special_needs.toLowerCase().includes('fullday')))
+      )
     }
 
     if (statusFilter !== 'all') {
@@ -309,6 +333,7 @@ export default function AdminSpmbPage() {
         a.registration_number?.toLowerCase().includes(q) ||
         a.father_name?.toLowerCase().includes(q) ||
         a.father_phone?.includes(q) ||
+        a.father_email?.toLowerCase().includes(q) ||
         a.mother_name?.toLowerCase().includes(q) ||
         a.mother_phone?.includes(q)
       )
@@ -321,12 +346,12 @@ export default function AdminSpmbPage() {
     }
 
     return list
-  }, [applicants, batchFilter, statusFilter, search, sortOrder])
+  }, [applicants, programFilter, statusFilter, search, sortOrder])
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, batchFilter, statusFilter, sortOrder])
+  }, [search, programFilter, statusFilter, sortOrder])
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / itemsPerPage))
@@ -341,14 +366,12 @@ export default function AdminSpmbPage() {
 
     setProcessingAction(true)
     const prevApplicant = { ...selectedApplicant }
-    const updatedStatus = status
     const updatedPaymentStatus = status === 'approved' ? 'verified' : selectedApplicant.payment_status
 
     // Optimistic update
     const updatedRecord = {
       ...selectedApplicant,
-      status: updatedStatus,
-      assigned_batch: targetBatch,
+      status,
       admin_notes: actionNotes.trim() || undefined,
       payment_status: updatedPaymentStatus
     }
@@ -362,7 +385,6 @@ export default function AdminSpmbPage() {
         body: JSON.stringify({
           id: selectedApplicant.id,
           status,
-          assigned_batch: targetBatch,
           admin_notes: actionNotes.trim() || null,
           payment_status: updatedPaymentStatus
         })
@@ -372,9 +394,8 @@ export default function AdminSpmbPage() {
       if (json.success && json.data) {
         setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? json.data : a))
         setSelectedApplicant(json.data)
-        fetchData(false) // refresh summary in background
+        fetchData(false)
       } else {
-        // Revert on error
         setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? prevApplicant : a))
         setSelectedApplicant(prevApplicant)
         alert('Gagal update status: ' + (json.error || 'Terjadi kesalahan'))
@@ -393,7 +414,6 @@ export default function AdminSpmbPage() {
     if (!canManage) return
     if (!confirm(`Hapus permanen data pendaftar ${name}? Tindakan ini tidak dapat dibatalkan.`)) return
 
-    // Optimistic deletion
     setApplicants(prev => prev.filter(a => a.id !== id))
     if (selectedApplicant?.id === id) setSelectedApplicant(null)
 
@@ -419,17 +439,20 @@ export default function AdminSpmbPage() {
       return
     }
 
-    let csv = 'No. Registrasi,Nama Lengkap,Panggilan,JK,Tempat Lahir,Tanggal Lahir,Batch,Status,Ayah,NIK Ayah,Pekerjaan Ayah,No WA Ayah,Email Ayah,Ibu,NIK Ibu,Pekerjaan Ibu,No WA Ibu,Metode Bayar,Nominal Bayar,Status Bayar,Tgl Daftar\n'
+    let csv = 'No. Registrasi,Nama Lengkap,Program Kelas,JK,Tempat Lahir,Tanggal Lahir,Status,Orang Tua/Wali,NIK,Pekerjaan,No WA,Email,Alamat,Nominal Bayar,Status Bayar,Tgl Daftar\n'
 
     filteredApplicants.forEach(row => {
       const clean = (val: any) => `"${String(val || '').replace(/"/g, '""')}"`
-      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(row.student_nickname || '')},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${row.batch},${clean(row.status)},${clean(row.father_name)},${clean(row.father_nik)},${clean(row.father_occupation)},${clean(row.father_phone)},${clean(row.father_email)},${clean(row.mother_name)},${clean(row.mother_nik)},${clean(row.mother_occupation)},${clean(row.mother_phone)},${clean(row.payment_method)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))}\n`
+      const isF = (row.student_nickname && row.student_nickname.toLowerCase().includes('fullday')) || (row.special_needs && row.special_needs.toLowerCase().includes('fullday'))
+      const programName = isF ? 'Kelas Fullday' : 'Kelas Regular'
+
+      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(programName)},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${clean(row.status)},${clean(row.father_name || row.mother_name)},${clean(row.father_nik || row.mother_nik)},${clean(row.father_occupation || row.mother_occupation)},${clean(row.father_phone || row.mother_phone)},${clean(row.father_email || row.mother_email)},${clean(row.home_address)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))}\n`
     })
 
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `SPMB_Pendaftar_${batchFilter === 'all' ? 'Semua_Batch' : 'Batch_' + batchFilter}_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `SPMB_Pendaftar_${programFilter === 'all' ? 'Semua_Program' : programFilter}_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
   }
 
@@ -449,9 +472,10 @@ export default function AdminSpmbPage() {
         setSettings(json.data)
         sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify(json.data))
         setShowSettingsModal(false)
+        alert('Pengaturan SPMB berhasil disimpan.')
         fetchData(false)
       } else {
-        alert('Gagal simpan: ' + json.error)
+        alert('Gagal menyimpan: ' + json.error)
       }
     } catch (err: any) {
       alert('Error: ' + err.message)
@@ -460,49 +484,30 @@ export default function AdminSpmbPage() {
     }
   }
 
-  // If user role is determined and does NOT have access
-  if (!loading && currentUser && !hasAccess) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-        <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mb-4">
-          <XCircle size={32} />
-        </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Akses Ditolak</h2>
-        <p className="text-slate-500 max-w-md mb-6 text-sm">
-          Akun Anda tidak memiliki izin untuk mengakses halaman Manajemen SPMB. Hubungi Super Administrator atau Staff TU jika membutuhkan akses.
-        </p>
-        <Link href="/dashboard" className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition shadow-sm text-sm">
-          Kembali ke Dashboard
-        </Link>
-      </div>
-    )
-  }
-
   return (
-    <div className="font-sans space-y-6 sm:space-y-7 w-full pb-16">
+    <div className="font-sans space-y-6 max-w-7xl mx-auto pb-16">
       
       {/* ════════════════════════════════════════════════════════════════════
-          HEADER BAR
+          HEADER & MASTER CONTROLS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-6 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80">
         <div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2.5">
-            <UserPlus size={13} />
-            <span>Manajemen Sistem Penerimaan Murid Baru (SPMB)</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-sans font-extrabold text-2xl sm:text-3xl text-slate-900 tracking-tight">
-              SPMB T.A {settings?.academic_year || '2027/2028'}
-            </h1>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+              Sistem Penerimaan Murid Baru
+            </span>
             {isRevalidating && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full animate-pulse">
-                <RefreshCw size={11} className="animate-spin" />
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+                <RefreshCw size={12} className="animate-spin text-blue-600" />
                 <span>Menyelaraskan data...</span>
               </span>
             )}
           </div>
-          <p className="font-sans text-xs sm:text-sm text-slate-500 mt-1">
-            Kelola pendaftaran siswa baru, verifikasi berkas transfer, dan pendataan 3 gelombang batch penerimaan.
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-headline mt-2">
+            SPMB T.A {settings?.academic_year || '2027/2028'}
+          </h1>
+          <p className="font-sans text-xs sm:text-sm text-slate-500 mt-0.5">
+            Kelola data pendaftaran siswa baru, verifikasi berkas transfer, dan seleksi program kelas.
           </p>
         </div>
 
@@ -588,10 +593,35 @@ export default function AdminSpmbPage() {
           <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-blue-200 transition">
             <div>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Pendaftar</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-900">{summary?.total || 0}</h3>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-900">{summary?.total || applicants.length}</h3>
             </div>
             <div className="w-11 h-11 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
               <UserPlus size={20} />
+            </div>
+          </div>
+
+          {/* Kelas Fullday */}
+          <div className="bg-white p-5 rounded-3xl border border-indigo-200/80 shadow-2xs flex items-center justify-between hover:border-indigo-300 transition">
+            <div>
+              <span className="text-[11px] font-bold text-indigo-500 uppercase tracking-wider block mb-1">Kelas Fullday</span>
+              <div className="flex items-baseline gap-1">
+                <h3 className="font-extrabold text-2xl sm:text-3xl text-indigo-700">{fulldayCount}</h3>
+                <span className="text-xs font-bold text-slate-400">/ 30 Siswa</span>
+              </div>
+            </div>
+            <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
+              <Sparkles size={20} />
+            </div>
+          </div>
+
+          {/* Kelas Regular */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-teal-200 transition">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Kelas Regular</span>
+              <h3 className="font-extrabold text-2xl sm:text-3xl text-slate-800">{regularCount}</h3>
+            </div>
+            <div className="w-11 h-11 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-bold">
+              <School size={20} />
             </div>
           </div>
 
@@ -607,9 +637,9 @@ export default function AdminSpmbPage() {
           </div>
 
           {/* Lulus / Approved */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-emerald-200 transition">
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-emerald-200 transition col-span-2 lg:col-span-1">
             <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Approved</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Approved / Diterima</span>
               <h3 className="font-extrabold text-2xl sm:text-3xl text-emerald-600">{summary?.approved || 0}</h3>
             </div>
             <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold">
@@ -617,70 +647,40 @@ export default function AdminSpmbPage() {
             </div>
           </div>
 
-          {/* Dokumen Masuk */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-indigo-200 transition">
-            <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Berkas Masuk</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-indigo-600">{summary?.documents_submitted || 0}</h3>
-            </div>
-            <div className="w-11 h-11 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
-              <FileText size={20} />
-            </div>
-          </div>
-
-          {/* Rejected */}
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between col-span-2 lg:col-span-1 hover:border-rose-200 transition">
-            <div>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Ditolak / Revisi</span>
-              <h3 className="font-extrabold text-2xl sm:text-3xl text-rose-600">{summary?.rejected || 0}</h3>
-            </div>
-            <div className="w-11 h-11 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center font-bold">
-              <XCircle size={20} />
-            </div>
-          </div>
-
         </div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          BATCH TABS & FILTERS
+          PROGRAM TABS & FILTERS
          ════════════════════════════════════════════════════════════════════ */}
       <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80 space-y-6">
         
-        {/* Batch Selector Pills */}
+        {/* Program Selector Pills */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto max-w-full">
             <button
-              onClick={() => setBatchFilter('all')}
+              onClick={() => setProgramFilter('all')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                batchFilter === 'all' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+                programFilter === 'all' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua Gelombang ({summary?.total || applicants.length})
+              Semua Program ({applicants.length})
             </button>
             <button
-              onClick={() => setBatchFilter('1')}
+              onClick={() => setProgramFilter('fullday')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                batchFilter === '1' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+                programFilter === 'fullday' ? 'bg-white shadow-2xs text-indigo-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Gelombang 1 ({summary?.batch1 ?? applicants.filter(a => a.batch === 1).length}/{settings?.batch_1_quota || 75})
+              Kelas Fullday ({fulldayCount} / 30)
             </button>
             <button
-              onClick={() => setBatchFilter('2')}
+              onClick={() => setProgramFilter('regular')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                batchFilter === '2' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+                programFilter === 'regular' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Gelombang 2 ({summary?.batch2 ?? applicants.filter(a => a.batch === 2).length}/{settings?.batch_2_quota || 75})
-            </button>
-            <button
-              onClick={() => setBatchFilter('3')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                batchFilter === '3' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Gelombang 3 ({summary?.batch3 ?? applicants.filter(a => a.batch === 3).length}/{settings?.batch_3_quota || 75})
+              Kelas Regular ({regularCount})
             </button>
           </div>
 
@@ -708,7 +708,7 @@ export default function AdminSpmbPage() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Cari nama, no registrasi, atau no WA..."
+              placeholder="Cari nama, no registrasi, atau kontak..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
@@ -752,7 +752,7 @@ export default function AdminSpmbPage() {
         </div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            LIST VIEW TABLE (Responsive & Fast)
+            LIST VIEW TABLE
            ════════════════════════════════════════════════════════════════════ */}
         {viewMode === 'list' && (
           <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-100">
@@ -761,7 +761,7 @@ export default function AdminSpmbPage() {
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-4 pr-4 pl-5">No. Registrasi</th>
                   <th className="py-4 pr-4">Nama Calon Siswa</th>
-                  <th className="py-4 pr-4">Batch</th>
+                  <th className="py-4 pr-4">Program Kelas</th>
                   <th className="py-4 pr-4">Orang Tua / Kontak</th>
                   <th className="py-4 pr-4">Bukti Bayar</th>
                   <th className="py-4 pr-4">Status</th>
@@ -783,9 +783,9 @@ export default function AdminSpmbPage() {
                       <div className="flex flex-col items-center justify-center gap-2">
                         <SlidersHorizontal size={24} className="text-slate-300" />
                         <span className="font-semibold text-slate-600">Tidak ada pendaftar yang sesuai filter.</span>
-                        {(search || batchFilter !== 'all' || statusFilter !== 'all') && (
+                        {(search || programFilter !== 'all' || statusFilter !== 'all') && (
                           <button
-                            onClick={() => { setSearch(''); setBatchFilter('all'); setStatusFilter('all'); }}
+                            onClick={() => { setSearch(''); setProgramFilter('all'); setStatusFilter('all'); }}
                             className="text-xs text-blue-600 hover:underline mt-1 font-bold inline-flex items-center gap-1"
                           >
                             <RotateCcw size={12} />
@@ -796,99 +796,108 @@ export default function AdminSpmbPage() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedApplicants.map((app) => (
-                    <tr key={app.id} className="hover:bg-blue-50/30 transition-colors group">
-                      
-                      {/* Reg Number */}
-                      <td className="py-4 pr-4 pl-5">
-                        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
-                          {app.registration_number}
-                        </span>
-                      </td>
+                  paginatedApplicants.map((app) => {
+                    const isF = (app.student_nickname && app.student_nickname.toLowerCase().includes('fullday')) || (app.special_needs && app.special_needs.toLowerCase().includes('fullday'))
+                    return (
+                      <tr key={app.id} className="hover:bg-blue-50/30 transition-colors group">
+                        
+                        {/* Reg Number */}
+                        <td className="py-4 pr-4 pl-5">
+                          <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                            {app.registration_number}
+                          </span>
+                        </td>
 
-                      {/* Student Name */}
-                      <td className="py-4 pr-4">
-                        <div 
-                          onClick={() => {
-                            setSelectedApplicant(app)
-                            setTargetBatch(app.assigned_batch || app.batch || 1)
-                            setActionNotes(app.admin_notes || '')
-                          }}
-                          className="font-sans font-bold text-[14px] text-slate-900 hover:text-blue-600 transition cursor-pointer"
-                        >
-                          {app.student_name}
-                        </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          {app.birth_place}, {new Date(app.birth_date).toLocaleDateString('id-ID')} ({app.gender})
-                        </div>
-                      </td>
-
-                      {/* Batch */}
-                      <td className="py-4 pr-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          Batch {app.assigned_batch || app.batch}
-                        </span>
-                      </td>
-
-                      {/* Parent */}
-                      <td className="py-4 pr-4">
-                        <div className="font-sans text-xs sm:text-sm font-semibold text-slate-800">
-                          {app.father_name || app.mother_name || '—'}
-                        </div>
-                        <div className="font-sans text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Phone size={12} />
-                          <span>{app.father_phone || app.mother_phone || '—'}</span>
-                        </div>
-                      </td>
-
-                      {/* Payment Proof */}
-                      <td className="py-4 pr-4">
-                        {app.payment_proof_url ? (
-                          <button
-                            onClick={() => setPreviewImage(app.payment_proof_url)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-100 transition cursor-pointer"
-                          >
-                            <ImageIcon size={13} />
-                            <span>Lihat Struk</span>
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Belum ada</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 pr-4">
-                        <StatusBadge status={app.status} />
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-4 pr-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
+                        {/* Student Name */}
+                        <td className="py-4 pr-4">
+                          <div 
                             onClick={() => {
                               setSelectedApplicant(app)
-                              setTargetBatch(app.assigned_batch || app.batch || 1)
                               setActionNotes(app.admin_notes || '')
                             }}
-                            className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
-                            title="Detail & Verifikasi"
+                            className="font-sans font-bold text-[14px] text-slate-900 hover:text-blue-600 transition cursor-pointer"
                           >
-                            <Eye size={16} />
-                          </button>
-                          {canManage && (
-                            <button
-                              onClick={() => handleDeleteApplicant(app.id, app.student_name)}
-                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                              title="Hapus Data"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                            {app.student_name}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            {app.birth_place}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'} ({app.gender})
+                          </div>
+                        </td>
 
-                    </tr>
-                  ))
+                        {/* Program Kelas */}
+                        <td className="py-4 pr-4">
+                          {isF ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              <Sparkles size={11} />
+                              <span>Fullday</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              <School size={11} />
+                              <span>Regular</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Parent */}
+                        <td className="py-4 pr-4">
+                          <div className="font-sans text-xs sm:text-sm font-semibold text-slate-800">
+                            {app.father_name || app.mother_name || '—'}
+                          </div>
+                          <div className="font-sans text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                            <Phone size={12} />
+                            <span>{app.father_phone || app.mother_phone || '—'}</span>
+                          </div>
+                        </td>
+
+                        {/* Payment Proof */}
+                        <td className="py-4 pr-4">
+                          {app.payment_proof_url ? (
+                            <button
+                              onClick={() => setPreviewImage(app.payment_proof_url)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-100 transition cursor-pointer"
+                            >
+                              <ImageIcon size={13} />
+                              <span>Lihat Struk</span>
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Belum ada</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 pr-4">
+                          <StatusBadge status={app.status} />
+                        </td>
+
+                        {/* Action */}
+                        <td className="py-4 pr-5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setSelectedApplicant(app)
+                                setActionNotes(app.admin_notes || '')
+                              }}
+                              className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
+                              title="Detail & Verifikasi"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            {canManage && (
+                              <button
+                                onClick={() => handleDeleteApplicant(app.id, app.student_name)}
+                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                                title="Hapus Data"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
@@ -896,7 +905,7 @@ export default function AdminSpmbPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            CARD VIEW (Modern Grid or Mobile default)
+            CARD VIEW (Grid mode)
            ════════════════════════════════════════════════════════════════════ */}
         <div className={`${viewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'sm:hidden space-y-3.5'}`}>
           {loading && applicants.length === 0 ? (
@@ -910,76 +919,84 @@ export default function AdminSpmbPage() {
               Tidak ada pendaftar yang sesuai filter.
             </div>
           ) : (
-            paginatedApplicants.map((app) => (
-              <div
-                key={app.id}
-                className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-4 font-sans"
-              >
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
-                      {app.registration_number}
-                    </span>
-                    <StatusBadge status={app.status} />
-                  </div>
-
-                  <div>
-                    <h4 
-                      onClick={() => {
-                        setSelectedApplicant(app)
-                        setTargetBatch(app.assigned_batch || app.batch || 1)
-                        setActionNotes(app.admin_notes || '')
-                      }}
-                      className="font-bold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
-                    >
-                      {app.student_name}
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {app.birth_place}, {new Date(app.birth_date).toLocaleDateString('id-ID')} &bull; Gelombang {app.assigned_batch || app.batch}
-                    </p>
-                  </div>
-
-                  <div className="bg-slate-50 rounded-2xl p-3 text-xs text-slate-600 space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Ayah:</span>
-                      <span className="font-bold text-slate-800">{app.father_name || '—'}</span>
+            paginatedApplicants.map((app) => {
+              const isF = (app.student_nickname && app.student_nickname.toLowerCase().includes('fullday')) || (app.special_needs && app.special_needs.toLowerCase().includes('fullday'))
+              return (
+                <div
+                  key={app.id}
+                  className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-4 font-sans"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                        {app.registration_number}
+                      </span>
+                      <StatusBadge status={app.status} />
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">WhatsApp:</span>
-                      <span className="font-semibold text-slate-700">{app.father_phone || '—'}</span>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase ${
+                          isF ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {isF ? 'Kelas Fullday' : 'Kelas Regular'}
+                        </span>
+                      </div>
+                      <h4 
+                        onClick={() => {
+                          setSelectedApplicant(app)
+                          setActionNotes(app.admin_notes || '')
+                        }}
+                        className="font-bold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
+                      >
+                        {app.student_name}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {app.birth_place}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'}
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-2xl p-3 text-xs text-slate-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Orang Tua:</span>
+                        <span className="font-bold text-slate-800">{app.father_name || app.mother_name || '—'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">WhatsApp:</span>
+                        <span className="font-semibold text-slate-700">{app.father_phone || app.mother_phone || '—'}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                  {app.payment_proof_url ? (
-                    <button
-                      onClick={() => setPreviewImage(app.payment_proof_url)}
-                      className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <ImageIcon size={13} />
-                      <span>Struk Bayar</span>
-                    </button>
-                  ) : (
-                    <span className="text-xs text-slate-400 italic">Belum bayar</span>
-                  )}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    {app.payment_proof_url ? (
+                      <button
+                        onClick={() => setPreviewImage(app.payment_proof_url)}
+                        className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <ImageIcon size={13} />
+                        <span>Struk Bayar</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Belum bayar</span>
+                    )}
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedApplicant(app)
-                        setTargetBatch(app.assigned_batch || app.batch || 1)
-                        setActionNotes(app.admin_notes || '')
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
-                    >
-                      Detail &amp; Verifikasi
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedApplicant(app)
+                          setActionNotes(app.admin_notes || '')
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                      >
+                        Detail &amp; Verifikasi
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-              </div>
-            ))
+                </div>
+              )
+            })
           )}
         </div>
 
@@ -1072,9 +1089,14 @@ export default function AdminSpmbPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 sm:p-7 border-b border-slate-100 bg-slate-50/50">
               <div>
-                <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100 inline-block mb-1">
-                  {selectedApplicant.registration_number}
-                </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100">
+                    {selectedApplicant.registration_number}
+                  </span>
+                  <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
+                    {selectedApplicant.special_needs || ((selectedApplicant.student_nickname === 'fullday') ? 'Kelas Fullday' : 'Kelas Regular')}
+                  </span>
+                </div>
                 <h3 className="font-extrabold text-xl text-slate-900">
                   {selectedApplicant.student_name}
                 </h3>
@@ -1099,20 +1121,6 @@ export default function AdminSpmbPage() {
                       <StatusBadge status={selectedApplicant.status} />
                     </div>
                   </div>
-                  {canManage && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-600">Assign Gelombang:</span>
-                      <select
-                        value={targetBatch}
-                        onChange={(e) => setTargetBatch(Number(e.target.value))}
-                        className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none cursor-pointer shadow-2xs"
-                      >
-                        <option value={1}>Batch 1</option>
-                        <option value={2}>Batch 2</option>
-                        <option value={3}>Batch 3</option>
-                      </select>
-                    </div>
-                  )}
                 </div>
 
                 {/* Notes Input */}
@@ -1124,7 +1132,7 @@ export default function AdminSpmbPage() {
                     <textarea
                       value={actionNotes}
                       onChange={(e) => setActionNotes(e.target.value)}
-                      placeholder="Contoh: Bukti transfer valid / Berkas lengkap / Mohon unggah ulang foto..."
+                      placeholder="Contoh: Berkas lengkap dan pembayaran tervalidasi / Siap daftar ulang..."
                       rows={2}
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                     />
@@ -1140,7 +1148,7 @@ export default function AdminSpmbPage() {
                       className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
                     >
                       <CheckCircle2 size={15} />
-                      <span>{processingAction ? 'Memproses...' : 'Approve / Terima Siswa'}</span>
+                      <span>{processingAction ? 'Memproses & Kirim Email...' : 'Approve & Kirim Email Kelulusan'}</span>
                     </button>
 
                     <button
@@ -1167,23 +1175,19 @@ export default function AdminSpmbPage() {
                   </div>
                   <div>
                     <span className="text-slate-400 block">Jenis Kelamin</span>
-                    <span className="font-bold text-slate-800">{selectedApplicant.gender === 'L' ? 'Laki-laki' : selectedApplicant.gender === 'P' ? 'Perempuan' : selectedApplicant.gender || '—'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Fisik (BB / TB)</span>
-                    <span className="font-bold text-slate-800">{selectedApplicant.weight || '—'} kg / {selectedApplicant.height || '—'} cm</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block">Golongan Darah</span>
-                    <span className="font-bold text-slate-800">{selectedApplicant.blood_type || '—'}</span>
+                    <span className="font-bold text-slate-800">{selectedApplicant.gender || '—'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block">NISN</span>
                     <span className="font-bold text-slate-800">{selectedApplicant.nisn || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Asal TK/RA</span>
-                    <span className="font-bold text-slate-800">{selectedApplicant.previous_school || '—'}</span>
+                    <span className="text-slate-400 block">Agama</span>
+                    <span className="font-bold text-slate-800">{selectedApplicant.previous_school?.replace('Agama: ', '') || 'Islam'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-400 block">Program Pilihan</span>
+                    <span className="font-bold text-indigo-700">{selectedApplicant.special_needs || 'Kelas Regular'}</span>
                   </div>
                 </div>
               </div>
@@ -1193,19 +1197,36 @@ export default function AdminSpmbPage() {
                 <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
                   👨‍👩‍👧 Data Orang Tua / Wali
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="bg-slate-50 p-3.5 rounded-2xl space-y-1">
-                    <span className="font-bold text-blue-900 block">Ayah: {selectedApplicant.father_name || '—'}</span>
-                    <p className="text-slate-500">NIK: {selectedApplicant.father_nik || '—'}</p>
-                    <p className="text-slate-500">Pekerjaan: {selectedApplicant.father_occupation || '—'}</p>
-                    <p className="text-slate-500">No WA: {selectedApplicant.father_phone || '—'}</p>
-                    <p className="text-slate-500">Email: {selectedApplicant.father_email || '—'}</p>
+                <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-slate-400 block">Nama Lengkap Orang Tua / Wali:</span>
+                      <span className="font-bold text-slate-900 text-sm">{selectedApplicant.father_name || selectedApplicant.mother_name || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">NIK:</span>
+                      <span className="font-bold text-slate-900 font-mono">{selectedApplicant.father_nik || selectedApplicant.mother_nik || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Pekerjaan:</span>
+                      <span className="font-bold text-slate-900">{selectedApplicant.father_occupation || selectedApplicant.mother_occupation || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">No. WhatsApp:</span>
+                      <span className="font-bold text-slate-900">{selectedApplicant.father_phone || selectedApplicant.mother_phone || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Email:</span>
+                      <span className="font-bold text-slate-900">{selectedApplicant.father_email || selectedApplicant.mother_email || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Keterangan Tambahan:</span>
+                      <span className="font-bold text-slate-900">{selectedApplicant.medical_history || '—'}</span>
+                    </div>
                   </div>
-                  <div className="bg-slate-50 p-3.5 rounded-2xl space-y-1">
-                    <span className="font-bold text-teal-900 block">Ibu: {selectedApplicant.mother_name || '—'}</span>
-                    <p className="text-slate-500">NIK: {selectedApplicant.mother_nik || '—'}</p>
-                    <p className="text-slate-500">Pekerjaan: {selectedApplicant.mother_occupation || '—'}</p>
-                    <p className="text-slate-500">No WA: {selectedApplicant.mother_phone || '—'}</p>
+                  <div className="pt-2 border-t border-slate-200">
+                    <span className="text-slate-400 block">Alamat Lengkap:</span>
+                    <span className="font-medium text-slate-800 leading-relaxed">{selectedApplicant.home_address || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -1213,13 +1234,13 @@ export default function AdminSpmbPage() {
               {/* Pembayaran & Bukti Struk */}
               <div className="space-y-3">
                 <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  💳 Pembayaran Biaya Pendaftaran
+                  💳 Pembayaran Biaya Pendaftaran (Bank BTN)
                 </h4>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs bg-slate-50 p-4 rounded-2xl">
                   <div>
-                    <span className="text-slate-500">Nominal: </span>
+                    <span className="text-slate-500">Nominal Transfer: </span>
                     <span className="font-bold text-slate-900">Rp {(Number(selectedApplicant.payment_amount) || 200000).toLocaleString('id-ID')}</span>
-                    <span className="text-slate-400 block mt-0.5">Metode: {selectedApplicant.payment_method || 'Transfer Bank'} &bull; Status: {selectedApplicant.payment_status}</span>
+                    <span className="text-slate-400 block mt-0.5">Status Pembayaran: <strong>{selectedApplicant.payment_status === 'verified' ? '✓ Terverifikasi' : 'Menunggu Verifikasi'}</strong></span>
                   </div>
 
                   {selectedApplicant.payment_proof_url && (
@@ -1234,18 +1255,16 @@ export default function AdminSpmbPage() {
                 </div>
               </div>
 
-              {/* Dokumen Lanjutan (Phase 2) */}
+              {/* Dokumen Terunggah */}
               <div className="space-y-3">
                 <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
-                  📁 Berkas Dokumen Lanjutan (Phase 2)
+                  📁 Dokumen Persyaratan Pendaftaran
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <DocLink title="Akta Kelahiran" url={selectedApplicant.document_birth_certificate} onPreview={setPreviewImage} />
                   <DocLink title="Kartu Keluarga" url={selectedApplicant.document_family_card} onPreview={setPreviewImage} />
                   <DocLink title="KTP Orang Tua" url={selectedApplicant.document_parent_id} onPreview={setPreviewImage} />
-                  <DocLink title="Pas Foto 3x4" url={selectedApplicant.document_photo} onPreview={setPreviewImage} />
-                  <DocLink title="Kartu Imunisasi" url={selectedApplicant.document_immunization} onPreview={setPreviewImage} />
-                  <DocLink title="Raport TK" url={selectedApplicant.document_report_card} onPreview={setPreviewImage} />
+                  <DocLink title="SK Tamat Belajar" url={selectedApplicant.document_report_card} onPreview={setPreviewImage} />
                 </div>
               </div>
 
@@ -1285,38 +1304,18 @@ export default function AdminSpmbPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Kuota Gelombang 1</label>
-                  <input
-                    type="number"
-                    value={settingsForm.batch_1_quota || 75}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, batch_1_quota: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Kuota Gelombang 2</label>
-                  <input
-                    type="number"
-                    value={settingsForm.batch_2_quota || 75}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, batch_2_quota: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">Kuota Gelombang 3</label>
-                  <input
-                    type="number"
-                    value={settingsForm.batch_3_quota || 75}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, batch_3_quota: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">Target Kuota Total Penerimaan</label>
+                <input
+                  type="number"
+                  value={settingsForm.batch_1_quota || 120}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, batch_1_quota: Number(e.target.value) })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
+                />
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700">Biaya Formulir &amp; Tes (Rp)</label>
+                <label className="block text-xs font-bold text-slate-700">Biaya Formulir &amp; Pendaftaran (Rp)</label>
                 <input
                   type="number"
                   value={settingsForm.registration_fee || 200000}
@@ -1327,7 +1326,7 @@ export default function AdminSpmbPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700">No. Rekening Bank</label>
+                  <label className="block text-xs font-bold text-slate-700">No. Rekening Bank BTN</label>
                   <input
                     type="text"
                     value={settingsForm.bank_account_number || ''}

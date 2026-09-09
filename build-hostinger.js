@@ -17,8 +17,8 @@ if (fs.existsSync(destDir)) {
 // 2. Run next build
 console.log('Running next build...');
 try {
-  // Use npx to ensure it uses the local next installation
-  execSync('npx next build', { stdio: 'inherit' });
+  // Use local Next.js binary directly
+  execSync('node ./node_modules/next/dist/bin/next build', { stdio: 'inherit' });
 } catch (error) {
   // If build failed, restore backup
   if (fs.existsSync(tempBackupDir) && !fs.existsSync(destDir)) {

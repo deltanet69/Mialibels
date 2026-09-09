@@ -107,24 +107,24 @@ export default function PpdbSuccessModal({ data, temporaryPassword, whatsappCont
               <span className="font-semibold text-slate-800">{data.academic_year}</span>
             </div>
             <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 py-1 border-b border-slate-200/60">
-              <span className="text-slate-500 font-medium">Gelombang Pendaftaran</span>
+              <span className="text-slate-500 font-medium">Periode Pendaftaran</span>
               <span className="font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100 w-fit">
-                Batch {data.batch}
+                T.A {data.academic_year}
               </span>
             </div>
             <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 py-1">
-              <span className="text-slate-500 font-medium">Biaya Formulir &amp; Tes</span>
+              <span className="text-slate-500 font-medium">Biaya Formulir &amp; Pendaftaran</span>
               <span className="font-bold text-emerald-700">
-                Rp {(Number(data.payment_amount) || 300000).toLocaleString('id-ID')}
+                Rp {(Number(data.payment_amount) || 200000).toLocaleString('id-ID')}
               </span>
             </div>
           </div>
 
           {/* Verification Notice */}
-          <div className="flex items-start gap-2.5 sm:gap-3 p-3 sm:p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl text-xs text-blue-900">
+          <div className="flex items-start gap-2.5 sm:gap-3 p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl text-xs text-blue-900">
             <ShieldCheck size={18} className="text-blue-600 shrink-0 mt-0.5" />
             <p className="leading-relaxed text-[11px] sm:text-xs">
-              Panitia SPMB akan memverifikasi bukti pembayaran dalam <strong>1x24 jam</strong>. Email konfirmasi telah kami kirimkan ke email orang tua.
+              Alhamdulillah, berkas pendaftaran dan bukti transfer Anda telah masuk ke sistem. Panitia SPMB akan memverifikasi berkas dalam <strong>1x24 jam</strong>. Email konfirmasi pendaftaran telah kami kirimkan ke email orang tua.
             </p>
           </div>
 

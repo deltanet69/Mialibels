@@ -147,7 +147,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
             Cek Status &amp; Unggah Berkas Lanjutan
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-            Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>SPMB27-0001</code>) atau <strong>Nomor WhatsApp Ayah</strong> yang didaftarkan.
+            Masukkan <strong>Nomor Registrasi</strong> (contoh: <code>MI2027001</code>) atau <strong>Nomor WhatsApp</strong> yang didaftarkan.
           </p>
         </div>
 

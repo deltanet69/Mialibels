@@ -15,7 +15,7 @@ export async function GET() {
       .single()
 
     if (settingsError && settingsError.code !== 'PGRST116') {
-      console.error('Error fetching PPDB settings:', settingsError)
+      console.error('Error fetching SPMB settings:', settingsError)
     }
 
     // Default fallback if table empty
@@ -24,15 +24,9 @@ export async function GET() {
       academic_year: '2027/2028',
       is_active: true,
       active_batch: 1,
-      batch_1_name: 'Batch 1 (Gelombang 1)',
-      batch_1_period: 'September - November',
-      batch_1_quota: 75,
-      batch_2_name: 'Batch 2 (Gelombang 2)',
-      batch_2_period: 'Desember - Februari',
-      batch_2_quota: 75,
-      batch_3_name: 'Batch 3 (Gelombang 3)',
-      batch_3_period: 'Maret - Mei',
-      batch_3_quota: 75,
+      batch_1_name: 'Periode Pendaftaran 2027/2028',
+      batch_1_period: 'Oktober – Kuota Terpenuhi',
+      batch_1_quota: 120,
       registration_fee: 200000,
       bank_name: 'Bank BTN',
       bank_account_number: '00129-01-30-00015-9',
@@ -40,24 +34,40 @@ export async function GET() {
       whatsapp_contact: '6281234567890'
     }
 
-    // 2. Fetch counts per batch for current academic year
+    // 2. Fetch registrations for current academic year to calculate single-period & class quotas
     const { data: registrations, error: regError } = await supabase
       .from('ppdb_registrations')
-      .select('batch, status')
+      .select('student_nickname, special_needs, status')
       .eq('academic_year', currentSettings.academic_year)
 
     if (regError) {
-      console.error('Error counting registrations:', regError)
+      console.error('Error counting SPMB registrations:', regError)
     }
 
-    const batch1Count = (registrations || []).filter((r: any) => r.batch === 1).length
-    const batch2Count = (registrations || []).filter((r: any) => r.batch === 2).length
-    const batch3Count = (registrations || []).filter((r: any) => r.batch === 3).length
-    const totalCount = (registrations || []).length
+    const allRegs = registrations || []
+    const totalCount = allRegs.length
 
-    const batch1Approved = (registrations || []).filter((r: any) => r.batch === 1 && r.status === 'approved').length
-    const batch2Approved = (registrations || []).filter((r: any) => r.batch === 2 && r.status === 'approved').length
-    const batch3Approved = (registrations || []).filter((r: any) => r.batch === 3 && r.status === 'approved').length
+    // Fullday program count (Max 30)
+    const fulldayRegs = allRegs.filter((r: any) => 
+      (r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
+      (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday'))
+    )
+    const fulldayCount = fulldayRegs.length
+    const fulldayApproved = fulldayRegs.filter((r: any) => r.status === 'approved').length
+    const fulldayQuota = 30
+    const isFulldayFull = fulldayCount >= fulldayQuota
+
+    // Regular program count
+    const regularRegs = allRegs.filter((r: any) => 
+      !((r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
+        (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday')))
+    )
+    const regularCount = regularRegs.length
+    const regularApproved = regularRegs.filter((r: any) => r.status === 'approved').length
+    const totalQuota = Number(currentSettings.batch_1_quota) || 120
+    const regularQuota = Math.max(0, totalQuota - fulldayQuota)
+    const isRegularFull = regularCount >= regularQuota
+    const isTotalFull = totalCount >= totalQuota
 
     return NextResponse.json({
       success: true,
@@ -65,29 +75,32 @@ export async function GET() {
         ...currentSettings,
         stats: {
           total: totalCount,
+          totalQuota,
+          isTotalFull,
+          fullday: {
+            total: fulldayCount,
+            approved: fulldayApproved,
+            quota: fulldayQuota,
+            isFull: isFulldayFull
+          },
+          regular: {
+            total: regularCount,
+            approved: regularApproved,
+            quota: regularQuota,
+            isFull: isRegularFull
+          },
+          // Backwards compatibility for components reading batch1
           batch1: {
-            total: batch1Count,
-            approved: batch1Approved,
-            quota: currentSettings.batch_1_quota,
-            isFull: batch1Count >= currentSettings.batch_1_quota
-          },
-          batch2: {
-            total: batch2Count,
-            approved: batch2Approved,
-            quota: currentSettings.batch_2_quota,
-            isFull: batch2Count >= currentSettings.batch_2_quota
-          },
-          batch3: {
-            total: batch3Count,
-            approved: batch3Approved,
-            quota: currentSettings.batch_3_quota,
-            isFull: batch3Count >= currentSettings.batch_3_quota
+            total: totalCount,
+            approved: allRegs.filter((r: any) => r.status === 'approved').length,
+            quota: totalQuota,
+            isFull: isTotalFull
           }
         }
       }
     })
   } catch (error: any) {
-    console.error('PPDB Settings API Error:', error)
+    console.error('SPMB Settings API Error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

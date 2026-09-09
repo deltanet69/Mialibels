@@ -40,133 +40,151 @@ export async function POST(request: NextRequest) {
       academic_year: '2027/2028',
       is_active: true,
       active_batch: 1,
-      batch_1_quota: 75,
-      batch_2_quota: 75,
-      batch_3_quota: 75,
+      batch_1_quota: 120,
       registration_fee: 200000,
     }
 
     if (!ppdbSettings.is_active) {
       return NextResponse.json({
-        error: 'Pendaftaran SPMB Tahun Ajaran ' + ppdbSettings.academic_year + ' saat ini sedang tidak dibuka / ditutup.'
+        error: 'Pendaftaran SPMB Tahun Ajaran ' + ppdbSettings.academic_year + ' saat ini sedang ditutup.'
       }, { status: 400 })
     }
 
-    // 2. Validate input fields
+    // 2. Extract input fields
     const {
+      // Data Siswa
       student_name,
-      student_nickname,
+      nisn,
       birth_place,
       birth_date,
       gender,
-      weight,
-      height,
-      blood_type,
-      nisn,
-      previous_school,
-      special_needs,
-      medical_history,
-      father_name,
-      father_nik,
-      father_occupation,
-      father_phone,
-      father_email,
-      mother_name,
-      mother_nik,
-      mother_occupation,
-      mother_phone,
-      mother_email,
+      religion = 'Islam',
+      class_program = 'regular', // 'fullday' | 'regular'
+
+      // Data Orang Tua / Wali
+      parent_name,
+      parent_nik,
+      parent_occupation,
+      parent_religion = 'Islam',
+      parent_relation = 'Ayah Kandung', // 'Ayah Kandung' | 'Ibu Kandung' | 'Wali'
+      parent_phone,
+      parent_email,
       home_address,
-      payment_method,
+
+      // Dokumen Pendukung
+      document_birth_certificate,
+      document_family_card,
+      document_parent_id,
+      document_report_card, // SK Tamat Belajar PAUD/TK/SD (Opsional)
+
+      // Declaration Checklist (WAJIB)
+      declaration_agreed,
+
+      // Pembayaran
+      payment_method = 'transfer_btn',
       payment_proof_url
     } = body
 
-    if (!student_name || !birth_place || !birth_date) {
-      return NextResponse.json({ error: 'Nama siswa, tempat lahir, dan tanggal lahir wajib diisi.' }, { status: 400 })
+    // 3. Validation
+    if (!student_name?.trim() || !birth_place?.trim() || !birth_date) {
+      return NextResponse.json({ error: 'Data calon siswa (Nama Lengkap, Tempat Lahir, Tanggal Lahir) wajib diisi lengkap.' }, { status: 400 })
     }
 
-    if (!father_name || !father_nik || !father_occupation || !father_phone || !father_email) {
-      return NextResponse.json({ error: 'Data ayah (Nama, NIK, Pekerjaan, No WA, Email) wajib diisi lengkap.' }, { status: 400 })
+    if (!parent_name?.trim() || !parent_nik?.trim() || !parent_occupation?.trim() || !parent_phone?.trim() || !parent_email?.trim() || !home_address?.trim()) {
+      return NextResponse.json({ error: 'Data orang tua/wali (Nama, NIK, Pekerjaan, No WA, Email, Alamat) wajib diisi lengkap.' }, { status: 400 })
     }
 
-    if (!mother_name || !mother_nik || !mother_occupation || !mother_phone) {
-      return NextResponse.json({ error: 'Data ibu (Nama, NIK, Pekerjaan, No WA) wajib diisi lengkap.' }, { status: 400 })
+    if (parent_nik.trim().length !== 16 || !/^\d{16}$/.test(parent_nik.trim())) {
+      return NextResponse.json({ error: 'NIK Orang Tua/Wali harus terdiri dari 16 digit angka.' }, { status: 400 })
+    }
+
+    if (!document_birth_certificate || !document_family_card || !document_parent_id) {
+      return NextResponse.json({ error: 'Dokumen wajib (Akta Kelahiran Anak, Kartu Keluarga, dan KTP Orang Tua/Wali) wajib diunggah.' }, { status: 400 })
+    }
+
+    if (!declaration_agreed) {
+      return NextResponse.json({ error: 'Anda wajib menyetujui Surat Pernyataan Calon Siswa & Wali Murid (Declaration Checklist) sebelum melanjutkan.' }, { status: 400 })
     }
 
     if (!payment_proof_url) {
-      return NextResponse.json({ error: 'Bukti pembayaran biaya pendaftaran wajib diupload.' }, { status: 400 })
+      return NextResponse.json({ error: 'Bukti transfer biaya pendaftaran ke rekening Bank BTN sekolah wajib diunggah.' }, { status: 400 })
     }
 
-    // 3. Age validation: Minimum 6 years 6 months per 1 July 2027 (78 months)
+    // 4. Age validation (Minimum 6 years per 1 July 2027)
     const age = calculateAgeAsOfJuly2027(birth_date, 2027)
-    if (age.totalMonths < 78) {
+    if (age.totalMonths < 72) { // 6 tahun = 72 bulan
       return NextResponse.json({
-        error: `Usia calon siswa pada 1 Juli 2027 adalah ${age.years} tahun ${age.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun 6 bulan.`
+        error: `Usia calon siswa pada 1 Juli 2027 adalah ${age.years} tahun ${age.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun.`
       }, { status: 400 })
     }
 
-    // 4. Determine batch and verify quota
-    const activeBatch = ppdbSettings.active_batch || 1
-
-    const { count } = await supabase
+    // 5. Check Quota: Total Quota & Fullday Class Quota (Max 30 Siswa)
+    const { data: existingRegs, count: totalCount } = await supabase
       .from('ppdb_registrations')
-      .select('*', { count: 'exact', head: true })
+      .select('student_nickname, special_needs', { count: 'exact' })
       .eq('academic_year', ppdbSettings.academic_year)
-      .eq('batch', activeBatch)
 
-    const batchQuota = activeBatch === 1 
-      ? ppdbSettings.batch_1_quota 
-      : activeBatch === 2 
-        ? ppdbSettings.batch_2_quota 
-        : ppdbSettings.batch_3_quota
+    const totalRegistered = totalCount || 0
+    const totalQuota = Number(ppdbSettings.batch_1_quota) || 120
 
-    if (count !== null && count >= batchQuota) {
+    if (totalRegistered >= totalQuota) {
       return NextResponse.json({
-        error: `Kuota Batch ${activeBatch} (${batchQuota} pendaftar) telah penuh. Harap hubungi panitia SPMB atau menunggu pembukaan gelombang berikutnya.`
+        error: `Pendaftaran SPMB Tahun Ajaran ${ppdbSettings.academic_year} telah ditutup karena kuota penerimaan (${totalQuota} siswa) telah terpenuhi.`
       }, { status: 400 })
     }
 
-    // 5. Generate Unique Registration Number (e.g. SPMB27-0101)
-    const { count: totalRegCount } = await supabase
-      .from('ppdb_registrations')
-      .select('*', { count: 'exact', head: true })
-      .eq('academic_year', ppdbSettings.academic_year)
+    const isFullday = String(class_program).toLowerCase() === 'fullday'
+    if (isFullday) {
+      const fulldayCount = (existingRegs || []).filter((r: any) => 
+        (r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
+        (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday'))
+      ).length
 
-    const sequence = (totalRegCount || 0) + 1
-    const regNumber = `SPMB27-${String(sequence).padStart(4, '0')}`
+      if (fulldayCount >= 30) {
+        return NextResponse.json({
+          error: 'Kuota Program Kelas Fullday (Maksimal 30 Siswa) telah terpenuhi. Silakan pilih Program Kelas Regular.'
+        }, { status: 400 })
+      }
+    }
 
-    // 6. Generate temporary parent portal password
+    // 6. Generate Unique Registration Number: MI2027xxx (e.g. MI2027001)
+    const sequence = totalRegistered + 1
+    const regNumber = `MI2027${String(sequence).padStart(3, '0')}`
+
+    // 7. Temporary password
     const tempPassword = `MIA${Math.floor(100000 + Math.random() * 900000)}`
 
-    // 7. Insert registration into database
+    // 8. Prepare Database Payload (using existing columns safely)
     const insertPayload = {
       registration_number: regNumber,
-      academic_year: ppdbSettings.academic_year,
-      batch: activeBatch,
-      assigned_batch: activeBatch,
+      academic_year: ppdbSettings.academic_year || '2027/2028',
+      batch: 1, // Single period
+      assigned_batch: 1,
       student_name: student_name.trim(),
-      student_nickname: student_nickname ? student_nickname.trim() : null,
+      student_nickname: isFullday ? 'fullday' : 'regular',
       birth_place: birth_place.trim(),
       birth_date,
       gender: gender || 'Laki-laki',
-      weight: weight ? Number(weight) : null,
-      height: height ? Number(height) : null,
-      blood_type: blood_type || null,
       nisn: nisn ? nisn.trim() : null,
-      previous_school: previous_school ? previous_school.trim() : null,
-      special_needs: special_needs ? special_needs.trim() : null,
-      medical_history: medical_history ? medical_history.trim() : null,
-      father_name: father_name.trim(),
-      father_nik: father_nik.trim(),
-      father_occupation: father_occupation.trim(),
-      father_phone: father_phone.trim(),
-      father_email: father_email.trim(),
-      mother_name: mother_name.trim(),
-      mother_nik: mother_nik.trim(),
-      mother_occupation: mother_occupation.trim(),
-      mother_phone: mother_phone.trim(),
-      mother_email: mother_email ? mother_email.trim() : null,
-      home_address: home_address ? home_address.trim() : null,
+      previous_school: religion ? `Agama: ${religion}` : 'Agama: Islam',
+      special_needs: isFullday ? 'Program Kelas Fullday (Maks 30 Siswa)' : 'Program Kelas Regular',
+      medical_history: `Hubungan: ${parent_relation} | Agama Ortu: ${parent_religion}`,
+      father_name: parent_name.trim(),
+      father_nik: parent_nik.trim(),
+      father_occupation: parent_occupation.trim(),
+      father_phone: parent_phone.trim(),
+      father_email: parent_email.trim(),
+      mother_name: parent_name.trim(),
+      mother_nik: parent_nik.trim(),
+      mother_occupation: parent_occupation.trim(),
+      mother_phone: parent_phone.trim(),
+      mother_email: parent_email.trim(),
+      home_address: home_address.trim(),
+      document_birth_certificate: document_birth_certificate || null,
+      document_family_card: document_family_card || null,
+      document_parent_id: document_parent_id || null,
+      document_report_card: document_report_card || null,
+      documents_submitted_at: new Date().toISOString(),
       payment_method: payment_method || 'transfer_btn',
       payment_amount: Number(ppdbSettings.registration_fee) || 200000,
       payment_proof_url,
@@ -184,11 +202,11 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (insertError) {
-      console.error('Error inserting PPDB registration:', insertError)
+      console.error('Error inserting SPMB registration:', insertError)
       return NextResponse.json({ error: 'Gagal menyimpan pendaftaran: ' + insertError.message }, { status: 500 })
     }
 
-    // 8. Send Resend Confirmation Email (Async/Best-effort)
+    // 9. Send Resend Confirmation Email to Parent
     const RESEND_KEY = process.env.RESEND_API_KEY
     if (RESEND_KEY) {
       try {
@@ -196,8 +214,8 @@ export async function POST(request: NextRequest) {
         const resend = new Resend(RESEND_KEY)
         const senderEmail = 'ppdb@miattaqwa15.sch.id'
         const adminEmail = process.env.ADMIN_EMAIL || 'admin@miattaqwa15.sch.id'
+        const programLabel = isFullday ? 'Kelas Fullday (Maks 30 Siswa)' : 'Kelas Regular'
 
-        // Modern Branded Parent Confirmation Email
         const parentHtml = `
           <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; color: #1e293b;">
             <div style="background: linear-gradient(135deg, #001d3d 0%, #003566 100%); padding: 36px 30px; text-align: center;">
@@ -208,18 +226,18 @@ export async function POST(request: NextRequest) {
             
             <div style="padding: 32px 28px; background-color: #ffffff;">
               <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6;">
-                Yth. Bapak/Ibu <strong>${father_name}</strong> / <strong>${mother_name}</strong>,
+                Yth. Bapak/Ibu <strong>${parent_name}</strong> (${parent_relation}),
               </p>
               <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">
-                Alhamdulillah, berkas formulir pendaftaran calon murid baru atas nama <strong>${student_name}</strong> telah berhasil kami terima.
+                Alhamdulillah, berkas formulir dan bukti pembayaran pendaftaran SPMB calon murid baru atas nama <strong>${student_name}</strong> telah berhasil kami terima.
               </p>
               
               <!-- Registration Card -->
               <div style="background-color: #f0fdf4; border: 1.5px dashed #22c55e; border-radius: 16px; padding: 22px; margin-bottom: 24px; text-align: center;">
-                <span style="font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">NOMOR REGISTRASI SPMB</span>
-                <span style="font-size: 28px; font-weight: 900; color: #166534; letter-spacing: 2px; font-family: monospace;">${regNumber}</span>
-                <div style="margin-top: 8px; font-size: 12px; color: #16a34a; font-weight: 600;">
-                  Gelombang: Batch ${activeBatch} &bull; Biaya Pendaftaran: Rp ${(Number(ppdbSettings.registration_fee) || 200000).toLocaleString('id-ID')}
+                <span style="font-size: 12px; font-weight: 700; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">NOMOR REGISTRASI RESMI</span>
+                <span style="font-size: 32px; font-weight: 900; color: #166534; letter-spacing: 2px; font-family: monospace;">${regNumber}</span>
+                <div style="margin-top: 8px; font-size: 13px; color: #16a34a; font-weight: 700;">
+                  Program Pilihan: ${programLabel}
                 </div>
               </div>
 
@@ -231,29 +249,39 @@ export async function POST(request: NextRequest) {
                   <td style="padding: 8px 0; font-weight: 700; color: #1e293b;">${student_name}</td>
                 </tr>
                 <tr>
+                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">NISN</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${nisn || '-'}</td>
+                </tr>
+                <tr>
                   <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Tempat, Tanggal Lahir</td>
                   <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${birth_place}, ${new Date(birth_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Usia (per 1 Juli 2027)</td>
-                  <td style="padding: 8px 0; font-weight: 600; color: #15803d; border-top: 1px solid #f8fafc;">${age.years} Tahun ${age.months} Bulan</td>
+                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Jenis Kelamin &amp; Agama</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${gender} &bull; ${religion}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Status Verifikasi</td>
+                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Orang Tua / Wali</td>
+                  <td style="padding: 8px 0; font-weight: 600; color: #1e293b; border-top: 1px solid #f8fafc;">${parent_name} (${parent_phone})</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #f8fafc;">Status Pendaftaran</td>
                   <td style="padding: 8px 0; font-weight: 700; color: #d97706; border-top: 1px solid #f8fafc;">Menunggu Verifikasi Panitia</td>
                 </tr>
               </table>
 
-              <!-- Login Credentials Info -->
+              <!-- Declaration & Verification Notice -->
               <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 24px;">
-                <span style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Akses Pengecekan Status:</span>
+                <span style="font-size: 13px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Langkah Selanjutnya:</span>
                 <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
-                  Bapak/Ibu dapat memantau status kelulusan berkas &amp; melengkapi dokumen melalui menu <strong>Cek Status SPMB</strong> di website kami menggunakan Nomor Registrasi: <strong>${regNumber}</strong> atau No. HP Ayah: <strong>${father_phone}</strong>.
+                  1. Panitia SPMB akan memverifikasi berkas dan bukti pembayaran Anda dalam 1x24 jam.<br/>
+                  2. Setelah pendaftaran disetujui (di-approve) oleh pihak madrasah, Anda akan menerima <strong>Email Konfirmasi Penerimaan Resmi</strong> ke email ini (${parent_email}).<br/>
+                  3. Anda juga dapat memantau status secara berkala melalui menu <strong>Cek Status SPMB</strong> menggunakan Nomor Registrasi: <strong>${regNumber}</strong> atau No. WhatsApp: <strong>${parent_phone}</strong>.
                 </p>
               </div>
 
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #475569; line-height: 1.6;">
-                Panitia SPMB akan memverifikasi berkas pembayaran Anda dalam 1x24 jam. Jika disetujui, Anda dapat mengunggah berkas Akta, KK, dan KTP di portal SPMB.
+                Terima kasih atas kepercayaan Bapak/Ibu memilih MI Attaqwa 15 Babelan sebagai mitra pendidikan ananda tercinta.
               </p>
             </div>
             
@@ -271,7 +299,7 @@ export async function POST(request: NextRequest) {
         // Send to parent
         await resend.emails.send({
           from: 'Panitia SPMB MI Attaqwa 15 <' + senderEmail + '>',
-          to: father_email,
+          to: parent_email,
           subject: `[SPMB ${ppdbSettings.academic_year}] Pendaftaran Berhasil - ${regNumber} (${student_name})`,
           html: parentHtml
         })
@@ -280,16 +308,16 @@ export async function POST(request: NextRequest) {
         await resend.emails.send({
           from: 'Notifikasi SPMB <' + senderEmail + '>',
           to: adminEmail,
-          subject: `[Pendaftar SPMB Baru] ${regNumber} - ${student_name} (Batch ${activeBatch})`,
+          subject: `[Pendaftar SPMB Baru] ${regNumber} - ${student_name} (${programLabel})`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; max-width: 500px;">
               <h2>Pendaftar SPMB Baru Masuk</h2>
               <p><strong>Nomor Registrasi:</strong> ${regNumber}</p>
               <p><strong>Nama Calon Siswa:</strong> ${student_name}</p>
-              <p><strong>Gelombang:</strong> Batch ${activeBatch}</p>
-              <p><strong>Orang Tua:</strong> ${father_name} (${father_phone})</p>
-              <p><strong>Metode Pembayaran:</strong> ${payment_method}</p>
-              <p>Silakan verifikasi bukti transfer di Dashboard Admin [AKADEMIK] &gt; SPMB Baru.</p>
+              <p><strong>Program Pilihan:</strong> ${programLabel}</p>
+              <p><strong>Orang Tua/Wali:</strong> ${parent_name} (${parent_phone})</p>
+              <p><strong>Email Ortu:</strong> ${parent_email}</p>
+              <p>Silakan verifikasi berkas & bukti transfer di Dashboard Admin [AKADEMIK] &gt; SPMB Baru.</p>
             </div>
           `
         })
@@ -306,7 +334,7 @@ export async function POST(request: NextRequest) {
         registration_number: regNumber,
         student_name: newReg.student_name,
         academic_year: newReg.academic_year,
-        batch: newReg.batch,
+        class_program: isFullday ? 'fullday' : 'regular',
         status: newReg.status,
         payment_amount: newReg.payment_amount,
         payment_status: newReg.payment_status,
@@ -315,7 +343,7 @@ export async function POST(request: NextRequest) {
       temporaryPassword: tempPassword
     })
   } catch (error: any) {
-    console.error('PPDB Register API Error:', error)
+    console.error('SPMB Register API Error:', error)
     return NextResponse.json({ error: error.message || 'Terjadi kesalahan pada sistem pendaftaran' }, { status: 500 })
   }
 }
