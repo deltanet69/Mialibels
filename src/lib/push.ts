@@ -1,17 +1,37 @@
 import webpush from 'web-push';
 import { getAdminSupabase } from './supabase';
 
-webpush.setVapidDetails(
-  'mailto:admin@miattaqwa15.sch.id',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+let isVapidConfigured = false;
+
+function ensureVapidDetails(): boolean {
+  if (isVapidConfigured) return true;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const subject = process.env.VAPID_SUBJECT || 'mailto:admin@miattaqwa15.sch.id';
+
+  if (!publicKey || !privateKey) {
+    return false;
+  }
+
+  try {
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+    isVapidConfigured = true;
+    return true;
+  } catch (err) {
+    console.error('Failed to configure VAPID details:', err);
+    return false;
+  }
+}
 
 export async function sendPushNotification(
   userId: string,
   payload: { title: string; body: string; url?: string; icon?: string }
 ) {
-  const supabase = getAdminSupabase();
+  if (!ensureVapidDetails()) {
+    console.warn('Push notification skipped: VAPID keys not configured in environment.');
+    return { success: false, message: 'VAPID keys not configured' };
+  }
+  const supabase: any = getAdminSupabase();
 
   // Find user's push subscriptions
   const { data: subscriptions, error } = await supabase
@@ -24,7 +44,7 @@ export async function sendPushNotification(
   }
 
   const notificationPayload = JSON.stringify(payload);
-  const promises = subscriptions.map(async (sub) => {
+  const promises = subscriptions.map(async (sub: any) => {
     const pushSubscription = {
       endpoint: sub.endpoint,
       keys: {
@@ -76,7 +96,7 @@ export async function createNotification(
   actionUrl?: string,
   sendPush: boolean = true
 ) {
-  const supabase = getAdminSupabase();
+  const supabase: any = getAdminSupabase();
 
   // Insert In-App Notification
   await supabase.from('in_app_notifications').insert({

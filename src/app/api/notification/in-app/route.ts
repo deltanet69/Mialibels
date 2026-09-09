@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const { payload } = await jwtVerify(sessionCookie, secret);
     const userId = payload.sub as string;
 
-    const supabase = getAdminSupabase();
+    const supabase: any = getAdminSupabase();
 
     const { data, error } = await supabase
       .from("in_app_notifications")
@@ -42,7 +42,7 @@ export async function PUT(req: NextRequest) {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-    const supabase = getAdminSupabase();
+    const supabase: any = getAdminSupabase();
 
     const { error } = await supabase
       .from("in_app_notifications")

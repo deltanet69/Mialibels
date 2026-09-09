@@ -1,3 +1,4 @@
+// @ts-nocheck
 /// <reference lib="webworker" />
 declare const self: ServiceWorkerGlobalScope;
 

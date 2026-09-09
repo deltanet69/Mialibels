@@ -3,59 +3,47 @@
 import { useEffect, useState } from "react";
 import { BellRing, X } from "lucide-react";
 import { usePushSubscription } from "@/hooks/useNotifications";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { motion, AnimatePresence } from "framer-motion";
 
 export function PushPermission() {
   const { isSubscribed, permission, subscribeToPush } = usePushSubscription();
   const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Hide if already subscribed, permanently denied, or dismissed by user
-  if (isSubscribed || permission === "denied" || dismissed) {
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || isSubscribed || permission === "denied" || dismissed) {
     return null;
   }
 
-  // Also only show on client
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="mb-6"
+    <div className="mb-6 bg-blue-50/80 border border-blue-200/80 rounded-2xl p-4 sm:p-5 relative overflow-hidden shadow-xs font-sans animate-in fade-in slide-in-from-top-2 duration-200">
+      <button
+        className="absolute top-3 right-3 p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-white/60 transition cursor-pointer"
+        onClick={() => setDismissed(true)}
+        aria-label="Tutup"
       >
-        <Alert className="bg-primary/5 border-primary/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 rounded-full hover:bg-primary/10 text-muted-foreground"
-              onClick={() => setDismissed(true)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <BellRing className="h-5 w-5 text-primary mt-0.5" />
-          <AlertTitle className="text-primary font-semibold">Aktifkan Notifikasi Real-time</AlertTitle>
-          <AlertDescription className="text-muted-foreground mt-1 text-sm flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-            <p>
-              Dapatkan pemberitahuan langsung saat anak Anda menempelkan absen, serta informasi tagihan terbaru.
-            </p>
-            <Button 
-              size="sm" 
+        <X size={16} />
+      </button>
+
+      <div className="flex items-start gap-3.5 pr-8">
+        <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shrink-0 shadow-xs">
+          <BellRing size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-bold text-slate-900">Aktifkan Notifikasi Real-time</h4>
+          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+            Dapatkan pemberitahuan langsung saat anak Anda menempelkan absensi tap kartu atau info tagihan baru.
+          </p>
+          <div className="mt-3">
+            <button
               onClick={subscribeToPush}
-              className="w-full sm:w-auto shadow-sm"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer inline-flex items-center gap-1.5"
             >
-              Aktifkan Sekarang
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </motion.div>
-    </AnimatePresence>
+              <span>Aktifkan Sekarang</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

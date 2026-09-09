@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
     }
 
-    const supabase = getAdminSupabase();
+    const supabase: any = getAdminSupabase();
 
     // Upsert subscription (if endpoint exists, update it)
     const { error } = await supabase
@@ -47,7 +47,7 @@ export async function DELETE(req: NextRequest) {
     const { endpoint } = await req.json();
     if (!endpoint) return NextResponse.json({ error: "Endpoint required" }, { status: 400 });
 
-    const supabase = getAdminSupabase();
+    const supabase: any = getAdminSupabase();
     const { error } = await supabase
       .from("push_subscriptions")
       .delete()
