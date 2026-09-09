@@ -1,3 +1,4 @@
+// RBAC Module - Roles and Access Control
 export type UserRole = 
   | 'superadmin' 
   | 'administrasi' 

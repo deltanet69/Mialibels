@@ -196,7 +196,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
       {/* ════════════════════════════════════════════════════════════════════
           MAIN CONTENT AREA (Direct Form & Status Tabs)
          ════════════════════════════════════════════════════════════════════ */}
-      <main className="max-w-f mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-8">
         
         {/* ── MAIN INTERACTIVE TABS (DAFTAR vs CEK STATUS) ── */}
         <div ref={formRef} className="pt-2 scroll-mt-24">
