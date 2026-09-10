@@ -95,75 +95,103 @@ export function GlobalAttendanceScanner() {
     isProcessingQueueRef.current = true
 
     while (scanQueueRef.current.length > 0) {
-      const rfidToProcess = scanQueueRef.current[0]
+      // Ambil hingga 10 RFID sekaligus dari antrean (Batching)
+      const batchSize = Math.min(10, scanQueueRef.current.length)
+      const batchRfids = scanQueueRef.current.splice(0, batchSize)
 
       try {
         const res = await fetch('/api/attendance/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rfid: rfidToProcess })
+          body: JSON.stringify({ rfids: batchRfids })
         })
         
         // Handle Hostinger 429 WAF text response
         if (res.status === 429) {
           showToastRef.current('Terlalu banyak request. Menunggu sejenak...')
           await new Promise(r => setTimeout(r, 2000))
+          // Kembalikan ke antrean
+          scanQueueRef.current.unshift(...batchRfids)
           continue
         }
         
         const data = await res.json()
         
-        if (!res.ok) throw new Error(data.error || 'Gagal memproses kartu')
-        
-        showToastRef.current(data.message || 'Scan berhasil!')
+        if (data.batch && Array.isArray(data.results)) {
+          for (const item of data.results) {
+            if (item.success) {
+              showToastRef.current(item.message || 'Scan berhasil!')
+              // Notify local dashboard components
+              window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
+                success: true,
+                message: item.message,
+                action: item.action,
+                staff: item.staff
+              }}))
 
-        // Notify local dashboard components
-        window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
-          success: true,
-          message: data.message,
-          action: data.action,
-          staff: data.staff
-        }}))
-
-        // Broadcast to other windows/devices via Supabase
-        if (broadcastChannelRef.current) {
-          broadcastChannelRef.current.send({
-            type: 'broadcast',
-            event: 'scan_result',
-            payload: {
-              sender: clientIdRef.current,
-              success: true,
-              message: data.message,
-              action: data.action,
-              staff: data.staff
+              // Broadcast to other windows/devices via Supabase
+              if (broadcastChannelRef.current) {
+                broadcastChannelRef.current.send({
+                  type: 'broadcast',
+                  event: 'scan_result',
+                  payload: {
+                    sender: clientIdRef.current,
+                    success: true,
+                    message: item.message,
+                    action: item.action,
+                    staff: item.staff
+                  }
+                })
+              }
+            } else {
+              showToastRef.current(item.error || 'Gagal memproses kartu')
+              // Notify local dashboard components
+              window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
+                success: false,
+                message: item.error || 'Gagal memproses kartu'
+              }}))
             }
-          })
+            
+            // Jeda antar notifikasi jika dalam batch
+            if (batchRfids.length > 1) {
+              await new Promise(r => setTimeout(r, 1200))
+            }
+          }
+        } else {
+          // Fallback if not batched format
+          if (!res.ok) throw new Error(data.error || 'Gagal memproses kartu')
+          
+          showToastRef.current(data.message || 'Scan berhasil!')
+          window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
+            success: true,
+            message: data.message,
+            action: data.action,
+            staff: data.staff
+          }}))
+
+          if (broadcastChannelRef.current) {
+            broadcastChannelRef.current.send({
+              type: 'broadcast',
+              event: 'scan_result',
+              payload: {
+                sender: clientIdRef.current,
+                success: true,
+                message: data.message,
+                action: data.action,
+                staff: data.staff
+              }
+            })
+          }
         }
 
       } catch (err: any) {
         showToastRef.current(err.message || 'Gagal memproses kartu')
-
-        // Notify local dashboard components
         window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
           success: false,
           message: err.message || 'Gagal memproses kartu'
         }}))
-
-        // Broadcast error too
-        if (broadcastChannelRef.current) {
-          broadcastChannelRef.current.send({
-            type: 'broadcast',
-            event: 'scan_result',
-            payload: {
-              sender: clientIdRef.current,
-              success: false,
-              message: err.message || 'Gagal memproses kartu'
-            }
-          })
-        }
       } finally {
-        scanQueueRef.current.shift()
-        await new Promise(r => setTimeout(r, 400)) // Delay to bypass WAF burst limit
+        await new Promise(r => setTimeout(r, 500)) // Delay to bypass WAF burst limit
       }
     }
 

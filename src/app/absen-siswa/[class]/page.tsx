@@ -280,63 +280,87 @@ export default function AbsenSiswaPage() {
     isProcessingQueueRef.current = true
 
     while (scanQueueRef.current.length > 0) {
-      const rfidToProcess = scanQueueRef.current[0]
+      // Ambil hingga 10 RFID sekaligus dari antrean (Batching)
+      const batchSize = Math.min(10, scanQueueRef.current.length)
+      const batchRfids = scanQueueRef.current.splice(0, batchSize)
 
       try {
         const res = await fetch('/api/attendance-siswa/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rfid: rfidToProcess, className: rawClassName })
+          body: JSON.stringify({ rfids: batchRfids, className: rawClassName })
         })
         
         // Handle Hostinger 429 error text
         if (res.status === 429) {
           showPopup({ type: 'error', message: 'Terlalu banyak request. Menunggu sejenak...' })
-          // Wait 2 seconds before continuing the queue
           await new Promise(r => setTimeout(r, 2000))
-          continue // Retry the same RFID
+          // Kembalikan ke antrean
+          scanQueueRef.current.unshift(...batchRfids)
+          continue
         }
 
         const data = await res.json()
 
-        const popupPayload: PopupData = data.success
-          ? { type: 'success', message: data.message, action: data.action, student: data.student }
-          : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
+        if (data.batch && Array.isArray(data.results)) {
+          for (const item of data.results) {
+            const popupPayload: PopupData = item.success
+              ? { type: 'success', message: item.message, action: item.action, student: item.student }
+              : { type: 'error', message: item.error || 'Absensi gagal.', action: item.action }
 
-        if (data.success && data.student?.id) {
-          setLastScannedStudentId(data.student.id)
-          setTimeout(() => setLastScannedStudentId(null), 8000)
+            if (item.success && item.student?.id) {
+              setLastScannedStudentId(item.student.id)
+              setTimeout(() => setLastScannedStudentId(null), 8000)
 
-          // Optimistically update local state langsung tanpa fetch API
-          updateStudentInState(
-            data.student,
-            data.action,
-            data.entry_time,
-            data.exit_time,
-            data.status
-          )
-        }
+              // Optimistically update local state
+              updateStudentInState(
+                item.student,
+                item.action,
+                item.entry_time,
+                item.exit_time,
+                item.status
+              )
+            }
 
-        showPopup(popupPayload)
+            showPopup(popupPayload)
 
-        if (data.success) {
-          // Broadcast ke perangkat lain dengan info lengkap
-          if (broadcastChannelRef.current) {
-            broadcastChannelRef.current.send({
-              type: 'broadcast',
-              event: 'scan_result_siswa',
-              payload: {
-                sender: clientIdRef.current,
-                success: true,
-                message: data.message,
-                action: data.action,
-                status: data.status,
-                entry_time: data.entry_time,
-                exit_time: data.exit_time,
-                student: data.student
+            if (item.success) {
+              if (broadcastChannelRef.current) {
+                broadcastChannelRef.current.send({
+                  type: 'broadcast',
+                  event: 'scan_result_siswa',
+                  payload: {
+                    sender: clientIdRef.current,
+                    success: true,
+                    message: item.message,
+                    action: item.action,
+                    status: item.status,
+                    entry_time: item.entry_time,
+                    exit_time: item.exit_time,
+                    student: item.student
+                  }
+                })
               }
-            })
+            }
+            
+            // Jika ada lebih dari 1 item dalam batch, beri jeda agar popup bisa terbaca
+            if (batchRfids.length > 1) {
+              await new Promise(r => setTimeout(r, 1200))
+            }
           }
+        } else {
+          // Fallback jika API merespons format lama (meskipun seharusnya tidak)
+          const popupPayload: PopupData = data.success
+            ? { type: 'success', message: data.message, action: data.action, student: data.student }
+            : { type: 'error', message: data.error || 'Absensi gagal.', action: data.action }
+
+          if (data.success && data.student?.id) {
+            setLastScannedStudentId(data.student.id)
+            setTimeout(() => setLastScannedStudentId(null), 8000)
+            updateStudentInState(data.student, data.action, data.entry_time, data.exit_time, data.status)
+          }
+
+          showPopup(popupPayload)
         }
       } catch (err: any) {
         showPopup({
@@ -344,10 +368,8 @@ export default function AbsenSiswaPage() {
           message: 'Gagal terhubung ke server absensi.'
         })
       } finally {
-        // Remove processed RFID from queue
-        scanQueueRef.current.shift()
-        // Wait 400ms between requests to bypass WAF limits
-        await new Promise(r => setTimeout(r, 400))
+        // Wait 500ms before processing the next batch to be extremely safe against WAF
+        await new Promise(r => setTimeout(r, 500))
       }
     }
 
