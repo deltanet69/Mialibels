@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // 3. Update data siswa
     const { error: updateError } = await supabase
       .from('students')
-      .update({ photo_url: publicUrl })
+      .update({ image: publicUrl })
       .eq('id', student.id)
 
     if (updateError) {

@@ -38,7 +38,6 @@ export async function GET(request: NextRequest) {
         name,
         class,
         class_id,
-        gender,
         nisn,
         rfid_number,
         parent_name,
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
         fee_waiver_type,
         is_active,
         created_at,
-        photo_url,
+        image,
         spp_invoices (id, month, year, status),
         general_invoices (id, items)
       `)
@@ -68,7 +67,12 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    const res = NextResponse.json({ success: true, data })
+    const mappedData = (data || []).map((s: any) => ({
+      ...s,
+      photo_url: s.image || s.photo_url || null
+    }))
+
+    const res = NextResponse.json({ success: true, data: mappedData })
     res.headers.set('Cache-Control', 'private, max-age=10, stale-while-revalidate=30')
     return res
   } catch (error: any) {
@@ -176,7 +180,7 @@ export async function POST(request: NextRequest) {
       // Bulk Upsert Mode (e.g. from CSV)
       const studentsToUpsert = []
       for (const s of students) {
-        const { student_accounts, spp_invoices, spp_payments, saving_transactions, ...cleanS } = s
+        const { student_accounts, spp_invoices, spp_payments, saving_transactions, photo_url, ...cleanS } = s
         studentsToUpsert.push({
           ...cleanS,
           nisn: cleanS.nisn?.toString().trim() || null,
@@ -184,8 +188,7 @@ export async function POST(request: NextRequest) {
           parent_email: cleanS.parent_email?.toString().trim() || null,
           place_of_birth: cleanS.place_of_birth?.toString().trim() || null,
           date_of_birth: cleanS.date_of_birth || null,
-          address: cleanS.address?.toString().trim() || null,
-          photo_url: cleanS.photo_url?.toString().trim() || null,
+          image: photo_url?.toString().trim() || cleanS.image?.toString().trim() || null,
           fee_waiver_type: cleanS.fee_waiver_type || null,
           student_number: s.student_number || await getNextStudentId(s.class),
           class_id: getClassId(s.class)
@@ -199,7 +202,7 @@ export async function POST(request: NextRequest) {
 
       if (upsertError && (upsertError.message?.includes('column') || upsertError.message?.includes('schema cache'))) {
         console.warn('Supabase schema cache warning on bulk upsert, retrying without optional columns:', upsertError.message)
-        const stripped = studentsToUpsert.map(({ date_of_birth, place_of_birth, address, photo_url, ...rest }) => rest)
+        const stripped = studentsToUpsert.map(({ date_of_birth, place_of_birth, address, image, ...rest }) => rest)
         const retry = await supabase
           .from('students')
           .upsert(stripped, { onConflict: 'student_number' })
@@ -229,7 +232,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: upsertedStudents?.length || 0 })
     } else {
       // Single Insert Mode
-      const { student_accounts, spp_invoices, spp_payments, saving_transactions, id: _tempId, ...cleanBody } = body
+      const { student_accounts, spp_invoices, spp_payments, saving_transactions, id: _tempId, photo_url, ...cleanBody } = body
       const generatedId = await getNextStudentId(body.class)
       const payload: any = {
         ...cleanBody,
@@ -238,8 +241,7 @@ export async function POST(request: NextRequest) {
         parent_email: cleanBody.parent_email?.toString().trim() || null,
         place_of_birth: cleanBody.place_of_birth?.toString().trim() || null,
         date_of_birth: cleanBody.date_of_birth || null,
-        address: cleanBody.address?.toString().trim() || null,
-        photo_url: cleanBody.photo_url?.toString().trim() || null,
+        image: photo_url?.toString().trim() || cleanBody.image?.toString().trim() || null,
         fee_waiver_type: cleanBody.fee_waiver_type || null,
         student_number: generatedId,
         class_id: getClassId(body.class)
@@ -253,7 +255,7 @@ export async function POST(request: NextRequest) {
 
       if (insertError && (insertError.message?.includes('column') || insertError.message?.includes('schema cache'))) {
         console.warn('Supabase schema cache warning on student insert, retrying without optional columns:', insertError.message)
-        const { date_of_birth, place_of_birth, address, photo_url, ...strippedPayload } = payload
+        const { date_of_birth, place_of_birth, address, image, ...strippedPayload } = payload
         const retry = await supabase
           .from('students')
           .insert([strippedPayload])
