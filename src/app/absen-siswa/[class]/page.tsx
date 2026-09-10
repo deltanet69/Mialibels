@@ -270,78 +270,102 @@ export default function AbsenSiswaPage() {
     }
   }, [rawClassName, isClass1A])
 
-  // RFID Scan Locking & Cooldown
-  const isScanningRef = useRef(false)
+  // RFID Scan Queue to prevent Hostinger WAF 429 IP Bans from burst scanning
+  const scanQueueRef = useRef<string[]>([])
+  const isProcessingQueueRef = useRef(false)
   const lastScannedRfidRef = useRef<{ rfid: string, time: number }>({ rfid: '', time: 0 })
+
+  const processQueue = async () => {
+    if (isProcessingQueueRef.current || scanQueueRef.current.length === 0) return
+    isProcessingQueueRef.current = true
+
+    while (scanQueueRef.current.length > 0) {
+      const rfidToProcess = scanQueueRef.current[0]
+
+      try {
+        const res = await fetch('/api/attendance-siswa/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rfid: rfidToProcess, className: rawClassName })
+        })
+        
+        // Handle Hostinger 429 error text
+        if (res.status === 429) {
+          showPopup({ type: 'error', message: 'Terlalu banyak request. Menunggu sejenak...' })
+          // Wait 2 seconds before continuing the queue
+          await new Promise(r => setTimeout(r, 2000))
+          continue // Retry the same RFID
+        }
+
+        const data = await res.json()
+
+        const popupPayload: PopupData = data.success
+          ? { type: 'success', message: data.message, action: data.action, student: data.student }
+          : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
+
+        if (data.success && data.student?.id) {
+          setLastScannedStudentId(data.student.id)
+          setTimeout(() => setLastScannedStudentId(null), 8000)
+
+          // Optimistically update local state langsung tanpa fetch API
+          updateStudentInState(
+            data.student,
+            data.action,
+            data.entry_time,
+            data.exit_time,
+            data.status
+          )
+        }
+
+        showPopup(popupPayload)
+
+        if (data.success) {
+          // Broadcast ke perangkat lain dengan info lengkap
+          if (broadcastChannelRef.current) {
+            broadcastChannelRef.current.send({
+              type: 'broadcast',
+              event: 'scan_result_siswa',
+              payload: {
+                sender: clientIdRef.current,
+                success: true,
+                message: data.message,
+                action: data.action,
+                status: data.status,
+                entry_time: data.entry_time,
+                exit_time: data.exit_time,
+                student: data.student
+              }
+            })
+          }
+        }
+      } catch (err: any) {
+        showPopup({
+          type: 'error',
+          message: 'Gagal terhubung ke server absensi.'
+        })
+      } finally {
+        // Remove processed RFID from queue
+        scanQueueRef.current.shift()
+        // Wait 400ms between requests to bypass WAF limits
+        await new Promise(r => setTimeout(r, 400))
+      }
+    }
+
+    isProcessingQueueRef.current = false
+  }
 
   const processRfid = async (rfid: string) => {
     const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
 
-    if (isScanningRef.current) return
+    // Prevent double tap scanning the SAME RFID within 3 seconds
     if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
       return
     }
 
-    isScanningRef.current = true
     lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
-
-    try {
-      const res = await fetch('/api/attendance-siswa/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid: cleanRfid, className: rawClassName })
-      })
-
-      const data = await res.json()
-
-      const popupPayload: PopupData = data.success
-        ? { type: 'success', message: data.message, action: data.action, student: data.student }
-        : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
-
-      if (data.success && data.student?.id) {
-        setLastScannedStudentId(data.student.id)
-        setTimeout(() => setLastScannedStudentId(null), 8000)
-
-        // Optimistically update local state langsung tanpa fetch API
-        updateStudentInState(
-          data.student,
-          data.action,
-          data.entry_time,
-          data.exit_time,
-          data.status
-        )
-      }
-
-      showPopup(popupPayload)
-
-      if (data.success) {
-        // Broadcast ke perangkat lain dengan info lengkap
-        if (broadcastChannelRef.current) {
-          broadcastChannelRef.current.send({
-            type: 'broadcast',
-            event: 'scan_result_siswa',
-            payload: {
-              sender: clientIdRef.current,
-              success: true,
-              message: data.message,
-              action: data.action,
-              status: data.status,
-              entry_time: data.entry_time,
-              exit_time: data.exit_time,
-              student: data.student
-            }
-          })
-        }
-      }
-    } catch (err: any) {
-      showPopup({
-        type: 'error',
-        message: 'Gagal terhubung ke server absensi.'
-      })
-    } finally {
-      isScanningRef.current = false
-    }
+    scanQueueRef.current.push(cleanRfid)
+    processQueue()
   }
 
 
