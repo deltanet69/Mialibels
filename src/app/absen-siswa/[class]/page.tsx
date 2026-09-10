@@ -270,124 +270,131 @@ export default function AbsenSiswaPage() {
     }
   }, [rawClassName, isClass1A])
 
-  // RFID Scan Queue to prevent Hostinger WAF 429 IP Bans from burst scanning
-  const scanQueueRef = useRef<string[]>([])
-  const isProcessingQueueRef = useRef(false)
+  // ─────────────────────────────────────────────────────────────────
+  // RFID DEBOUNCE BATCH SENDER
+  // Semua scan dikumpulkan selama 800ms setelah kartu TERAKHIR di-scan,
+  // baru dikirim dalam 1 request tunggal. Menjamin hanya 1 HTTP request
+  // yang menyentuh server Hostinger per "sesi scan brutal" —
+  // mustahil trigger WAF IP ban dari jaringan sekolah (NAT).
+  // ─────────────────────────────────────────────────────────────────
+  const pendingRfidsRef = useRef<string[]>([])
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isSendingRef = useRef(false)
   const lastScannedRfidRef = useRef<{ rfid: string, time: number }>({ rfid: '', time: 0 })
 
-  const processQueue = async () => {
-    if (isProcessingQueueRef.current || scanQueueRef.current.length === 0) return
-    isProcessingQueueRef.current = true
+  const displayBatchResults = async (results: any[]) => {
+    for (const item of results) {
+      const popupPayload: PopupData = item.success
+        ? { type: 'success', message: item.message, action: item.action, student: item.student }
+        : { type: 'error', message: item.error || 'Absensi gagal.', action: item.action }
 
-    while (scanQueueRef.current.length > 0) {
-      // Ambil hingga 10 RFID sekaligus dari antrean (Batching)
-      const batchSize = Math.min(10, scanQueueRef.current.length)
-      const batchRfids = scanQueueRef.current.splice(0, batchSize)
+      if (item.success && item.student?.id) {
+        setLastScannedStudentId(item.student.id)
+        setTimeout(() => setLastScannedStudentId(null), 8000)
+        updateStudentInState(
+          item.student, item.action, item.entry_time, item.exit_time, item.status
+        )
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current.send({
+            type: 'broadcast',
+            event: 'scan_result_siswa',
+            payload: {
+              sender: clientIdRef.current,
+              success: true,
+              message: item.message,
+              action: item.action,
+              status: item.status,
+              entry_time: item.entry_time,
+              exit_time: item.exit_time,
+              student: item.student
+            }
+          })
+        }
+      }
 
+      showPopup(popupPayload)
+
+      // Jika batch > 1, beri jeda 1.5 detik agar popup bisa dibaca
+      if (results.length > 1) {
+        await new Promise(r => setTimeout(r, 1500))
+      }
+    }
+  }
+
+  const flushBatch = async () => {
+    if (isSendingRef.current || pendingRfidsRef.current.length === 0) return
+    isSendingRef.current = true
+
+    // Ambil semua yang ada di pending (bisa 1–30+ kartu)
+    const batchRfids = [...pendingRfidsRef.current]
+    pendingRfidsRef.current = []
+
+    let retries = 0
+    while (retries < 3) {
       try {
         const res = await fetch('/api/attendance-siswa/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rfids: batchRfids, className: rawClassName })
+          body: JSON.stringify({ rfids: batchRfids, className: rawClassName }),
+          signal: AbortSignal.timeout(15000) // 15 detik timeout
         })
-        
-        // Handle Hostinger 429 error text
+
         if (res.status === 429) {
-          showPopup({ type: 'error', message: 'Terlalu banyak request. Menunggu sejenak...' })
-          await new Promise(r => setTimeout(r, 2000))
-          // Kembalikan ke antrean
-          scanQueueRef.current.unshift(...batchRfids)
+          showPopup({ type: 'error', message: 'Server sibuk, mencoba ulang...' })
+          await new Promise(r => setTimeout(r, 3000 * (retries + 1)))
+          retries++
           continue
         }
 
         const data = await res.json()
 
         if (data.batch && Array.isArray(data.results)) {
-          for (const item of data.results) {
-            const popupPayload: PopupData = item.success
-              ? { type: 'success', message: item.message, action: item.action, student: item.student }
-              : { type: 'error', message: item.error || 'Absensi gagal.', action: item.action }
-
-            if (item.success && item.student?.id) {
-              setLastScannedStudentId(item.student.id)
-              setTimeout(() => setLastScannedStudentId(null), 8000)
-
-              // Optimistically update local state
-              updateStudentInState(
-                item.student,
-                item.action,
-                item.entry_time,
-                item.exit_time,
-                item.status
-              )
-            }
-
-            showPopup(popupPayload)
-
-            if (item.success) {
-              if (broadcastChannelRef.current) {
-                broadcastChannelRef.current.send({
-                  type: 'broadcast',
-                  event: 'scan_result_siswa',
-                  payload: {
-                    sender: clientIdRef.current,
-                    success: true,
-                    message: item.message,
-                    action: item.action,
-                    status: item.status,
-                    entry_time: item.entry_time,
-                    exit_time: item.exit_time,
-                    student: item.student
-                  }
-                })
-              }
-            }
-            
-            // Jika ada lebih dari 1 item dalam batch, beri jeda agar popup bisa terbaca
-            if (batchRfids.length > 1) {
-              await new Promise(r => setTimeout(r, 1200))
-            }
-          }
-        } else {
-          // Fallback jika API merespons format lama (meskipun seharusnya tidak)
-          const popupPayload: PopupData = data.success
-            ? { type: 'success', message: data.message, action: data.action, student: data.student }
-            : { type: 'error', message: data.error || 'Absensi gagal.', action: data.action }
-
-          if (data.success && data.student?.id) {
-            setLastScannedStudentId(data.student.id)
-            setTimeout(() => setLastScannedStudentId(null), 8000)
-            updateStudentInState(data.student, data.action, data.entry_time, data.exit_time, data.status)
-          }
-
-          showPopup(popupPayload)
+          await displayBatchResults(data.results)
+        } else if (data.success !== undefined) {
+          // Fallback single response
+          await displayBatchResults([data])
         }
+
+        break // Sukses, keluar dari retry loop
+
       } catch (err: any) {
-        showPopup({
-          type: 'error',
-          message: 'Gagal terhubung ke server absensi.'
-        })
-      } finally {
-        // Wait 500ms before processing the next batch to be extremely safe against WAF
-        await new Promise(r => setTimeout(r, 500))
+        retries++
+        if (retries >= 3) {
+          showPopup({ type: 'error', message: 'Gagal terhubung ke server absensi. Coba scan ulang.' })
+        } else {
+          showPopup({ type: 'error', message: `Koneksi gagal, mencoba ulang (${retries}/3)...` })
+          await new Promise(r => setTimeout(r, 2000 * retries))
+        }
       }
     }
 
-    isProcessingQueueRef.current = false
+    isSendingRef.current = false
+
+    // Jika ada scan baru yang masuk saat kita sedang mengirim, flush lagi
+    if (pendingRfidsRef.current.length > 0) {
+      await flushBatch()
+    }
   }
 
-  const processRfid = async (rfid: string) => {
+  const processRfid = (rfid: string) => {
     const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
 
-    // Prevent double tap scanning the SAME RFID within 3 seconds
+    // Cegah scan kartu SAMA dalam 3 detik
     if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
       return
     }
 
     lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
-    scanQueueRef.current.push(cleanRfid)
-    processQueue()
+
+    // Tambahkan ke pending batch
+    pendingRfidsRef.current.push(cleanRfid)
+
+    // Reset debounce timer: tunggu 800ms setelah kartu TERAKHIR di-scan
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      flushBatch()
+    }, 800)
   }
 
 

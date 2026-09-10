@@ -86,119 +86,95 @@ export function GlobalAttendanceScanner() {
     }
   }, [])
 
-  const scanQueueRef = useRef<string[]>([])
-  const isProcessingQueueRef = useRef(false)
+  const pendingRfidsRef = useRef<string[]>([])
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isSendingRef = useRef(false)
   const lastScannedRfidRef = useRef<{ rfid: string; time: number }>({ rfid: '', time: 0 })
 
-  const processQueue = async () => {
-    if (isProcessingQueueRef.current || scanQueueRef.current.length === 0) return
-    isProcessingQueueRef.current = true
+  const flushBatch = async () => {
+    if (isSendingRef.current || pendingRfidsRef.current.length === 0) return
+    isSendingRef.current = true
 
-    while (scanQueueRef.current.length > 0) {
-      // Ambil hingga 10 RFID sekaligus dari antrean (Batching)
-      const batchSize = Math.min(10, scanQueueRef.current.length)
-      const batchRfids = scanQueueRef.current.splice(0, batchSize)
+    const batchRfids = [...pendingRfidsRef.current]
+    pendingRfidsRef.current = []
 
+    let retries = 0
+    while (retries < 3) {
       try {
         const res = await fetch('/api/attendance/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rfids: batchRfids })
+          body: JSON.stringify({ rfids: batchRfids }),
+          signal: AbortSignal.timeout(15000)
         })
-        
-        // Handle Hostinger 429 WAF text response
+
         if (res.status === 429) {
-          showToastRef.current('Terlalu banyak request. Menunggu sejenak...')
-          await new Promise(r => setTimeout(r, 2000))
-          // Kembalikan ke antrean
-          scanQueueRef.current.unshift(...batchRfids)
+          showToastRef.current('Server sibuk, mencoba ulang...')
+          await new Promise(r => setTimeout(r, 3000 * (retries + 1)))
+          retries++
           continue
         }
-        
+
         const data = await res.json()
-        
-        if (data.batch && Array.isArray(data.results)) {
-          for (const item of data.results) {
-            if (item.success) {
-              showToastRef.current(item.message || 'Scan berhasil!')
-              // Notify local dashboard components
-              window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
-                success: true,
-                message: item.message,
-                action: item.action,
-                staff: item.staff
-              }}))
 
-              // Broadcast to other windows/devices via Supabase
-              if (broadcastChannelRef.current) {
-                broadcastChannelRef.current.send({
-                  type: 'broadcast',
-                  event: 'scan_result',
-                  payload: {
-                    sender: clientIdRef.current,
-                    success: true,
-                    message: item.message,
-                    action: item.action,
-                    staff: item.staff
-                  }
-                })
-              }
-            } else {
-              showToastRef.current(item.error || 'Gagal memproses kartu')
-              // Notify local dashboard components
-              window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
-                success: false,
-                message: item.error || 'Gagal memproses kartu'
-              }}))
+        const results = data.batch && Array.isArray(data.results)
+          ? data.results
+          : [data]
+
+        for (const item of results) {
+          if (item.success) {
+            showToastRef.current(item.message || 'Scan berhasil!')
+            window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
+              success: true,
+              message: item.message,
+              action: item.action,
+              staff: item.staff
+            }}))
+            if (broadcastChannelRef.current) {
+              broadcastChannelRef.current.send({
+                type: 'broadcast',
+                event: 'scan_result',
+                payload: {
+                  sender: clientIdRef.current,
+                  success: true,
+                  message: item.message,
+                  action: item.action,
+                  staff: item.staff
+                }
+              })
             }
-            
-            // Jeda antar notifikasi jika dalam batch
-            if (batchRfids.length > 1) {
-              await new Promise(r => setTimeout(r, 1200))
-            }
+          } else {
+            showToastRef.current(item.error || 'Gagal memproses kartu')
+            window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
+              success: false,
+              message: item.error || 'Gagal memproses kartu'
+            }}))
           }
-        } else {
-          // Fallback if not batched format
-          if (!res.ok) throw new Error(data.error || 'Gagal memproses kartu')
-          
-          showToastRef.current(data.message || 'Scan berhasil!')
-          window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
-            success: true,
-            message: data.message,
-            action: data.action,
-            staff: data.staff
-          }}))
-
-          if (broadcastChannelRef.current) {
-            broadcastChannelRef.current.send({
-              type: 'broadcast',
-              event: 'scan_result',
-              payload: {
-                sender: clientIdRef.current,
-                success: true,
-                message: data.message,
-                action: data.action,
-                staff: data.staff
-              }
-            })
+          if (results.length > 1) {
+            await new Promise(r => setTimeout(r, 1200))
           }
         }
 
+        break
+
       } catch (err: any) {
-        showToastRef.current(err.message || 'Gagal memproses kartu')
-        window.dispatchEvent(new CustomEvent('mia_local_scan', { detail: {
-          success: false,
-          message: err.message || 'Gagal memproses kartu'
-        }}))
-      } finally {
-        await new Promise(r => setTimeout(r, 500)) // Delay to bypass WAF burst limit
+        retries++
+        if (retries >= 3) {
+          showToastRef.current(err.message || 'Gagal terhubung ke server absensi')
+        } else {
+          await new Promise(r => setTimeout(r, 2000 * retries))
+        }
       }
     }
 
-    isProcessingQueueRef.current = false
+    isSendingRef.current = false
+
+    if (pendingRfidsRef.current.length > 0) {
+      await flushBatch()
+    }
   }
 
-  const handleScan = async (rfid: string) => {
+  const handleScan = (rfid: string) => {
     const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
 
@@ -207,8 +183,12 @@ export function GlobalAttendanceScanner() {
     }
 
     lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
-    scanQueueRef.current.push(cleanRfid)
-    processQueue()
+    pendingRfidsRef.current.push(cleanRfid)
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      flushBatch()
+    }, 800)
   }
 
 
