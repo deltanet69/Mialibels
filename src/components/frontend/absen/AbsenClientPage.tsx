@@ -22,7 +22,8 @@ import {
   Timer
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { isAfternoonClass } from '@/config/attendanceRules'
+import { isAfternoonClass, TEACHER_ATTENDANCE_CONFIG, determineTeacherShift, evaluateTeacherCheckIn } from '@/config/attendanceRules'
+import { generateRfidVariants } from '@/lib/rfidUtils'
 
 // Helper for Indonesian date
 const getIndonesianDate = () => {
@@ -171,23 +172,48 @@ export default function AbsenClientPage() {
   const fetchAttendanceList = async (force: boolean = false) => {
     const now = Date.now()
     if (isFetchingRef.current) return
-    if (!force && (now - lastFetchTimeRef.current < 15000)) return // Minimal throttle 15s
+    if (!force && (now - lastFetchTimeRef.current < 15000)) return
 
     isFetchingRef.current = true
     lastFetchTimeRef.current = now
 
     try {
       const today = new Date()
-      const offset = 7 * 60 * 60 * 1000 // UTC+7
+      const offset = 7 * 60 * 60 * 1000
       const localDate = new Date(today.getTime() + offset)
       const dateStr = localDate.toISOString().split('T')[0]
-      
-      const res = await fetch(`/api/attendance/guru?date=${dateStr}&filter=hari&_t=${now}`)
-      const data = await res.json()
-      
-      if (data.success && data.data) {
-        setAllStaffs(data.data)
+
+      // ── DIRECT SUPABASE — bypass Hostinger ──
+      const { data: staffsData, error: staffsError } = await supabase
+        .from('staffs')
+        .select('id, name, position, image, is_active')
+        .eq('is_active', true)
+        .order('name')
+
+      if (staffsError) throw staffsError
+      const staffs = (staffsData || []) as any[]
+
+      const staffIds = staffs.map((s: any) => s.id)
+      let attendanceMap: Record<string, any> = {}
+
+      if (staffIds.length > 0) {
+        const { data: attendanceData } = await supabase
+          .from('staff_attendance')
+          .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
+          .eq('date', dateStr)
+          .in('staff_id', staffIds)
+
+        for (const att of (attendanceData || []) as any[]) {
+          attendanceMap[att.staff_id] = att
+        }
       }
+
+      const combined = staffs.map((s: any) => ({
+        ...s,
+        attendance: attendanceMap[s.id] || null
+      }))
+
+      setAllStaffs(combined)
     } catch (err) {
       console.error('Error fetching teacher attendance list', err)
     } finally {
@@ -310,25 +336,112 @@ export default function AbsenClientPage() {
     const now = Date.now()
 
     if (isScanningRef.current) return
-    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
-      return
-    }
-    
+    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) return
+
     isScanningRef.current = true
     lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
 
     try {
-      const res = await fetch('/api/attendance/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid: cleanRfid })
-      })
-      const data = await res.json()
-      
-      const popupPayload: PopupData = data.success
-        ? { type: 'success', message: data.message, action: data.action, staff: data.staff }
-        : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
-      
+      // ── DIRECT SUPABASE — bypass Hostinger WAF ──
+      const rfidVariants = generateRfidVariants(cleanRfid)
+
+      const { data: staffsData, error: staffError } = await supabase
+        .from('staffs')
+        .select('id, name, position, rfid, image, is_active')
+        .in('rfid', rfidVariants)
+        .eq('is_active', true)
+        .limit(1)
+
+      if (staffError) throw staffError
+      const staffs = (staffsData as any[]) || []
+
+      if (staffs.length === 0) {
+        showPopup({ type: 'error', message: `Kartu RFID/NFC (${cleanRfid}) belum terdaftar pada data guru/staf aktif.` })
+        return
+      }
+
+      const staff = staffs[0]
+      const today = new Date()
+      const offset = 7 * 60 * 60 * 1000
+      const localDate = new Date(today.getTime() + offset)
+      const dateStr = localDate.toISOString().split('T')[0]
+      const nowIso = new Date().toISOString()
+      const hours = localDate.getUTCHours()
+      const mins = localDate.getUTCMinutes()
+      const currentTimeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+      const daysIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+      const todayDayName = daysIndo[localDate.getUTCDay()]
+
+      const [{ data: schedulesData }, { data: homeroomData }] = await Promise.all([
+        supabase.from('classroom_schedules').select('id, day, time, classroom_id, classroom:classrooms(id, name, level)').eq('teacher_id', staff.id),
+        supabase.from('classrooms').select('id, name, level').eq('homeroom_teacher_id', staff.id)
+      ])
+
+      const allSchedules = [
+        ...((schedulesData as any[]) || []),
+        ...((homeroomData as any[]) || []).map((c: any) => ({ day: '', time: '', classroom: { name: c.name }, classroom_name: c.name }))
+      ]
+
+      const shiftData = determineTeacherShift(staff, allSchedules, todayDayName)
+      let shiftConfig: any = TEACHER_ATTENDANCE_CONFIG.MORNING_SHIFT
+      if (shiftData.shift === 'Siang') shiftConfig = TEACHER_ATTENDANCE_CONFIG.AFTERNOON_SHIFT
+      else if (shiftData.shift === 'Khusus') shiftConfig = TEACHER_ATTENDANCE_CONFIG.SPECIAL_SHIFT
+
+      const { data: existingRecords, error: checkError } = await supabase
+        .from('staff_attendance')
+        .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
+        .eq('staff_id', staff.id)
+        .eq('date', dateStr)
+        .limit(1)
+
+      if (checkError) throw checkError
+      const existingRecord: any = (existingRecords as any[])?.length > 0 ? (existingRecords as any[])[0] : null
+
+      let data: any
+
+      if (!existingRecord) {
+        const checkInEval = evaluateTeacherCheckIn(shiftData, hours, mins)
+
+        const { data: newRecord, error: insertError } = await supabase
+          .from('staff_attendance')
+          .insert({ staff_id: staff.id, date: dateStr, status: checkInEval.status, notes: checkInEval.notes, check_in_time: nowIso, updated_at: nowIso } as any)
+          .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
+          .single()
+
+        if (insertError) throw insertError
+
+        const msg = checkInEval.isLate
+          ? `Absen Masuk [Datang Terlambat] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
+          : `Absen Masuk [Tepat Waktu] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
+
+        data = { success: true, action: 'check-in', status: checkInEval.status, is_late: checkInEval.isLate, shift: shiftData.shift, message: msg, data: newRecord, staff: { ...staff, status: checkInEval.status, is_late: checkInEval.isLate, shift: shiftData.shift } }
+
+      } else {
+        if (existingRecord.check_out_time) {
+          showPopup({ type: 'error', message: `${staff.name} sudah melakukan Absen Pulang hari ini.`, action: 'already-checked-out' })
+          return
+        }
+
+        const currentMinutes = hours * 60 + mins
+        const minCheckoutMinutes = shiftConfig.CHECKOUT_MIN_TIME.hours * 60 + shiftConfig.CHECKOUT_MIN_TIME.minutes
+
+        if (currentMinutes < minCheckoutMinutes) {
+          showPopup({ type: 'error', message: `${staff.name} - Belum waktunya absen pulang ${shiftConfig.name} (Minimal pukul ${shiftConfig.CHECKOUT_MIN_TIME.timeString} WIB)`, action: 'too-early-checkout' })
+          return
+        }
+
+        const { data: updateRecord, error: updateError } = await (supabase.from('staff_attendance') as any)
+          .update({ check_out_time: nowIso, updated_at: nowIso })
+          .eq('id', existingRecord.id)
+          .select().single()
+
+        if (updateError) throw updateError
+
+        data = { success: true, action: 'check-out', message: `Berhasil Absen Pulang (${currentTimeStr} WIB): ${staff.name}`, data: updateRecord, staff }
+      }
+
+      const popupPayload: PopupData = { type: data.success ? 'success' : 'error', message: data.success ? data.message : (data.error || 'Absensi gagal.'), action: data.action, staff: data.staff }
+
       if (data.success && data.staff?.id) {
         setLastScannedStaffId(data.staff.id)
         setTimeout(() => setLastScannedStaffId(null), 8000)
@@ -336,23 +449,16 @@ export default function AbsenClientPage() {
       }
 
       showPopup(popupPayload)
-      
+
       if (data.success && broadcastChannelRef.current) {
         broadcastChannelRef.current.send({
-          type: 'broadcast',
-          event: 'scan_result',
-          payload: {
-            sender: clientIdRef.current,
-            success: data.success,
-            message: data.message,
-            action: data.action,
-            staff: data.staff
-          }
+          type: 'broadcast', event: 'scan_result',
+          payload: { sender: clientIdRef.current, success: data.success, message: data.message, action: data.action, staff: data.staff }
         })
       }
 
-    } catch (error) {
-      showPopup({ type: 'error', message: 'Koneksi ke server bermasalah.' })
+    } catch (error: any) {
+      showPopup({ type: 'error', message: error.message || 'Koneksi ke server bermasalah.' })
     } finally {
       isScanningRef.current = false
     }

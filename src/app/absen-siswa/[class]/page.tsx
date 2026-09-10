@@ -321,31 +321,75 @@ export default function AbsenSiswaPage() {
   const fetchAttendanceList = async (force: boolean = false) => {
     const now = Date.now()
     if (isFetchingRef.current) return
-    if (!force && (now - lastFetchTimeRef.current < 15000)) return // Minimal throttle 15s
+    if (!force && (now - lastFetchTimeRef.current < 15000)) return
 
     isFetchingRef.current = true
     lastFetchTimeRef.current = now
 
     try {
       const today = new Date()
-      const offset = 7 * 60 * 60 * 1000 // UTC+7
+      const offset = 7 * 60 * 60 * 1000
       const localDate = new Date(today.getTime() + offset)
       const dateStr = localDate.toISOString().split('T')[0]
 
-      const res = await fetch(`/api/attendance-siswa/list?className=${rawClassName}&date=${dateStr}&_t=${now}`)
-      const data = await res.json()
+      // ── DIRECT SUPABASE — bypass Hostinger sepenuhnya ──
+      // 1. Ambil semua siswa aktif sesuai kelas
+      let studentsQuery = supabase
+        .from('students')
+        .select('id, name, class, rfid_number, is_active')
+        .eq('is_active', true)
+        .order('name')
 
-      if (data.success && data.data) {
-        setTotalStudents(data.total_students || 0)
-        setPresentStudentsCount(data.present_count || 0)
-        setAllStudents(data.data)
+      // Filter kelas sesuai device
+      const rawClassLower = (rawClassName || '').toLowerCase().trim()
+      if (rawClassLower === 'kelas1' || rawClassLower === '1bcd') {
+        studentsQuery = studentsQuery.in('class', ['1B', '1C', '1D', '1b', '1c', '1d'])
+      } else if (rawClassLower === '1a') {
+        studentsQuery = studentsQuery.eq('class', '1A')
+      } else if (rawClassName) {
+        studentsQuery = studentsQuery.ilike('class', rawClassName.toUpperCase())
       }
+
+      const { data: studentsData, error: studentsError } = await studentsQuery
+      if (studentsError) throw studentsError
+      const students = (studentsData || []) as any[]
+
+      // 2. Ambil attendance hari ini untuk semua siswa tersebut
+      const studentIds = students.map((s: any) => s.id)
+      let attendanceMap: Record<string, any> = {}
+
+      if (studentIds.length > 0) {
+        const { data: attendanceData } = await supabase
+          .from('student_attendances')
+          .select('id, student_id, date, status, entry_time, exit_time')
+          .eq('date', dateStr)
+          .in('student_id', studentIds)
+
+        for (const att of (attendanceData || []) as any[]) {
+          attendanceMap[att.student_id] = att
+        }
+      }
+
+      // 3. Gabungkan
+      const combined = students.map((s: any) => ({
+        ...s,
+        attendance: attendanceMap[s.id] || null
+      }))
+
+      const presentCount = combined.filter(
+        (s: any) => s.attendance?.entry_time && s.attendance?.status !== 'Alpha'
+      ).length
+
+      setTotalStudents(students.length)
+      setPresentStudentsCount(presentCount)
+      setAllStudents(combined)
     } catch (err) {
       console.error('Error fetching student attendance list', err)
     } finally {
       isFetchingRef.current = false
     }
   }
+
 
   // Realtime clock & initial mount
   useEffect(() => {
