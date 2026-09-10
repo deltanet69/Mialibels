@@ -41,7 +41,7 @@ export const ATTENDANCE_CONFIG = {
 
   // Batas akhir Hadir Tepat Waktu (08:45 WIB)
   ON_TIME_LIMIT: {
-    hours: 8,
+    hours: 9,
     minutes: 45,
     timeString: '08:45',
   },
