@@ -189,8 +189,8 @@ export default function AbsenClientPage() {
         .from('staffs')
         .select(`
           id, name, position, image, is_active, rfid,
-          classroom_schedules(id, day, time, classroom_id, classroom:classrooms(id, name, level)),
-          classrooms!homeroom_teacher_id(id, name, level)
+          classroom_schedules(id, day, time, classroom_id, classroom:classrooms(id, name)),
+          classrooms!homeroom_teacher_id(id, name)
         `)
         .eq('is_active', true)
         .order('name')
@@ -421,8 +421,9 @@ export default function AbsenClientPage() {
       // 1. Cari Staff di Memori (0 DB Request)
       const rfidVariants = generateRfidVariants(cleanRfid)
       const staff = allStaffsRawDataRef.current.find(s => {
-        if (!s.rfid) return false
-        return rfidVariants.includes(s.rfid.toUpperCase())
+        const dbRfid = String(s.rfid || '').trim().toUpperCase()
+        if (!dbRfid) return false
+        return rfidVariants.includes(dbRfid)
       })
 
       if (!staff) {
