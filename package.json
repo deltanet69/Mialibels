@@ -2,9 +2,14 @@
   "name": "mi15",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "node build-hostinger.js",
+    "prebuild": "node prebuild.js",
+    "build": "next build",
+    "postbuild": "node postbuild.js",
     "start": "next start",
     "lint": "eslint"
   },
