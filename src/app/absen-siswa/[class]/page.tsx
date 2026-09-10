@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { CheckCircle, XCircle, Users, Sparkles, Clock, Wifi, ShieldCheck, UserCheck, AlertCircle, UserX, Search } from 'lucide-react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { generateRfidVariants } from '@/lib/rfidUtils'
+import { ATTENDANCE_CONFIG, evaluateStudentCheckIn } from '@/config/attendanceRules'
 
 // Helper for Indonesian date
 const getIndonesianDate = () => {
@@ -46,7 +48,165 @@ type StudentAttendance = {
   } | null
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DIRECT SUPABASE SCAN — BYPASS HOSTINGER WAF SEPENUHNYA
+// Fungsi ini berjalan di browser dan berkomunikasi langsung dengan
+// supabase.co — Hostinger tidak punya kendali sama sekali atas koneksi ini.
+// ─────────────────────────────────────────────────────────────────────────────
+const clientScanCache = new Map<string, { timestamp: number; response: any }>()
+const CLIENT_DEDUP_MS = 2500
+
+function cleanClassCode(raw?: string | null): string {
+  if (!raw) return ''
+  return raw.toLowerCase()
+    .replace(/kelas/g, '').replace(/ruang/g, '').replace(/gedung/g, '')
+    .replace(/[^a-z0-9]/g, '').trim()
+}
+
+async function scanRfidDirect(rfid: string, className: string): Promise<any> {
+  const cleanRfid = String(rfid).trim().toUpperCase()
+  const now = Date.now()
+
+  const cached = clientScanCache.get(cleanRfid)
+  if (cached && now - cached.timestamp < CLIENT_DEDUP_MS) return cached.response
+
+  const rfidVariants = generateRfidVariants(cleanRfid)
+
+  const { data: studentsData, error: studentError } = await supabase
+    .from('students')
+    .select('id, name, class, rfid_number, is_active')
+    .in('rfid_number', rfidVariants)
+    .eq('is_active', true)
+    .limit(1)
+
+  if (studentError) throw studentError
+  const students = (studentsData || []) as any[]
+  if (students.length === 0) {
+    return { success: false, error: `Kartu RFID/NFC (${cleanRfid}) belum terdaftar pada data siswa aktif.` }
+  }
+
+  const student = students[0]
+  const studentClean = cleanClassCode(student.class)
+  const deviceClean = cleanClassCode(className)
+  const rawClassLower = (className || '').toLowerCase().trim()
+
+  let isClassAllowed = false
+  let rejectionReason = ''
+
+  if (rawClassLower === 'kelas1' || deviceClean === 'kelas1' || deviceClean === '1bcd') {
+    if (['1b', '1c', '1d'].includes(studentClean)) isClassAllowed = true
+    else if (studentClean === '1a') { rejectionReason = `Siswa ${student.name} (Kelas 1A) terdaftar di Pos Gedung 1. Silakan lakukan absensi di Pos Kelas 1A.` }
+    else { rejectionReason = `Siswa ${student.name} (${student.class || 'Tanpa Kelas'}) tidak diizinkan di Pos Absensi Gedung 2.` }
+  } else if (deviceClean === '1a' || rawClassLower === '1a') {
+    if (studentClean === '1a') isClassAllowed = true
+    else if (['1b', '1c', '1d'].includes(studentClean)) { rejectionReason = `Siswa ${student.name} (${student.class}) terdaftar di Pos Gedung 2.` }
+    else { rejectionReason = `Siswa ${student.name} (${student.class || 'Tanpa Kelas'}) tidak diizinkan di Pos Absensi Kelas 1A.` }
+  } else if (deviceClean) {
+    if (studentClean === deviceClean) isClassAllowed = true
+    else { rejectionReason = `Siswa ${student.name} (${student.class || 'Tanpa Kelas'}) tidak diizinkan di Pos Kelas ${className.toUpperCase()}.` }
+  } else {
+    isClassAllowed = true
+  }
+
+  if (!isClassAllowed) {
+    return { success: false, action: 'wrong-class', error: rejectionReason || `Siswa ${student.name} tidak diizinkan di mesin absensi ini.`, student: { id: student.id, name: student.name, class: student.class } }
+  }
+
+  const today = new Date()
+  const offset = 7 * 60 * 60 * 1000
+  const localDate = new Date(today.getTime() + offset)
+  const dateStr = localDate.toISOString().split('T')[0]
+  const hours = localDate.getUTCHours()
+  const mins = localDate.getUTCMinutes()
+  const currentTimeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+
+  const { data: existingRecords, error: checkError } = await supabase
+    .from('student_attendances')
+    .select('id, student_id, date, status, entry_time, exit_time')
+    .eq('student_id', student.id)
+    .eq('date', dateStr)
+    .limit(1)
+
+  if (checkError) throw checkError
+  const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null
+
+  if (!existingRecord) {
+    const checkInEval = evaluateStudentCheckIn(hours, mins)
+
+    if (!checkInEval.allowed) {
+      if (checkInEval.status === 'Alpha') {
+        supabase.from('student_attendances').insert({
+          student_id: student.id, date: dateStr, status: 'Alpha',
+          entry_time: currentTimeStr,
+          notes: `Scan ditolak: Lewat batas jam masuk (${currentTimeStr} WIB)`
+        } as any).then(() => {})
+      }
+      const lockResp = { success: false, action: 'locked', status: checkInEval.status, error: checkInEval.message, student: { ...student, status: checkInEval.status, entry_time: currentTimeStr } }
+      clientScanCache.set(cleanRfid, { timestamp: now, response: lockResp })
+      return lockResp
+    }
+
+    const { data: newRecord, error: insertError } = await supabase
+      .from('student_attendances')
+      .insert({ student_id: student.id, date: dateStr, status: checkInEval.status, entry_time: currentTimeStr } as any)
+      .select('id, student_id, date, status, entry_time, exit_time')
+      .single()
+
+    if (insertError) throw insertError
+
+    const isLate = checkInEval.isLate
+    const msg = isLate
+      ? `Absen Masuk [Terlambat Datang] (${currentTimeStr}): ${student.name}`
+      : `Absen Masuk [Tepat Waktu] (${currentTimeStr}): ${student.name}`
+
+    // Fire-and-forget push notif via server (non-blocking, tidak mempengaruhi WAF karena ini fire-and-forget)
+    fetch('/api/attendance-siswa/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: student.id, type: 'check-in', message: msg }) }).catch(() => {})
+
+    const successResp = { success: true, action: 'check-in', status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr, message: msg, data: newRecord, student: { ...student, status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr } }
+    clientScanCache.set(cleanRfid, { timestamp: now, response: successResp })
+    return successResp
+
+  } else {
+    if (existingRecord.status === 'Alpha') {
+      const alphaResp = { success: false, action: 'locked', error: `${student.name} tercatat Alpha (tidak absen masuk sebelum ${ATTENDANCE_CONFIG.LATE_LIMIT.timeString} WIB).` }
+      clientScanCache.set(cleanRfid, { timestamp: now, response: alphaResp })
+      return alphaResp
+    }
+
+    if (existingRecord.exit_time) {
+      const checkedOutResp = { success: false, action: 'already-checked-out', error: `${student.name} sudah melakukan Absen Pulang hari ini.` }
+      clientScanCache.set(cleanRfid, { timestamp: now, response: checkedOutResp })
+      return checkedOutResp
+    }
+
+    const currentMinutes = hours * 60 + mins
+    const minCheckoutMinutes = ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.hours * 60 + ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.minutes
+
+    if (currentMinutes < minCheckoutMinutes) {
+      const earlyResp = { success: false, action: 'early-checkout', error: `Belum waktunya absen pulang (Minimal pukul ${ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.timeString} WIB)` }
+      clientScanCache.set(cleanRfid, { timestamp: now, response: earlyResp })
+      return earlyResp
+    }
+
+    const { data: updateRecord, error: updateError } = await (supabase.from('student_attendances') as any)
+      .update({ exit_time: currentTimeStr, updated_at: new Date().toISOString() })
+      .eq('id', existingRecord.id)
+      .select('id, student_id, date, status, entry_time, exit_time')
+      .single()
+
+    if (updateError) throw updateError
+
+    const msg = `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`
+    fetch('/api/attendance-siswa/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: student.id, type: 'check-out', message: msg }) }).catch(() => {})
+
+    const outResp = { success: true, action: 'check-out', status: existingRecord.status || 'Hadir', exit_time: currentTimeStr, message: msg, data: updateRecord, student: { ...student, exit_time: currentTimeStr } }
+    clientScanCache.set(cleanRfid, { timestamp: now, response: outResp })
+    return outResp
+  }
+}
+
 export default function AbsenSiswaPage() {
+
   const params = useParams()
   const rawClassName = (params.class as string) || ''
   const formattedClassName = rawClassName.toUpperCase()
@@ -325,56 +485,30 @@ export default function AbsenSiswaPage() {
     if (isSendingRef.current || pendingRfidsRef.current.length === 0) return
     isSendingRef.current = true
 
-    // Ambil semua yang ada di pending (bisa 1–30+ kartu)
+    // Ambil semua yang ada di pending
     const batchRfids = [...pendingRfidsRef.current]
     pendingRfidsRef.current = []
 
-    let retries = 0
-    while (retries < 3) {
+    // Proses setiap RFID langsung ke Supabase — tidak melalui Hostinger
+    const results: any[] = []
+    for (const rfid of batchRfids) {
       try {
-        const res = await fetch('/api/attendance-siswa/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rfids: batchRfids, className: rawClassName }),
-          signal: AbortSignal.timeout(15000) // 15 detik timeout
-        })
-
-        if (res.status === 429) {
-          showPopup({ type: 'error', message: 'Server sibuk, mencoba ulang...' })
-          await new Promise(r => setTimeout(r, 3000 * (retries + 1)))
-          retries++
-          continue
-        }
-
-        const data = await res.json()
-
-        if (data.batch && Array.isArray(data.results)) {
-          await displayBatchResults(data.results)
-        } else if (data.success !== undefined) {
-          // Fallback single response
-          await displayBatchResults([data])
-        }
-
-        break // Sukses, keluar dari retry loop
-
+        const result = await scanRfidDirect(rfid, rawClassName)
+        results.push(result)
       } catch (err: any) {
-        retries++
-        if (retries >= 3) {
-          showPopup({ type: 'error', message: 'Gagal terhubung ke server absensi. Coba scan ulang.' })
-        } else {
-          showPopup({ type: 'error', message: `Koneksi gagal, mencoba ulang (${retries}/3)...` })
-          await new Promise(r => setTimeout(r, 2000 * retries))
-        }
+        results.push({ success: false, error: err.message || 'Gagal memproses kartu.' })
       }
     }
 
+    await displayBatchResults(results)
+
     isSendingRef.current = false
 
-    // Jika ada scan baru yang masuk saat kita sedang mengirim, flush lagi
     if (pendingRfidsRef.current.length > 0) {
       await flushBatch()
     }
   }
+
 
   const processRfid = (rfid: string) => {
     const cleanRfid = String(rfid).trim().toUpperCase()
