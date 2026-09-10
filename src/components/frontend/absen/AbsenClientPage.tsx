@@ -88,6 +88,7 @@ export default function AbsenClientPage() {
   
   const [allStaffs, setAllStaffs] = useState<StaffAttendance[]>([])
   const [lastScannedStaffId, setLastScannedStaffId] = useState<string | null>(null)
+  const allStaffsRawDataRef = useRef<any[]>([])
 
   // Filter tabs: 'HADIR' | 'BELUM_HADIR' | 'ALL'
   const [viewFilter, setViewFilter] = useState<'HADIR' | 'BELUM_HADIR' | 'ALL'>('HADIR')
@@ -186,7 +187,11 @@ export default function AbsenClientPage() {
       // ── DIRECT SUPABASE — bypass Hostinger ──
       const { data: staffsData, error: staffsError } = await supabase
         .from('staffs')
-        .select('id, name, position, image, is_active')
+        .select(`
+          id, name, position, image, is_active, rfid,
+          classroom_schedules(id, day, time, classroom_id, classroom:classrooms(id, name, level)),
+          classrooms!homeroom_teacher_id(id, name, level)
+        `)
         .eq('is_active', true)
         .order('name')
 
@@ -208,11 +213,22 @@ export default function AbsenClientPage() {
         }
       }
 
-      const combined = staffs.map((s: any) => ({
-        ...s,
-        attendance: attendanceMap[s.id] || null
-      }))
+      const combined = staffs.map((s: any) => {
+        // Build allSchedules from classroom_schedules and homeroom (classrooms)
+        const homerooms = s.classrooms || []
+        const homeroomSchedules = Array.isArray(homerooms) ? homerooms : [homerooms]
+        const allSchedules = [
+          ...(s.classroom_schedules || []),
+          ...homeroomSchedules.map((c: any) => ({ day: '', time: '', classroom: { name: c.name }, classroom_name: c.name }))
+        ]
+        return {
+          ...s,
+          allSchedules,
+          attendance: attendanceMap[s.id] || null
+        }
+      })
 
+      allStaffsRawDataRef.current = combined
       setAllStaffs(combined)
     } catch (err) {
       console.error('Error fetching teacher attendance list', err)
@@ -327,40 +343,94 @@ export default function AbsenClientPage() {
     }
   }
 
-  // Lock to prevent rapid double scans
-  const isScanningRef = useRef(false)
-  const lastScannedRfidRef = useRef<{rfid: string, time: number}>({rfid: '', time: 0})
+  // ─── TEMPORARY DIAGNOSTIC METRICS ───
+  const metricsRef = useRef({
+    received: 0, processed: 0, success: 0, errors: 0, duplicates: 0,
+    max_queue: 0, total_rpc_ms: 0, max_rpc_ms: 0
+  })
 
-  const processRFID = async (rfid: string) => {
+  const maskRfid = (id: string) => id.length > 4 ? id.substring(0, 2) + '*'.repeat(id.length - 4) + id.substring(id.length - 2) : '***'
+
+  const logMetrics = () => {
+    const m = metricsRef.current
+    const avg = m.processed > 0 ? (m.total_rpc_ms / m.processed).toFixed(1) : 0
+    console.log(`[RFID] METRICS\nreceived=${m.received}\nprocessed=${m.processed}\nsuccess=${m.success}\nerrors=${m.errors}\nduplicates=${m.duplicates}\nmax_queue=${m.max_queue}\navg_rpc_ms=${avg}\nmax_rpc_ms=${m.max_rpc_ms}`)
+  }
+
+  // ─── LOCAL QUEUE & CONTROLLED WORKER (Mencegah 429 & Dropped Scans) ───
+  const scanQueueRef = useRef<string[]>([])
+  const isProcessingQueueRef = useRef(false)
+  const recentScansRef = useRef(new Map<string, number>())
+
+  const processRFID = (rfid: string) => {
     const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
+    metricsRef.current.received++
 
-    if (isScanningRef.current) return
-    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) return
+    console.log(`[RFID] RECEIVED\nid=${maskRfid(cleanRfid)}\nsource=unknown\ntimestamp=${now}\nqueue_before=${scanQueueRef.current.length}`)
 
-    isScanningRef.current = true
-    lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
+    const lastScanTime = recentScansRef.current.get(cleanRfid)
+    if (lastScanTime && now - lastScanTime < 3000) {
+      metricsRef.current.duplicates++
+      console.log(`[RFID] DUPLICATE_IGNORED`)
+      return // Abaikan double tap dalam 3 detik
+    }
 
+    recentScansRef.current.set(cleanRfid, now)
+    
+    // Cleanup memory
+    if (recentScansRef.current.size > 100) {
+      for (const [k, v] of recentScansRef.current.entries()) {
+        if (now - v > 5000) recentScansRef.current.delete(k)
+      }
+    }
+
+    scanQueueRef.current.push(cleanRfid)
+    if (scanQueueRef.current.length > metricsRef.current.max_queue) {
+      metricsRef.current.max_queue = scanQueueRef.current.length
+    }
+    console.log(`[RFID] QUEUED\nqueue_size=${scanQueueRef.current.length}`)
+
+    if (!isProcessingQueueRef.current) {
+      processQueueWorker()
+    }
+  }
+
+  const processQueueWorker = async () => {
+    if (isProcessingQueueRef.current) return
+    isProcessingQueueRef.current = true
+
+    while (scanQueueRef.current.length > 0) {
+      // Karena staff butuh fetch jadwal (2 query), batasi concurrency jadi 2 agar sangat aman dari 429
+      const batch = scanQueueRef.current.splice(0, 2)
+      
+      console.log(`[RFID] WORKER\ntype=staff\nbatch_size=${batch.length}\nqueue_remaining=${scanQueueRef.current.length}\nactive_workers=1`)
+
+      await Promise.allSettled(batch.map(async (rfid) => {
+        await executeAtomicScanStaff(rfid)
+      }))
+    }
+
+    isProcessingQueueRef.current = false
+    console.log(`[RFID] QUEUE_DRAINED`)
+    logMetrics()
+  }
+
+  const executeAtomicScanStaff = async (cleanRfid: string) => {
     try {
-      // ── DIRECT SUPABASE — bypass Hostinger WAF ──
+      // 1. Cari Staff di Memori (0 DB Request)
       const rfidVariants = generateRfidVariants(cleanRfid)
+      const staff = allStaffsRawDataRef.current.find(s => {
+        if (!s.rfid) return false
+        return rfidVariants.includes(s.rfid.toUpperCase())
+      })
 
-      const { data: staffsData, error: staffError } = await supabase
-        .from('staffs')
-        .select('id, name, position, rfid, image, is_active')
-        .in('rfid', rfidVariants)
-        .eq('is_active', true)
-        .limit(1)
-
-      if (staffError) throw staffError
-      const staffs = (staffsData as any[]) || []
-
-      if (staffs.length === 0) {
+      if (!staff) {
         showPopup({ type: 'error', message: `Kartu RFID/NFC (${cleanRfid}) belum terdaftar pada data guru/staf aktif.` })
         return
       }
 
-      const staff = staffs[0]
+      // 2. Waktu Lokal
       const today = new Date()
       const offset = 7 * 60 * 60 * 1000
       const localDate = new Date(today.getTime() + offset)
@@ -372,95 +442,99 @@ export default function AbsenClientPage() {
       const daysIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
       const todayDayName = daysIndo[localDate.getUTCDay()]
 
-      const [{ data: schedulesData }, { data: homeroomData }] = await Promise.all([
-        supabase.from('classroom_schedules').select('id, day, time, classroom_id, classroom:classrooms(id, name, level)').eq('teacher_id', staff.id),
-        supabase.from('classrooms').select('id, name, level').eq('homeroom_teacher_id', staff.id)
-      ])
-
-      const allSchedules = [
-        ...((schedulesData as any[]) || []),
-        ...((homeroomData as any[]) || []).map((c: any) => ({ day: '', time: '', classroom: { name: c.name }, classroom_name: c.name }))
-      ]
+      // 3. Penentuan Shift via Cached Data (0 DB Request)
+      const allSchedules = staff.allSchedules || []
 
       const shiftData = determineTeacherShift(staff, allSchedules, todayDayName)
       let shiftConfig: any = TEACHER_ATTENDANCE_CONFIG.MORNING_SHIFT
       if (shiftData.shift === 'Siang') shiftConfig = TEACHER_ATTENDANCE_CONFIG.AFTERNOON_SHIFT
       else if (shiftData.shift === 'Khusus') shiftConfig = TEACHER_ATTENDANCE_CONFIG.SPECIAL_SHIFT
 
-      const { data: existingRecords, error: checkError } = await supabase
-        .from('staff_attendance')
-        .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
-        .eq('staff_id', staff.id)
-        .eq('date', dateStr)
-        .limit(1)
+      // Evaluasi Check-in di JS
+      const checkInEval = evaluateTeacherCheckIn(shiftData, hours, mins)
 
-      if (checkError) throw checkError
-      const existingRecord: any = (existingRecords as any[])?.length > 0 ? (existingRecords as any[])[0] : null
+      // Minimum checkout protection di JS
+      const currentMinutes = hours * 60 + mins
+      const minCheckoutMinutes = shiftConfig.CHECKOUT_MIN_TIME.hours * 60 + shiftConfig.CHECKOUT_MIN_TIME.minutes
 
-      let data: any
+      console.log(`[RFID] RPC_START\ntype=staff\nid=${maskRfid(cleanRfid)}`)
+      const rpcStart = Date.now()
 
-      if (!existingRecord) {
-        const checkInEval = evaluateTeacherCheckIn(shiftData, hours, mins)
+      // 4. Eksekusi Atomic RPC (1 DB Request)
+      const { data: result, error: rpcError } = await supabase.rpc('atomic_scan_staff', {
+        p_staff_id: staff.id,
+        p_date: dateStr,
+        p_now_iso: nowIso,
+        p_status: checkInEval.status,
+        p_notes: checkInEval.notes
+      })
 
-        const { data: newRecord, error: insertError } = await supabase
-          .from('staff_attendance')
-          .insert({ staff_id: staff.id, date: dateStr, status: checkInEval.status, notes: checkInEval.notes, check_in_time: nowIso, updated_at: nowIso } as any)
-          .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
-          .single()
+      const rpcDuration = Date.now() - rpcStart
+      metricsRef.current.processed++
+      metricsRef.current.total_rpc_ms += rpcDuration
+      if (rpcDuration > metricsRef.current.max_rpc_ms) metricsRef.current.max_rpc_ms = rpcDuration
 
-        if (insertError) throw insertError
-
-        const msg = checkInEval.isLate
-          ? `Absen Masuk [Datang Terlambat] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
-          : `Absen Masuk [Tepat Waktu] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
-
-        data = { success: true, action: 'check-in', status: checkInEval.status, is_late: checkInEval.isLate, shift: shiftData.shift, message: msg, data: newRecord, staff: { ...staff, status: checkInEval.status, is_late: checkInEval.isLate, shift: shiftData.shift } }
-
-      } else {
-        if (existingRecord.check_out_time) {
-          showPopup({ type: 'error', message: `${staff.name} sudah melakukan Absen Pulang hari ini.`, action: 'already-checked-out' })
-          return
+      if (rpcError) {
+        if (rpcError.code === '429' || rpcError.message?.includes('429')) {
+          console.log(`[RFID] 429_DETECTED\nsource=Supabase RPC\nurl_origin=${supabase['supabaseUrl'] || 'unknown'}\nstatus=429\nduration_ms=${rpcDuration}`)
         }
-
-        const currentMinutes = hours * 60 + mins
-        const minCheckoutMinutes = shiftConfig.CHECKOUT_MIN_TIME.hours * 60 + shiftConfig.CHECKOUT_MIN_TIME.minutes
-
-        if (currentMinutes < minCheckoutMinutes) {
-          showPopup({ type: 'error', message: `${staff.name} - Belum waktunya absen pulang ${shiftConfig.name} (Minimal pukul ${shiftConfig.CHECKOUT_MIN_TIME.timeString} WIB)`, action: 'too-early-checkout' })
-          return
-        }
-
-        const { data: updateRecord, error: updateError } = await (supabase.from('staff_attendance') as any)
-          .update({ check_out_time: nowIso, updated_at: nowIso })
-          .eq('id', existingRecord.id)
-          .select().single()
-
-        if (updateError) throw updateError
-
-        data = { success: true, action: 'check-out', message: `Berhasil Absen Pulang (${currentTimeStr} WIB): ${staff.name}`, data: updateRecord, staff }
+        throw rpcError
       }
 
-      const popupPayload: PopupData = { type: data.success ? 'success' : 'error', message: data.success ? data.message : (data.error || 'Absensi gagal.'), action: data.action, staff: data.staff }
+      // 5. Evaluasi Hasil RPC
+      if (!result.success) {
+        if (result.action === 'already-checked-out') {
+          showPopup({ type: 'error', message: `${staff.name} sudah melakukan Absen Pulang hari ini.`, action: 'already-checked-out' })
+        } else {
+          showPopup({ type: 'error', message: result.error || 'Absensi gagal pada database.' })
+        }
+        console.log(`[RFID] RPC_ERROR\ntype=staff\nduration_ms=${rpcDuration}\nerror_type=logic\nstatus=${result.action || 'failed'}\nqueue_remaining=${scanQueueRef.current.length}`)
+        metricsRef.current.errors++
+        return
+      }
 
-      if (data.success && data.staff?.id) {
-        setLastScannedStaffId(data.staff.id)
+      if (result.action === 'check-out' && currentMinutes < minCheckoutMinutes) {
+        showPopup({ type: 'error', message: `${staff.name} - Belum waktunya absen pulang ${shiftConfig.name} (Minimal pukul ${shiftConfig.CHECKOUT_MIN_TIME.timeString} WIB)`, action: 'too-early-checkout' })
+        console.log(`[RFID] RPC_ERROR\ntype=staff\nduration_ms=${rpcDuration}\nerror_type=logic_checkout_early\nqueue_remaining=${scanQueueRef.current.length}`)
+        metricsRef.current.errors++
+        return
+      }
+
+      console.log(`[RFID] RPC_SUCCESS\ntype=staff\nduration_ms=${rpcDuration}\nresult=${result.action}\nqueue_remaining=${scanQueueRef.current.length}`)
+      metricsRef.current.success++
+
+      const isLate = result.action === 'check-in' ? checkInEval.isLate : staff.is_late
+      let msg = ''
+      if (result.action === 'check-out') {
+        msg = `Berhasil Absen Pulang (${currentTimeStr} WIB): ${staff.name}`
+      } else {
+        msg = isLate
+          ? `Absen Masuk [Datang Terlambat] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
+          : `Absen Masuk [Tepat Waktu] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
+      }
+
+      const updatedStaff = { ...staff, status: result.status, is_late: isLate, shift: shiftData.shift }
+      const popupPayload: PopupData = { type: 'success', message: msg, action: result.action as any, staff: updatedStaff as any }
+
+      if (updatedStaff.id) {
+        setLastScannedStaffId(updatedStaff.id)
         setTimeout(() => setLastScannedStaffId(null), 8000)
-        updateStaffInState(data.staff, data.action)
+        updateStaffInState(updatedStaff, result.action)
       }
 
       showPopup(popupPayload)
 
-      if (data.success && broadcastChannelRef.current) {
+      if (broadcastChannelRef.current) {
         broadcastChannelRef.current.send({
           type: 'broadcast', event: 'scan_result',
-          payload: { sender: clientIdRef.current, success: data.success, message: data.message, action: data.action, staff: data.staff }
+          payload: { sender: clientIdRef.current, success: true, message: msg, action: result.action, staff: updatedStaff }
         })
       }
 
     } catch (error: any) {
+      console.log(`[RFID] RPC_ERROR\ntype=staff\nduration_ms=0\nerror_type=network_or_exception\nstatus=${error.message}\nqueue_remaining=${scanQueueRef.current.length}`)
+      metricsRef.current.errors++
       showPopup({ type: 'error', message: error.message || 'Koneksi ke server bermasalah.' })
-    } finally {
-      isScanningRef.current = false
     }
   }
 

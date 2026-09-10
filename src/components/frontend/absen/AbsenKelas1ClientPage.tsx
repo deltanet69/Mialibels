@@ -111,6 +111,11 @@ export default function AbsenKelas1ClientPage() {
   const [nfcActive, setNfcActive] = useState(false)
 
   const [students, setStudents] = useState<StudentAttendance[]>([])
+  const studentsRef = useRef<StudentAttendance[]>([])
+
+  useEffect(() => {
+    studentsRef.current = students
+  }, [students])
   const [lastScannedStudentId, setLastScannedStudentId] = useState<string | null>(null)
 
   const clientIdRef = useRef(Math.random().toString(36).substring(7))
@@ -324,44 +329,100 @@ export default function AbsenKelas1ClientPage() {
     }
   }, [])
 
-  // RFID Scan Locking & Cooldown
-  const isScanningRef = useRef(false)
-  const lastScannedRfidRef = useRef<{ rfid: string, time: number }>({ rfid: '', time: 0 })
+  // ─── TEMPORARY DIAGNOSTIC METRICS ───
+  const metricsRef = useRef({
+    received: 0, processed: 0, success: 0, errors: 0, duplicates: 0,
+    max_queue: 0, total_rpc_ms: 0, max_rpc_ms: 0
+  })
 
-  const processRfid = async (rfid: string) => {
+  const maskRfid = (id: string) => id.length > 4 ? id.substring(0, 2) + '*'.repeat(id.length - 4) + id.substring(id.length - 2) : '***'
+
+  const logMetrics = () => {
+    const m = metricsRef.current
+    const avg = m.processed > 0 ? (m.total_rpc_ms / m.processed).toFixed(1) : 0
+    console.log(`[RFID] METRICS\nreceived=${m.received}\nprocessed=${m.processed}\nsuccess=${m.success}\nerrors=${m.errors}\nduplicates=${m.duplicates}\nmax_queue=${m.max_queue}\navg_rpc_ms=${avg}\nmax_rpc_ms=${m.max_rpc_ms}`)
+  }
+
+  // ─── LOCAL QUEUE & CONTROLLED WORKER (Mencegah 429 & Dropped Scans) ───
+  const scanQueueRef = useRef<string[]>([])
+  const isProcessingQueueRef = useRef(false)
+  const recentScansRef = useRef(new Map<string, number>())
+
+  const processRfid = (rfid: string) => {
     const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
+    metricsRef.current.received++
 
-    if (isScanningRef.current) return
-    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
-      return
+    console.log(`[RFID] RECEIVED\nid=${maskRfid(cleanRfid)}\nsource=unknown\ntimestamp=${now}\nqueue_before=${scanQueueRef.current.length}`)
+
+    // 1. Deduplikasi (mencegah double tap kartu yang sama dalam 2.5 detik)
+    const lastScanTime = recentScansRef.current.get(cleanRfid)
+    if (lastScanTime && now - lastScanTime < 2500) {
+      metricsRef.current.duplicates++
+      console.log(`[RFID] DUPLICATE_IGNORED`)
+      return // Abaikan double tap
+    }
+    recentScansRef.current.set(cleanRfid, now)
+    
+    // Cleanup cache deduplikasi agar memori tidak bocor
+    if (recentScansRef.current.size > 100) {
+      for (const [k, v] of recentScansRef.current.entries()) {
+        if (now - v > 5000) recentScansRef.current.delete(k)
+      }
     }
 
-    isScanningRef.current = true
-    lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
+    // 2. Masukkan ke Queue
+    scanQueueRef.current.push(cleanRfid)
+    if (scanQueueRef.current.length > metricsRef.current.max_queue) {
+      metricsRef.current.max_queue = scanQueueRef.current.length
+    }
+    console.log(`[RFID] QUEUED\nqueue_size=${scanQueueRef.current.length}`)
 
+    // 3. Jalankan worker jika sedang berhenti
+    if (!isProcessingQueueRef.current) {
+      processQueueWorker()
+    }
+  }
+
+  const processQueueWorker = async () => {
+    if (isProcessingQueueRef.current) return
+    isProcessingQueueRef.current = true
+
+    // Terus jalankan selama antrean tidak kosong
+    while (scanQueueRef.current.length > 0) {
+      // Ambil 3 kartu sekaligus (Controlled Concurrency = 3)
+      const batch = scanQueueRef.current.splice(0, 3)
+      
+      console.log(`[RFID] WORKER\ntype=student\nbatch_size=${batch.length}\nqueue_remaining=${scanQueueRef.current.length}\nactive_workers=1`)
+
+      // Proses batch secara pararel
+      await Promise.allSettled(batch.map(async (rfid) => {
+        await executeAtomicScan(rfid)
+      }))
+    }
+
+    isProcessingQueueRef.current = false
+    console.log(`[RFID] QUEUE_DRAINED`)
+    logMetrics()
+  }
+
+  const executeAtomicScan = async (cleanRfid: string) => {
     try {
-      // ─── DIRECT SUPABASE — BYPASS HOSTINGER WAF ───
       const rfidVariants = generateRfidVariants(cleanRfid)
+      
+      // Validasi 1: Cari dari state lokal (Tidak pakai DB HTTP request!)
+      // Kita gunakan studentsRef.current agar state selalu fresh
+      const student = studentsRef.current.find(s => {
+        const dbRfid = String((s as any).rfid_number || '').trim().toUpperCase()
+        return rfidVariants.includes(dbRfid)
+      })
 
-      const { data: studentsData, error: studentError } = await supabase
-        .from('students')
-        .select('id, name, class, rfid_number, is_active')
-        .in('rfid_number', rfidVariants)
-        .eq('is_active', true)
-        .limit(1)
-
-      if (studentError) throw studentError
-      const students = (studentsData || []) as any[]
-
-      if (students.length === 0) {
-        showPopup({ type: 'error', message: `Kartu RFID/NFC (${cleanRfid}) belum terdaftar pada data siswa aktif.` })
+      if (!student) {
+        showPopup({ type: 'error', message: `Kartu RFID/NFC (${cleanRfid}) belum terdaftar pada data siswa kelas ini.` })
         return
       }
 
-      const student = students[0]
-
-      // Validasi kelas: hanya siswa kelas 1B, 1C, 1D (dan 1A jika masuk gedung 1)
+      // Validasi 2: Cek Izin Kelas
       const studentClean = (student.class || '').toLowerCase().replace(/[^a-z0-9]/g, '').trim()
       const allowedClasses = ['1b', '1c', '1d']
       if (!allowedClasses.includes(studentClean) && studentClean !== '1a') {
@@ -373,6 +434,7 @@ export default function AbsenKelas1ClientPage() {
         return
       }
 
+      // Validasi 3: Evaluasi Jam Lokal (Frontend Logic)
       const today = new Date()
       const offset = 7 * 60 * 60 * 1000
       const localDate = new Date(today.getTime() + offset)
@@ -381,107 +443,121 @@ export default function AbsenKelas1ClientPage() {
       const mins = localDate.getUTCMinutes()
       const currentTimeStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 
-      const { data: existingRecords, error: checkError } = await supabase
-        .from('student_attendances')
-        .select('id, student_id, date, status, entry_time, exit_time')
-        .eq('student_id', student.id)
-        .eq('date', dateStr)
-        .limit(1)
+      const checkInEval = evaluateStudentCheckIn(hours, mins)
 
-      if (checkError) throw checkError
-      const existingRecord = (existingRecords as any[])?.length > 0 ? (existingRecords as any[])[0] : null
-
-      let data: any
-
-      if (!existingRecord) {
-        const checkInEval = evaluateStudentCheckIn(hours, mins)
-
-        if (!checkInEval.allowed) {
-          if (checkInEval.status === 'Alpha') {
-            supabase.from('student_attendances').insert({ student_id: student.id, date: dateStr, status: 'Alpha', entry_time: currentTimeStr, notes: `Scan ditolak: Lewat batas jam masuk (${currentTimeStr} WIB)` } as any).then(() => {})
-          }
-          showPopup({ type: 'error', message: checkInEval.message })
-          return
-        }
-
-        const { data: newRecord, error: insertError } = await supabase
-          .from('student_attendances')
-          .insert({ student_id: student.id, date: dateStr, status: checkInEval.status, entry_time: currentTimeStr } as any)
-          .select('id, student_id, date, status, entry_time, exit_time')
-          .single()
-
-        if (insertError) throw insertError
-
-        const isLate = checkInEval.isLate
-        const msg = isLate
-          ? `Absen Masuk [Terlambat Datang] (${currentTimeStr}): ${student.name}`
-          : `Absen Masuk [Tepat Waktu] (${currentTimeStr}): ${student.name}`
-
-        data = { success: true, action: 'check-in', status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr, message: msg, student: { ...student, status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr } }
-
-      } else {
-        if (existingRecord.status === 'Alpha') {
-          showPopup({ type: 'error', message: `${student.name} tercatat Alpha (tidak absen masuk sebelum ${ATTENDANCE_CONFIG.LATE_LIMIT.timeString} WIB).` })
-          return
-        }
-
-        if (existingRecord.exit_time) {
-          showPopup({ type: 'error', message: `${student.name} sudah melakukan Absen Pulang hari ini.` })
-          return
-        }
-
-        const currentMinutes = hours * 60 + mins
-        const minCheckoutMinutes = ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.hours * 60 + ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.minutes
-
-        if (currentMinutes < minCheckoutMinutes) {
-          showPopup({ type: 'error', message: `Belum waktunya absen pulang (Minimal pukul ${ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.timeString} WIB)` })
-          return
-        }
-
-        const { data: updateRecord, error: updateError } = await (supabase.from('student_attendances') as any)
-          .update({ exit_time: currentTimeStr, updated_at: new Date().toISOString() })
-          .eq('id', existingRecord.id)
-          .select('id, student_id, date, status, entry_time, exit_time')
-          .single()
-
-        if (updateError) throw updateError
-
-        const msg = `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`
-        data = { success: true, action: 'check-out', status: existingRecord.status || 'Hadir', exit_time: currentTimeStr, message: msg, student: { ...student, exit_time: currentTimeStr } }
+      if (!checkInEval.allowed) {
+        showPopup({ type: 'error', message: checkInEval.message })
+        return // Ditolak karena terlalu pagi / sudah tutup (Alpha)
       }
 
-      const popupPayload: PopupData = data.success
-        ? { type: 'success', message: data.message, action: data.action, student: data.student }
-        : { type: 'error', message: data.error || 'Absensi gagal, silakan coba lagi.', action: data.action }
+      const isLate = checkInEval.isLate
+      const evalStatus = checkInEval.status
 
-      if (data.success && data.student?.id) {
-        setLastScannedStudentId(data.student.id)
-        setTimeout(() => setLastScannedStudentId(null), 8000)
+      // Checkout Time Protection Local
+      const currentMinutes = hours * 60 + mins
+      const minCheckoutMinutes = ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.hours * 60 + ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.minutes
+      
+      console.log(`[RFID] RPC_START\ntype=student\nid=${maskRfid(cleanRfid)}`)
+      const rpcStart = Date.now()
 
-        updateStudentInState(
-          data.student,
-          data.action,
-          data.entry_time,
-          data.exit_time,
-          data.status
-        )
+      // Eksekusi DB secara Atomic melalui RPC (Satu request per scan!)
+      const { data: result, error: rpcError } = await supabase.rpc('atomic_scan_student', {
+        p_student_id: student.id,
+        p_date: dateStr,
+        p_current_time: currentTimeStr,
+        p_status: evalStatus,
+        p_notes: isLate ? 'Datang Terlambat' : null
+      })
+
+      const rpcDuration = Date.now() - rpcStart
+      metricsRef.current.processed++
+      metricsRef.current.total_rpc_ms += rpcDuration
+      if (rpcDuration > metricsRef.current.max_rpc_ms) metricsRef.current.max_rpc_ms = rpcDuration
+
+      if (rpcError) {
+        if (rpcError.code === '429' || rpcError.message?.includes('429')) {
+          console.log(`[RFID] 429_DETECTED\nsource=Supabase RPC\nurl_origin=${supabase['supabaseUrl'] || 'unknown'}\nstatus=429\nduration_ms=${rpcDuration}`)
+        }
+        throw rpcError
+      }
+
+      // Evaluasi hasil kembalian RPC
+      if (!result.success) {
+        if (result.action === 'already-checked-out') {
+          showPopup({ type: 'error', message: `${student.name} sudah melakukan Absen Pulang hari ini.`, action: 'already-checked-out' })
+        } else {
+          showPopup({ type: 'error', message: result.error || 'Absensi gagal pada database.' })
+        }
+        console.log(`[RFID] RPC_ERROR\ntype=student\nduration_ms=${rpcDuration}\nerror_type=logic\nstatus=${result.action || 'failed'}\nqueue_remaining=${scanQueueRef.current.length}`)
+        metricsRef.current.errors++
+        return
+      }
+
+      if (result.action === 'check-out' && currentMinutes < minCheckoutMinutes) {
+        showPopup({ type: 'error', message: `${student.name} - Belum waktunya absen pulang kelas 1 (Minimal pukul ${ATTENDANCE_CONFIG.CHECKOUT_MIN_TIME.timeString} WIB)`, action: 'too-early-checkout' })
+        console.log(`[RFID] RPC_ERROR\ntype=student\nduration_ms=${rpcDuration}\nerror_type=logic_checkout_early\nqueue_remaining=${scanQueueRef.current.length}`)
+        metricsRef.current.errors++
+        return
+      }
+
+      console.log(`[RFID] RPC_SUCCESS\ntype=student\nduration_ms=${rpcDuration}\nresult=${result.action}\nqueue_remaining=${scanQueueRef.current.length}`)
+      metricsRef.current.success++
+
+      let msg = ''
+      if (result.action === 'check-out') {
+        msg = `Berhasil Absen Pulang (${currentTimeStr} WIB): ${student.name}`
+      } else {
+        msg = isLate 
+          ? `Absen Masuk [Datang Terlambat] (${currentTimeStr} WIB): ${student.name}`
+          : `Absen Masuk [Tepat Waktu] (${currentTimeStr} WIB): ${student.name}`
+      }
+
+      const updatedStudentData = { 
+        ...student, 
+        status: result.status, 
+        is_late: result.action === 'check-in' ? isLate : student.is_late, 
+        entry_time: result.action === 'check-in' ? currentTimeStr : student.entry_time,
+        exit_time: result.action === 'check-out' ? currentTimeStr : student.exit_time
+      }
+
+      const popupPayload: PopupData = { 
+        type: 'success', 
+        message: msg, 
+        action: result.action as any, 
+        student: updatedStudentData as any
       }
 
       showPopup(popupPayload)
 
-      if (data.success) {
-        if (broadcastChannelRef.current) {
-          broadcastChannelRef.current.send({
-            type: 'broadcast', event: 'scan_result_siswa',
-            payload: { sender: clientIdRef.current, success: true, message: data.message, action: data.action, status: data.status, entry_time: data.entry_time, exit_time: data.exit_time, student: data.student }
-          })
-        }
+      if (updatedStudentData.id) {
+        setLastScannedStudentId(updatedStudentData.id)
+        setTimeout(() => setLastScannedStudentId(null), 8000)
+
+        updateStudentInState(
+          updatedStudentData as any,
+          result.action,
+          result.action === 'check-in' ? currentTimeStr : undefined,
+          result.action === 'check-out' ? currentTimeStr : undefined,
+          result.status
+        )
+      }
+
+      // Broadcast event (Realtime tidak memblokir antrean)
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.send({
+          type: 'broadcast', event: 'scan_result_siswa',
+          payload: { 
+            sender: clientIdRef.current, success: true, message: msg, 
+            action: result.action, status: result.status, 
+            entry_time: result.action === 'check-in' ? currentTimeStr : undefined, 
+            exit_time: result.action === 'check-out' ? currentTimeStr : undefined, 
+            student: updatedStudentData 
+          }
+        })
       }
 
     } catch (err: any) {
-      showPopup({ type: 'error', message: err.message || 'Gagal memproses kartu absensi.' })
-    } finally {
-      isScanningRef.current = false
+      showPopup({ type: 'error', message: err.message || 'Koneksi ke server terputus.' })
     }
   }
 
