@@ -5,11 +5,16 @@ import { createNotification } from '@/lib/push'
 // Called fire-and-forget from the client after direct Supabase scan.
 export async function POST(request: NextRequest) {
   try {
-    const { student_id, type, message } = await request.json()
-    if (!student_id || !message) return NextResponse.json({ ok: true })
+    const payload = await request.json()
+    const notifications = Array.isArray(payload.notifications) ? payload.notifications : [payload]
 
-    const title = type === 'check-in' ? 'Info Kehadiran' : 'Info Kepulangan'
-    createNotification(student_id, 'parent', 'ATTENDANCE', title, message, '/parent/dashboard/attendance', true).catch(() => {})
+    for (const notif of notifications) {
+      const { student_id, type, message } = notif
+      if (!student_id || !message) continue
+
+      const title = type === 'check-in' ? 'Info Kehadiran' : 'Info Kepulangan'
+      createNotification(student_id, 'parent', 'ATTENDANCE', title, message, '/parent/dashboard/attendance', true).catch(() => {})
+    }
 
     return NextResponse.json({ ok: true })
   } catch {

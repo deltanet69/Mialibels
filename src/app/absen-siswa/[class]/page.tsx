@@ -159,10 +159,8 @@ async function scanRfidDirect(rfid: string, className: string): Promise<any> {
       ? `Absen Masuk [Terlambat Datang] (${currentTimeStr}): ${student.name}`
       : `Absen Masuk [Tepat Waktu] (${currentTimeStr}): ${student.name}`
 
-    // Fire-and-forget push notif via server (non-blocking, tidak mempengaruhi WAF karena ini fire-and-forget)
-    fetch('/api/attendance-siswa/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: student.id, type: 'check-in', message: msg }) }).catch(() => {})
-
-    const successResp = { success: true, action: 'check-in', status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr, message: msg, data: newRecord, student: { ...student, status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr } }
+    const notifyData = { student_id: student.id, type: 'check-in', message: msg }
+    const successResp = { success: true, action: 'check-in', status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr, message: msg, data: newRecord, student: { ...student, status: checkInEval.status, is_late: isLate, entry_time: currentTimeStr }, notifyData }
     clientScanCache.set(cleanRfid, { timestamp: now, response: successResp })
     return successResp
 
@@ -197,9 +195,9 @@ async function scanRfidDirect(rfid: string, className: string): Promise<any> {
     if (updateError) throw updateError
 
     const msg = `Berhasil Absen Pulang (${currentTimeStr}): ${student.name}`
-    fetch('/api/attendance-siswa/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_id: student.id, type: 'check-out', message: msg }) }).catch(() => {})
+    const notifyData = { student_id: student.id, type: 'check-out', message: msg }
 
-    const outResp = { success: true, action: 'check-out', status: existingRecord.status || 'Hadir', exit_time: currentTimeStr, message: msg, data: updateRecord, student: { ...student, exit_time: currentTimeStr } }
+    const outResp = { success: true, action: 'check-out', status: existingRecord.status || 'Hadir', exit_time: currentTimeStr, message: msg, data: updateRecord, student: { ...student, exit_time: currentTimeStr }, notifyData }
     clientScanCache.set(cleanRfid, { timestamp: now, response: outResp })
     return outResp
   }
@@ -491,13 +489,27 @@ export default function AbsenSiswaPage() {
 
     // Proses setiap RFID langsung ke Supabase — tidak melalui Hostinger
     const results: any[] = []
+    const notificationsToSend: any[] = []
+
     for (const rfid of batchRfids) {
       try {
         const result = await scanRfidDirect(rfid, rawClassName)
         results.push(result)
+        if (result.success && result.notifyData) {
+          notificationsToSend.push(result.notifyData)
+        }
       } catch (err: any) {
         results.push({ success: false, error: err.message || 'Gagal memproses kartu.' })
       }
+    }
+
+    if (notificationsToSend.length > 0) {
+      // Fire-and-forget push notif batch via server (satu request saja untuk semua)
+      fetch('/api/attendance-siswa/notify', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ notifications: notificationsToSend }) 
+      }).catch(() => {})
     }
 
     await displayBatchResults(results)
