@@ -117,16 +117,64 @@ export default function AbsenSiswaPage() {
   const closePopup = () => setPopup({ type: 'idle', message: '' })
   showPopupRef.current = showPopup
 
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchTimeRef = useRef<number>(0)
+  const isFetchingRef = useRef<boolean>(false)
 
-  const fetchAttendanceList = async () => {
+  // Helper untuk update state siswa secara instan (optimistic UI) tanpa membebani server dengan re-fetch
+  const updateStudentInState = (
+    studentData: any, 
+    action?: string, 
+    entryTime?: string, 
+    exitTime?: string, 
+    status?: string
+  ) => {
+    if (!studentData?.id) return
+
+    setAllStudents((prev) => {
+      let alreadyPresentBefore = false
+      const updated = prev.map((s) => {
+        if (s.id === studentData.id) {
+          if (s.attendance && s.attendance.entry_time && s.attendance.status !== 'Alpha') {
+            alreadyPresentBefore = true
+          }
+          const prevAtt = s.attendance || {}
+          return {
+            ...s,
+            attendance: {
+              ...prevAtt,
+              entry_time: entryTime || studentData.entry_time || prevAtt.entry_time || '',
+              exit_time: exitTime || studentData.exit_time || prevAtt.exit_time || '',
+              status: status || studentData.status || prevAtt.status || 'Hadir'
+            }
+          }
+        }
+        return s
+      })
+
+      const presentCount = updated.filter(
+        (s) => s.attendance && s.attendance.entry_time && s.attendance.status !== 'Alpha'
+      ).length
+      setPresentStudentsCount(presentCount)
+
+      return updated
+    })
+  }
+
+  const fetchAttendanceList = async (force: boolean = false) => {
+    const now = Date.now()
+    if (isFetchingRef.current) return
+    if (!force && (now - lastFetchTimeRef.current < 15000)) return // Minimal throttle 15s
+
+    isFetchingRef.current = true
+    lastFetchTimeRef.current = now
+
     try {
       const today = new Date()
       const offset = 7 * 60 * 60 * 1000 // UTC+7
       const localDate = new Date(today.getTime() + offset)
       const dateStr = localDate.toISOString().split('T')[0]
 
-      const res = await fetch(`/api/attendance-siswa/list?className=${rawClassName}&date=${dateStr}&_t=${Date.now()}`)
+      const res = await fetch(`/api/attendance-siswa/list?className=${rawClassName}&date=${dateStr}&_t=${now}`)
       const data = await res.json()
 
       if (data.success && data.data) {
@@ -136,23 +184,32 @@ export default function AbsenSiswaPage() {
       }
     } catch (err) {
       console.error('Error fetching student attendance list', err)
+    } finally {
+      isFetchingRef.current = false
     }
   }
 
-  // Realtime clock & fetch data
+  // Realtime clock & initial mount
   useEffect(() => {
     setMounted(true)
     const timer = setInterval(() => setTime(new Date()), 1000)
     if (typeof window !== 'undefined' && 'NDEFReader' in window) setNfcSupported(true)
 
     if (rawClassName) {
-      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-      fetchAttendanceList()
+      fetchAttendanceList(true)
     }
+
+    // Background sync saat tab aktif kembali
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAttendanceList(false)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       clearInterval(timer)
-      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [rawClassName])
 
@@ -191,11 +248,14 @@ export default function AbsenSiswaPage() {
               setTimeout(() => setLastScannedStudentId(null), 8000)
             }
 
-            // Debounce to prevent rapid re-fetches
-            if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
-            fetchTimeoutRef.current = setTimeout(() => {
-              fetchAttendanceList()
-            }, 1000)
+            // Update state secara optimis instan dari broadcast payload
+            updateStudentInState(
+              data.student,
+              data.action,
+              data.entry_time,
+              data.exit_time,
+              data.status
+            )
           }
         )
         .subscribe((status) => {
@@ -210,25 +270,27 @@ export default function AbsenSiswaPage() {
     }
   }, [rawClassName, isClass1A])
 
-  // RFID Scan Locking
+  // RFID Scan Locking & Cooldown
   const isScanningRef = useRef(false)
   const lastScannedRfidRef = useRef<{ rfid: string, time: number }>({ rfid: '', time: 0 })
 
   const processRfid = async (rfid: string) => {
+    const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
+
     if (isScanningRef.current) return
-    if (lastScannedRfidRef.current.rfid === rfid && (now - lastScannedRfidRef.current.time) < 3000) {
+    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
       return
     }
 
     isScanningRef.current = true
-    lastScannedRfidRef.current = { rfid, time: now }
+    lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
 
     try {
       const res = await fetch('/api/attendance-siswa/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid, className: rawClassName })
+        body: JSON.stringify({ rfid: cleanRfid, className: rawClassName })
       })
 
       const data = await res.json()
@@ -240,14 +302,21 @@ export default function AbsenSiswaPage() {
       if (data.success && data.student?.id) {
         setLastScannedStudentId(data.student.id)
         setTimeout(() => setLastScannedStudentId(null), 8000)
+
+        // Optimistically update local state langsung tanpa fetch API
+        updateStudentInState(
+          data.student,
+          data.action,
+          data.entry_time,
+          data.exit_time,
+          data.status
+        )
       }
 
       showPopup(popupPayload)
 
       if (data.success) {
-        fetchAttendanceList()
-
-        // Hanya broadcast ke channel jika absensi berhasil
+        // Broadcast ke perangkat lain dengan info lengkap
         if (broadcastChannelRef.current) {
           broadcastChannelRef.current.send({
             type: 'broadcast',
@@ -257,6 +326,9 @@ export default function AbsenSiswaPage() {
               success: true,
               message: data.message,
               action: data.action,
+              status: data.status,
+              entry_time: data.entry_time,
+              exit_time: data.exit_time,
               student: data.student
             }
           })
@@ -271,6 +343,7 @@ export default function AbsenSiswaPage() {
       isScanningRef.current = false
     }
   }
+
 
   // Auto RFID Scanner listener (USB scanner)
   useEffect(() => {

@@ -86,12 +86,26 @@ export function GlobalAttendanceScanner() {
     }
   }, [])
 
+  const isScanningRef = useRef(false)
+  const lastScannedRfidRef = useRef<{ rfid: string; time: number }>({ rfid: '', time: 0 })
+
   const handleScan = async (rfid: string) => {
+    const cleanRfid = String(rfid).trim().toUpperCase()
+    const now = Date.now()
+
+    if (isScanningRef.current) return
+    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
+      return
+    }
+
+    isScanningRef.current = true
+    lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
+
     try {
       const res = await fetch('/api/attendance/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid })
+        body: JSON.stringify({ rfid: cleanRfid })
       })
       const data = await res.json()
       
@@ -143,8 +157,11 @@ export function GlobalAttendanceScanner() {
           }
         })
       }
+    } finally {
+      isScanningRef.current = false
     }
   }
+
 
   if (!toast.show) return null
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase, withTimeout } from '@/lib/supabase'
 import { 
   TEACHER_ATTENDANCE_CONFIG, 
   determineTeacherShift, 
@@ -7,11 +7,9 @@ import {
 } from '@/config/attendanceRules'
 import { generateRfidVariants } from '@/lib/rfidUtils'
 
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  supabaseServiceKey
-)
+// In-memory deduplication cache: Cegah scan ganda dalam interval 2.5 detik
+const recentStaffScanCache = new Map<string, { timestamp: number; response: any }>()
+const DEDUPLICATION_WINDOW_MS = 2500
 
 // Fast in-memory cache for teacher schedule lookup (5 mins TTL) to reduce database load during peak scan hours
 const teacherScheduleCache = new Map<string, { timestamp: number; schedules: any[] }>()
@@ -23,20 +21,24 @@ async function getTeacherSchedules(teacherId: string) {
     return cached.schedules
   }
 
-  const [{ data: schedulesData }, { data: homeroomClassrooms }] = await Promise.all([
-    supabase
-      .from('classroom_schedules')
-      .select('id, day, time, classroom_id, classroom:classrooms(id, name, level)')
-      .eq('teacher_id', teacherId),
-    supabase
-      .from('classrooms')
-      .select('id, name, level')
-      .eq('homeroom_teacher_id', teacherId)
-  ])
+  const [{ data: schedulesData }, { data: homeroomClassrooms }] = await withTimeout(
+    Promise.all([
+      supabase
+        .from('classroom_schedules')
+        .select('id, day, time, classroom_id, classroom:classrooms(id, name, level)')
+        .eq('teacher_id', teacherId),
+      supabase
+        .from('classrooms')
+        .select('id, name, level')
+        .eq('homeroom_teacher_id', teacherId)
+    ]),
+    5000,
+    'Pencarian jadwal guru timeout (5s)'
+  )
 
   const allTeacherSchedules = [
-    ...(schedulesData || []),
-    ...(homeroomClassrooms || []).map(c => ({
+    ...((schedulesData as any[]) || []),
+    ...((homeroomClassrooms as any[]) || []).map((c: any) => ({
       day: '',
       time: '',
       classroom: { name: c.name },
@@ -60,26 +62,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'RFID is required' }, { status: 400 })
     }
 
-    // 1. Find staff by multi-format RFID variants (Hex UID, Decimal, Reverse-Byte, etc.)
-    const rfidVariants = generateRfidVariants(rfid)
+    const cleanRfid = String(rfid).trim().toUpperCase()
+    const now = Date.now()
 
-    const { data: staffs, error: staffError } = await supabase
+    // 0. Cek deduplikasi scan ganda
+    const lastScan = recentStaffScanCache.get(cleanRfid)
+    if (lastScan && now - lastScan.timestamp < DEDUPLICATION_WINDOW_MS) {
+      return NextResponse.json(lastScan.response)
+    }
+
+    // 1. Find staff by multi-format RFID variants (Hex UID, Decimal, Reverse-Byte, etc.)
+    const rfidVariants = generateRfidVariants(cleanRfid)
+
+    const staffQuery = supabase
       .from('staffs')
       .select('id, name, position, rfid, image, is_active')
       .in('rfid', rfidVariants)
       .eq('is_active', true)
       .limit(1)
 
+    const { data: staffsData, error: staffError } = await withTimeout(
+      staffQuery,
+      5000,
+      'Pencarian guru aktif timeout (5s)'
+    )
+
     if (staffError) throw staffError
 
-    if (!staffs || staffs.length === 0) {
+    const staffs = (staffsData as any[]) || []
+
+    if (staffs.length === 0) {
       return NextResponse.json({ 
         success: false, 
-        error: `Kartu RFID/NFC (${rfid}) belum terdaftar pada data guru/staf aktif.` 
+        error: `Kartu RFID/NFC (${cleanRfid}) belum terdaftar pada data guru/staf aktif.` 
       }, { status: 404 })
     }
 
-    const staff = staffs[0]
+    const staff: any = staffs[0]
     
     // Get today's date in local YYYY-MM-DD (WIB UTC+7)
     const today = new Date()
@@ -108,22 +127,28 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Check existing attendance for today
-    const { data: existingRecords, error: checkError } = await supabase
+    const checkQuery = supabase
       .from('staff_attendance')
       .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
       .eq('staff_id', staff.id)
       .eq('date', dateStr)
       .limit(1)
 
+    const { data: existingRecords, error: checkError } = await withTimeout(
+      checkQuery,
+      5000,
+      'Pengecekan absensi guru timeout (5s)'
+    )
+
     if (checkError) throw checkError
 
-    const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null
+    const existingRecord: any = (existingRecords as any[]) && (existingRecords as any[]).length > 0 ? (existingRecords as any[])[0] : null
 
     if (!existingRecord) {
       // 3. Check IN: Evaluasi shift dan keterlambatan
       const checkInEval = evaluateTeacherCheckIn(shiftData, hours, mins)
 
-      const { data: newRecord, error: insertError } = await supabase
+      const insertQuery = supabase
         .from('staff_attendance')
         .insert({
           staff_id: staff.id,
@@ -132,9 +157,15 @@ export async function POST(request: NextRequest) {
           notes: checkInEval.notes,
           check_in_time: nowIso,
           updated_at: nowIso
-        })
+        } as any)
         .select('id, staff_id, date, status, notes, check_in_time, check_out_time')
         .single()
+
+      const { data: newRecord, error: insertError } = await withTimeout(
+        insertQuery,
+        5000,
+        'Penyimpanan absen masuk guru timeout (5s)'
+      )
 
       if (insertError) throw insertError
 
@@ -142,7 +173,7 @@ export async function POST(request: NextRequest) {
         ? `Absen Masuk [Datang Terlambat] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
         : `Absen Masuk [Tepat Waktu] (${currentTimeStr} WIB - ${shiftConfig.name}): ${staff.name}`
 
-      return NextResponse.json({ 
+      const successResp = { 
         success: true, 
         action: 'check-in', 
         status: checkInEval.status,
@@ -156,31 +187,38 @@ export async function POST(request: NextRequest) {
           is_late: checkInEval.isLate,
           shift: shiftData.shift
         }
-      })
+      }
+
+      recentStaffScanCache.set(cleanRfid, { timestamp: now, response: successResp })
+      return NextResponse.json(successResp)
     } else {
       // 4. Check OUT or Already checked out
       if (existingRecord.check_out_time) {
-        return NextResponse.json({ 
+        const checkedOutResp = { 
           success: false, 
           action: 'already-checked-out',
           error: `${staff.name} sudah melakukan Absen Pulang hari ini.` 
-        }, { status: 400 })
+        }
+        recentStaffScanCache.set(cleanRfid, { timestamp: now, response: checkedOutResp })
+        return NextResponse.json(checkedOutResp, { status: 400 })
       } else {
         // Validasi minimal jam pulang berdasarkan shift
         const currentMinutes = hours * 60 + mins
         const minCheckoutMinutes = shiftConfig.CHECKOUT_MIN_TIME.hours * 60 + shiftConfig.CHECKOUT_MIN_TIME.minutes
 
         if (currentMinutes < minCheckoutMinutes) {
-          return NextResponse.json({
+          const earlyResp = {
             success: false,
             action: 'too-early-checkout',
             error: `${staff.name} (${staff.position || 'Guru'}) - Belum waktunya absen pulang ${shiftConfig.name} (Minimal pukul ${shiftConfig.CHECKOUT_MIN_TIME.timeString} WIB)`
-          }, { status: 400 })
+          }
+          recentStaffScanCache.set(cleanRfid, { timestamp: now, response: earlyResp })
+          return NextResponse.json(earlyResp, { status: 400 })
         }
 
         // Do Check OUT
-        const { data: updateRecord, error: updateError } = await supabase
-          .from('staff_attendance')
+        const updateQuery = (supabase
+          .from('staff_attendance') as any)
           .update({
             check_out_time: nowIso,
             updated_at: nowIso
@@ -189,21 +227,31 @@ export async function POST(request: NextRequest) {
           .select()
           .single()
 
+        const { data: updateRecord, error: updateError }: any = await withTimeout(
+          updateQuery,
+          5000,
+          'Penyimpanan absen pulang guru timeout (5s)'
+        )
+
         if (updateError) throw updateError
 
-        return NextResponse.json({ 
+        const outResp = { 
           success: true, 
           action: 'check-out', 
           message: `Berhasil Absen Pulang (${currentTimeStr} WIB): ${staff.name}`,
           data: updateRecord,
           staff: staff
-        })
+        }
+
+        recentStaffScanCache.set(cleanRfid, { timestamp: now, response: outResp })
+        return NextResponse.json(outResp)
       }
     }
 
   } catch (error: any) {
     console.error('Error in RFID scan:', error)
-    return NextResponse.json({ success: false, error: 'Terjadi kesalahan internal pada server.' }, { status: 500 })
+    return NextResponse.json({ success: false, error: error.message || 'Terjadi kesalahan internal pada server.' }, { status: 500 })
   }
 }
+
 

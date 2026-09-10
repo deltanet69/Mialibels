@@ -159,14 +159,53 @@ export default function AbsenKelas1ClientPage() {
   const closePopup = () => setPopup({ type: 'idle', message: '' })
   showPopupRef.current = showPopup
 
-  const fetchAttendanceList = async () => {
+  const lastFetchTimeRef = useRef<number>(0)
+  const isFetchingRef = useRef<boolean>(false)
+
+  // Optimistic UI state updater
+  const updateStudentInState = (
+    studentData: any, 
+    action?: string, 
+    entryTime?: string, 
+    exitTime?: string, 
+    status?: string
+  ) => {
+    if (!studentData?.id) return
+
+    setStudents((prev) => {
+      return prev.map((s) => {
+        if (s.id === studentData.id) {
+          const prevAtt = s.attendance || {}
+          return {
+            ...s,
+            attendance: {
+              ...prevAtt,
+              entry_time: entryTime || studentData.entry_time || prevAtt.entry_time || '',
+              exit_time: exitTime || studentData.exit_time || prevAtt.exit_time || '',
+              status: status || studentData.status || prevAtt.status || 'Hadir'
+            }
+          }
+        }
+        return s
+      })
+    })
+  }
+
+  const fetchAttendanceList = async (force: boolean = false) => {
+    const now = Date.now()
+    if (isFetchingRef.current) return
+    if (!force && (now - lastFetchTimeRef.current < 15000)) return // Minimal throttle 15s
+
+    isFetchingRef.current = true
+    lastFetchTimeRef.current = now
+
     try {
       const today = new Date()
       const offset = 7 * 60 * 60 * 1000 // UTC+7
       const localDate = new Date(today.getTime() + offset)
       const dateStr = localDate.toISOString().split('T')[0]
 
-      const res = await fetch(`/api/attendance-siswa/list?className=kelas1&date=${dateStr}&_t=${Date.now()}`)
+      const res = await fetch(`/api/attendance-siswa/list?className=kelas1&date=${dateStr}&_t=${now}`)
       const data = await res.json()
 
       if (data.success && data.data) {
@@ -174,6 +213,8 @@ export default function AbsenKelas1ClientPage() {
       }
     } catch (err) {
       console.error('Error fetching multi-class attendance list', err)
+    } finally {
+      isFetchingRef.current = false
     }
   }
 
@@ -183,12 +224,21 @@ export default function AbsenKelas1ClientPage() {
     const timer = setInterval(() => setTime(new Date()), 1000)
     if (typeof window !== 'undefined' && 'NDEFReader' in window) setNfcSupported(true)
 
-    fetchAttendanceList()
+    fetchAttendanceList(true)
 
-    return () => clearInterval(timer)
+    // Sync when tab gains focus
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAttendanceList(false)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
-
-  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Supabase Realtime Sync (Scoped khusus Pos Kelas 1 Gedung 2: 1B, 1C, 1D)
   useEffect(() => {
@@ -221,10 +271,14 @@ export default function AbsenKelas1ClientPage() {
               setTimeout(() => setLastScannedStudentId(null), 8000)
             }
 
-            if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
-            fetchTimeoutRef.current = setTimeout(() => {
-              fetchAttendanceList()
-            }, 1000)
+            // Update state secara optimis tanpa request API
+            updateStudentInState(
+              data.student,
+              data.action,
+              data.entry_time,
+              data.exit_time,
+              data.status
+            )
           }
         )
         .subscribe((status) => {
@@ -234,7 +288,6 @@ export default function AbsenKelas1ClientPage() {
         })
 
       return () => { 
-        if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current)
         supabase.removeChannel(channel) 
       }
     } catch (e) {
@@ -242,25 +295,27 @@ export default function AbsenKelas1ClientPage() {
     }
   }, [])
 
-  // RFID Scan Locking
+  // RFID Scan Locking & Cooldown
   const isScanningRef = useRef(false)
   const lastScannedRfidRef = useRef<{ rfid: string, time: number }>({ rfid: '', time: 0 })
 
   const processRfid = async (rfid: string) => {
+    const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
+
     if (isScanningRef.current) return
-    if (lastScannedRfidRef.current.rfid === rfid && (now - lastScannedRfidRef.current.time) < 3000) {
+    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
       return
     }
 
     isScanningRef.current = true
-    lastScannedRfidRef.current = { rfid, time: now }
+    lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
 
     try {
       const res = await fetch('/api/attendance-siswa/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid, className: 'kelas1' })
+        body: JSON.stringify({ rfid: cleanRfid, className: 'kelas1' })
       })
 
       const data = await res.json()
@@ -272,14 +327,21 @@ export default function AbsenKelas1ClientPage() {
       if (data.success && data.student?.id) {
         setLastScannedStudentId(data.student.id)
         setTimeout(() => setLastScannedStudentId(null), 8000)
+
+        // Optimistically update local state langsung
+        updateStudentInState(
+          data.student,
+          data.action,
+          data.entry_time,
+          data.exit_time,
+          data.status
+        )
       }
 
       showPopup(popupPayload)
 
       if (data.success) {
-        fetchAttendanceList()
-
-        // Hanya broadcast ke channel jika absensi berhasil
+        // Broadcast ke channel dengan data lengkap
         if (broadcastChannelRef.current) {
           broadcastChannelRef.current.send({
             type: 'broadcast',
@@ -289,6 +351,9 @@ export default function AbsenKelas1ClientPage() {
               success: true,
               message: data.message,
               action: data.action,
+              status: data.status,
+              entry_time: data.entry_time,
+              exit_time: data.exit_time,
               student: data.student
             }
           })
@@ -303,6 +368,7 @@ export default function AbsenKelas1ClientPage() {
       isScanningRef.current = false
     }
   }
+
 
   // Auto RFID Scanner listener (USB scanner)
   useEffect(() => {

@@ -1,13 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase, withTimeout } from '@/lib/supabase'
 import { ATTENDANCE_CONFIG } from '@/config/attendanceRules'
-
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  supabaseServiceKey
-)
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,11 +64,15 @@ export async function GET(request: NextRequest) {
       { data: classroomsData, error: classroomsError },
       { data: staffsData, error: staffsError },
       { data: studentsData, error: studentsError }
-    ] = await Promise.all([
-      supabase.from('classrooms').select('id, name, homeroom_teacher_id').order('name', { ascending: true }),
-      supabase.from('staffs').select('id, name'),
-      supabase.from('students').select('id, name, student_number, nisn, class, class_id, is_active').eq('is_active', true).order('name', { ascending: true })
-    ])
+    ] = await withTimeout(
+      Promise.all([
+        supabase.from('classrooms').select('id, name, homeroom_teacher_id').order('name', { ascending: true }),
+        supabase.from('staffs').select('id, name'),
+        supabase.from('students').select('id, name, student_number, nisn, class, class_id, is_active').eq('is_active', true).order('name', { ascending: true })
+      ]),
+      6000,
+      'Query master data overview timeout (6s)'
+    )
 
     if (classroomsError) throw classroomsError
     if (studentsError) throw studentsError
@@ -88,21 +86,26 @@ export async function GET(request: NextRequest) {
     const [
       { data: rfidData, error: rfidError },
       { data: manualData, error: manualError }
-    ] = await Promise.all([
-      supabase
-        .from('student_attendances')
-        .select('id, student_id, date, entry_time, exit_time, status')
-        .gte('date', startDate)
-        .lte('date', endDate),
-      supabase
-        .from('classroom_attendances')
-        .select('id, student_id, classroom_id, date, status, reason')
-        .gte('date', startDate)
-        .lte('date', endDate)
-    ])
+    ] = await withTimeout(
+      Promise.all([
+        supabase
+          .from('student_attendances')
+          .select('id, student_id, date, entry_time, exit_time, status')
+          .gte('date', startDate)
+          .lte('date', endDate),
+        supabase
+          .from('classroom_attendances')
+          .select('id, student_id, classroom_id, date, status, reason')
+          .gte('date', startDate)
+          .lte('date', endDate)
+      ]),
+      6000,
+      'Query absensi overview timeout (6s)'
+    )
 
     if (rfidError) throw rfidError
     if (manualError) throw manualError
+
 
     // 5. Structure Attendance Maps for fast lookups
     // Lookup: studentMap[studentId][date] = { status, entry_time, exit_time, is_manual, reason }

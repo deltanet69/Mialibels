@@ -216,13 +216,17 @@ export default function AbsensiGuruPage() {
     }
   }, [])
 
-  // Polling every 15s (quiet fallback — no spinner)
+  // Background sync saat tab aktif kembali (menggantikan polling 15s yang membebani server)
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchSilentRef.current(dateRef.current, filterTypeRef.current)
-    }, 15000)
-    return () => clearInterval(interval)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSilentRef.current(dateRef.current, filterTypeRef.current)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
+
 
   const getAttendanceStatus = (att: AttendanceRecord | null | undefined) => {
     if (att && att.status) return att.status

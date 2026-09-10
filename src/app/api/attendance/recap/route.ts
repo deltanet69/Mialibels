@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, withTimeout } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,12 +14,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all students in this classroom
-    const { data: students, error: studentsError } = await supabase
-      .from('students')
-      .select('id, name, student_number, class')
-      .eq('class_id', classroomId)
-      .eq('is_active', true)
-      .order('name', { ascending: true });
+    const { data: students, error: studentsError } = await withTimeout(
+      supabase
+        .from('students')
+        .select('id, name, student_number, class')
+        .eq('class_id', classroomId)
+        .eq('is_active', true)
+        .order('name', { ascending: true }),
+      5000,
+      'Query siswa kelas timeout (5s)'
+    );
 
     if (studentsError) throw studentsError;
 
@@ -27,26 +31,34 @@ export async function GET(request: NextRequest) {
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDate = new Date(parseInt(year, 10), parseInt(month, 10), 0).toISOString().split('T')[0];
 
-    // 1. Fetch classroom manual attendances
-    const { data: classroomAttendances } = await supabase
-      .from('classroom_attendances')
-      .select('student_id, status, date')
-      .eq('classroom_id', classroomId)
-      .gte('date', startDate)
-      .lte('date', endDate);
-
-    // 2. Fetch student RFID scan attendances
+    // 1. Fetch classroom manual attendances & student RFID attendances in parallel
     const studentIds = students?.map(s => s.id) || [];
-    let rfidAttendances: any[] = [];
-    if (studentIds.length > 0) {
-      const { data: rfidData } = await supabase
-        .from('student_attendances')
-        .select('student_id, status, date')
-        .in('student_id', studentIds)
-        .gte('date', startDate)
-        .lte('date', endDate);
-      if (rfidData) rfidAttendances = rfidData;
-    }
+
+    const [
+      { data: classroomAttendances },
+      { data: rfidData }
+    ] = await withTimeout(
+      Promise.all([
+        supabase
+          .from('classroom_attendances')
+          .select('student_id, status, date')
+          .eq('classroom_id', classroomId)
+          .gte('date', startDate)
+          .lte('date', endDate),
+        studentIds.length > 0
+          ? supabase
+              .from('student_attendances')
+              .select('student_id, status, date')
+              .in('student_id', studentIds)
+              .gte('date', startDate)
+              .lte('date', endDate)
+          : Promise.resolve({ data: [] })
+      ]),
+      6000,
+      'Query rekap absensi timeout (6s)'
+    );
+
+    const rfidAttendances = rfidData || [];
 
     // Aggregate unique attendance dates per student
     // Map of student_id -> map of date -> status
@@ -107,9 +119,14 @@ export async function GET(request: NextRequest) {
       };
     }) || [];
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0'
+      }
+    });
   } catch (error: any) {
     console.error('Error in recap route', error);
-    return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }
+

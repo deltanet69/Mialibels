@@ -141,14 +141,48 @@ export default function AbsenClientPage() {
   const closePopup = () => setPopup({ type: 'idle', message: '' })
   showPopupRef.current = showPopup
 
-  const fetchAttendanceList = async () => {
+  const lastFetchTimeRef = useRef<number>(0)
+  const isFetchingRef = useRef<boolean>(false)
+
+  // Optimistic UI state updater for staff
+  const updateStaffInState = (staffData: any, action?: string) => {
+    if (!staffData?.id) return
+
+    setAllStaffs((prev) => {
+      return prev.map((s) => {
+        if (s.id === staffData.id) {
+          const nowIso = new Date().toISOString()
+          const prevAtt = s.attendance || {}
+          return {
+            ...s,
+            attendance: {
+              ...prevAtt,
+              check_in_time: action === 'check-in' ? nowIso : prevAtt.check_in_time,
+              check_out_time: action === 'check-out' ? nowIso : prevAtt.check_out_time,
+              status: staffData.status || prevAtt.status || 'HADIR'
+            }
+          }
+        }
+        return s
+      })
+    })
+  }
+
+  const fetchAttendanceList = async (force: boolean = false) => {
+    const now = Date.now()
+    if (isFetchingRef.current) return
+    if (!force && (now - lastFetchTimeRef.current < 15000)) return // Minimal throttle 15s
+
+    isFetchingRef.current = true
+    lastFetchTimeRef.current = now
+
     try {
       const today = new Date()
       const offset = 7 * 60 * 60 * 1000 // UTC+7
       const localDate = new Date(today.getTime() + offset)
       const dateStr = localDate.toISOString().split('T')[0]
       
-      const res = await fetch(`/api/attendance/guru?date=${dateStr}&filter=hari&_t=${Date.now()}`)
+      const res = await fetch(`/api/attendance/guru?date=${dateStr}&filter=hari&_t=${now}`)
       const data = await res.json()
       
       if (data.success && data.data) {
@@ -156,6 +190,8 @@ export default function AbsenClientPage() {
       }
     } catch (err) {
       console.error('Error fetching teacher attendance list', err)
+    } finally {
+      isFetchingRef.current = false
     }
   }
 
@@ -165,9 +201,19 @@ export default function AbsenClientPage() {
     const timer = setInterval(() => setTime(new Date()), 1000)
     if (typeof window !== 'undefined' && 'NDEFReader' in window) setNfcSupported(true)
     
-    fetchAttendanceList()
+    fetchAttendanceList(true)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAttendanceList(false)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
     
-    return () => clearInterval(timer)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   // Supabase Realtime Broadcast Listener
@@ -190,7 +236,11 @@ export default function AbsenClientPage() {
               staff: data.staff
             })
             
-            fetchAttendanceList()
+            if (data.success && data.staff?.id) {
+              setLastScannedStaffId(data.staff.id)
+              setTimeout(() => setLastScannedStaffId(null), 8000)
+              updateStaffInState(data.staff, data.action)
+            }
           }
         )
         .subscribe((status) => {
@@ -256,20 +306,22 @@ export default function AbsenClientPage() {
   const lastScannedRfidRef = useRef<{rfid: string, time: number}>({rfid: '', time: 0})
 
   const processRFID = async (rfid: string) => {
+    const cleanRfid = String(rfid).trim().toUpperCase()
     const now = Date.now()
+
     if (isScanningRef.current) return
-    if (lastScannedRfidRef.current.rfid === rfid && (now - lastScannedRfidRef.current.time) < 3000) {
+    if (lastScannedRfidRef.current.rfid === cleanRfid && (now - lastScannedRfidRef.current.time) < 3000) {
       return
     }
     
     isScanningRef.current = true
-    lastScannedRfidRef.current = { rfid, time: now }
+    lastScannedRfidRef.current = { rfid: cleanRfid, time: now }
 
     try {
       const res = await fetch('/api/attendance/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rfid })
+        body: JSON.stringify({ rfid: cleanRfid })
       })
       const data = await res.json()
       
@@ -280,22 +332,19 @@ export default function AbsenClientPage() {
       if (data.success && data.staff?.id) {
         setLastScannedStaffId(data.staff.id)
         setTimeout(() => setLastScannedStaffId(null), 8000)
+        updateStaffInState(data.staff, data.action)
       }
 
       showPopup(popupPayload)
       
-      if (data.success) {
-        fetchAttendanceList()
-      }
-      
-      if (broadcastChannelRef.current) {
+      if (data.success && broadcastChannelRef.current) {
         broadcastChannelRef.current.send({
           type: 'broadcast',
           event: 'scan_result',
           payload: {
             sender: clientIdRef.current,
             success: data.success,
-            message: data.success ? data.message : (data.error || 'Absensi gagal'),
+            message: data.message,
             action: data.action,
             staff: data.staff
           }
@@ -308,6 +357,7 @@ export default function AbsenClientPage() {
       isScanningRef.current = false
     }
   }
+
 
   // Auto RFID Scanner listener (USB scanner)
   useEffect(() => {
