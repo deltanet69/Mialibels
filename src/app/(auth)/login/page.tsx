@@ -144,7 +144,7 @@ export default function LoginPage() {
                   <Mail size={16} />
                 </div>
                 <input 
-                  type="email" 
+                  type="text" 
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
