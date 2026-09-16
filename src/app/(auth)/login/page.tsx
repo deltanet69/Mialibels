@@ -40,7 +40,11 @@ export default function LoginPage() {
       }
 
       // Hard navigation on success to ensure cookie inclusion and fresh server rendering
-      window.location.href = '/dashboard';
+      if (data?.user?.role === 'parent') {
+        window.location.href = '/parent/dashboard';
+      } else {
+        window.location.href = '/dashboard';
+      }
       
     } catch (err: any) {
       console.error('Sign in catch block:', err);

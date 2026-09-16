@@ -35,11 +35,85 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError || !admin) {
-      console.error('DB query error:', dbError?.message, dbError?.code)
-      return NextResponse.json(
-        { error: 'Email atau password salah.' },
-        { status: 401 }
-      )
+      // Fallback: Check if it's a student (Parent Login)
+      const nisTrimmed = email.trim().toUpperCase()
+      const nisRaw = email.trim()
+
+      let { data: student } = await supabase
+        .from('students')
+        .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
+        .ilike('student_number', nisTrimmed)
+        .maybeSingle()
+
+      if (!student) {
+        const { data: byNisn } = await supabase
+          .from('students')
+          .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
+          .ilike('nisn', nisRaw)
+          .maybeSingle()
+        student = byNisn
+      }
+
+      if (!student) {
+        return NextResponse.json(
+          { error: 'Email atau Username salah.' },
+          { status: 401 }
+        )
+      }
+
+      if (!student.is_active) {
+        return NextResponse.json(
+          { error: 'Akun siswa sudah dinonaktifkan. Silakan hubungi admin.' },
+          { status: 403 }
+        )
+      }
+
+      // Verify parent password
+      let isParentPasswordValid = false
+      if (student.parent_password) {
+        isParentPasswordValid = await compare(password, student.parent_password)
+      } else {
+        isParentPasswordValid = password === 'mialibels15'
+      }
+
+      if (!isParentPasswordValid) {
+        return NextResponse.json(
+          { error: 'Password salah.' },
+          { status: 401 }
+        )
+      }
+
+      const isDefaultPassword = !student.parent_password
+      const secret = getJwtSecretKey()
+      const parentToken = await new SignJWT({
+        sub: student.id,
+        nis: student.student_number,
+        nisn: student.nisn,
+        studentName: student.name,
+        parentName: student.parent_name,
+        class: student.class,
+        role: 'parent',
+        isDefaultPassword,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('30d')
+        .sign(secret)
+
+      const response = NextResponse.json({
+        success: true,
+        user: {
+          id: student.id,
+          email: student.student_number,
+          name: student.name,
+          role: 'parent',
+        },
+      })
+
+      const cookieOptions = getAuthCookieOptions(request, 30 * 24 * 60 * 60)
+      response.cookies.set('parent_session', parentToken, cookieOptions)
+
+      return response
     }
 
     if (!admin.is_active) {
