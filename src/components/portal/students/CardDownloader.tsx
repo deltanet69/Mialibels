@@ -30,6 +30,7 @@ interface CardDownloaderProps {
   sppInvoices?: SPPInvoice[];
   generalInvoices?: any[];
   disableKartuSiswa?: boolean;
+  variant?: 'default' | 'rounded-grid';
 }
 
 export const CardDownloader: React.FC<CardDownloaderProps> = ({ 
@@ -37,7 +38,8 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
   student: initialStudent, 
   sppInvoices: initialSpp, 
   generalInvoices: initialGeneral,
-  disableKartuSiswa = false
+  disableKartuSiswa = false,
+  variant = 'default'
 }) => {
   const [generatingSiswa, setGeneratingSiswa] = useState(false);
   const [generatingUjian, setGeneratingUjian] = useState(false);
@@ -487,44 +489,89 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full sm:w-auto">
-        <button
-          onClick={() => {
-            if (disableKartuSiswa) return;
-            drawCard('siswa');
-          }}
-          disabled={generatingSiswa || disableKartuSiswa}
-          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium w-full sm:w-auto whitespace-nowrap transition ${
-            disableKartuSiswa
-              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none'
-              : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 cursor-pointer shadow-2xs'
-          }`}
-          title={disableKartuSiswa ? "Fitur Kartu Siswa dinonaktifkan sementara" : "Lihat / Unduh Kartu Siswa"}
-        >
-          {generatingSiswa ? (
-            <Loader2 size={18} className="animate-spin shrink-0" />
-          ) : disableKartuSiswa ? (
-            <Lock size={16} className="shrink-0 text-slate-400" />
-          ) : (
-            <Eye size={18} className="shrink-0" />
-          )}
-          Kartu Siswa
-        </button>
-        
-        <button
-          onClick={handleUjianClick}
-          disabled={generatingUjian}
-          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer ${
-            isSppBlocked 
-              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
-          }`}
-          title={isSppBlocked ? "SPP sampai September belum lunas" : ""}
-        >
-          {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : (isSppBlocked ? <AlertCircle size={18} className="shrink-0" /> : <Printer size={18} className="shrink-0" />)}
-          Cetak Kartu Ujian
-        </button>
-      </div>
+      {variant === 'rounded-grid' ? (
+        <div className="grid grid-cols-2 gap-2.5 w-full">
+          <button
+            onClick={() => {
+              if (disableKartuSiswa) return;
+              drawCard('siswa');
+            }}
+            disabled={generatingSiswa || disableKartuSiswa}
+            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-xs cursor-pointer ${
+              disableKartuSiswa
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none'
+                : 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 text-blue-700 hover:bg-blue-100/70'
+            }`}
+          >
+            {generatingSiswa ? (
+              <Loader2 size={16} className="animate-spin shrink-0" />
+            ) : disableKartuSiswa ? (
+              <Lock size={15} className="shrink-0 text-slate-400" />
+            ) : (
+              <Download size={15} className="shrink-0 text-blue-600" />
+            )}
+            <span>Kartu Siswa</span>
+          </button>
+          
+          <button
+            onClick={handleUjianClick}
+            disabled={generatingUjian}
+            className={`flex items-center justify-center gap-2 py-3 px-3 rounded-2xl font-black text-xs transition-all active:scale-95 shadow-sm cursor-pointer ${
+              isSppBlocked 
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/20' 
+            }`}
+          >
+            {generatingUjian ? (
+              <Loader2 size={16} className="animate-spin shrink-0" />
+            ) : isSppBlocked ? (
+              <AlertCircle size={15} className="shrink-0 text-amber-300" />
+            ) : (
+              <Download size={15} className="shrink-0 text-white" />
+            )}
+            <span>Kartu Ujian</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => {
+              if (disableKartuSiswa) return;
+              drawCard('siswa');
+            }}
+            disabled={generatingSiswa || disableKartuSiswa}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium w-full sm:w-auto whitespace-nowrap transition ${
+              disableKartuSiswa
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed select-none'
+                : 'bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 cursor-pointer shadow-2xs'
+            }`}
+            title={disableKartuSiswa ? "Fitur Kartu Siswa dinonaktifkan sementara" : "Lihat / Unduh Kartu Siswa"}
+          >
+            {generatingSiswa ? (
+              <Loader2 size={18} className="animate-spin shrink-0" />
+            ) : disableKartuSiswa ? (
+              <Lock size={16} className="shrink-0 text-slate-400" />
+            ) : (
+              <Eye size={18} className="shrink-0" />
+            )}
+            Kartu Siswa
+          </button>
+          
+          <button
+            onClick={handleUjianClick}
+            disabled={generatingUjian}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl transition font-medium w-full sm:w-auto whitespace-nowrap cursor-pointer ${
+              isSppBlocked 
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
+            }`}
+            title={isSppBlocked ? "SPP sampai September belum lunas" : ""}
+          >
+            {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : (isSppBlocked ? <AlertCircle size={18} className="shrink-0" /> : <Printer size={18} className="shrink-0" />)}
+            Cetak Kartu Ujian
+          </button>
+        </div>
+      )}
 
       {/* ── PREVIEW & PRINT MODAL ── */}
       {previewModal?.isOpen && (

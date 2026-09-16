@@ -7,13 +7,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   UserCircle, 
-  ClipboardCheck, 
   CreditCard, 
   PiggyBank, 
   LogOut,
   Receipt,
   X,
-  Sparkles
+  GraduationCap,
+  Megaphone
 } from 'lucide-react';
 import { useParentSidebar } from './ParentSidebarProvider';
 
@@ -71,7 +71,7 @@ export function ParentSidebar() {
                 alt="Logo MI Attaqwa 15" 
                 width={140} 
                 height={140} 
-                className="object-contain"
+                className="object-contain w-auto h-auto"
                 priority
               />
             </Link>
@@ -90,14 +90,17 @@ export function ParentSidebar() {
                 MENU UTAMA
               </h4>
               <div className="flex flex-col gap-1">
-                <Link href="/parent/dashboard" className={linkClass('/parent/dashboard')} onClick={() => setIsOpen(false)}>
+                <Link href="/parent/dashboard" prefetch={true} className={linkClass('/parent/dashboard')} onClick={() => setIsOpen(false)}>
                   <LayoutDashboard size={17} /> <span>Dashboard</span>
                 </Link>
-                <Link href="/parent/dashboard/profile" className={linkClass('/parent/dashboard/profile')} onClick={() => setIsOpen(false)}>
+                <Link href="/parent/dashboard/classroom" prefetch={true} className={linkClass('/parent/dashboard/classroom')} onClick={() => setIsOpen(false)}>
+                  <GraduationCap size={17} /> <span>Kelas & Jadwal</span>
+                </Link>
+                <Link href="/parent/dashboard/profile" prefetch={true} className={linkClass('/parent/dashboard/profile')} onClick={() => setIsOpen(false)}>
                   <UserCircle size={17} /> <span>Profil Anak</span>
                 </Link>
-                <Link href="/parent/dashboard/attendance" className={linkClass('/parent/dashboard/attendance')} onClick={() => setIsOpen(false)}>
-                  <ClipboardCheck size={17} /> <span>Kehadiran</span>
+                <Link href="/parent/dashboard/informasi" prefetch={true} className={linkClass('/parent/dashboard/informasi')} onClick={() => setIsOpen(false)}>
+                  <Megaphone size={17} /> <span>Informasi Sekolah</span>
                 </Link>
               </div>
             </div>
@@ -107,13 +110,16 @@ export function ParentSidebar() {
                 ADMINISTRASI & KEUANGAN
               </h4>
               <div className="flex flex-col gap-1">
-                <Link href="/parent/dashboard/spp" className={linkClass('/parent/dashboard/spp')} onClick={() => setIsOpen(false)}>
+                <Link href="/parent/dashboard/administrasi" prefetch={true} className={linkClass('/parent/dashboard/administrasi')} onClick={() => setIsOpen(false)}>
+                  <CreditCard size={17} /> <span>Portal Keuangan</span>
+                </Link>
+                <Link href="/parent/dashboard/spp" prefetch={true} className={linkClass('/parent/dashboard/spp')} onClick={() => setIsOpen(false)}>
                   <CreditCard size={17} /> <span>Tagihan SPP</span>
                 </Link>
-                <Link href="/parent/dashboard/general" className={linkClass('/parent/dashboard/general')} onClick={() => setIsOpen(false)}>
+                <Link href="/parent/dashboard/general" prefetch={true} className={linkClass('/parent/dashboard/general')} onClick={() => setIsOpen(false)}>
                   <Receipt size={17} /> <span>Tagihan Umum</span>
                 </Link>
-                <Link href="/parent/dashboard/savings" className={linkClass('/parent/dashboard/savings')} onClick={() => setIsOpen(false)}>
+                <Link href="/parent/dashboard/savings" prefetch={true} className={linkClass('/parent/dashboard/savings')} onClick={() => setIsOpen(false)}>
                   <PiggyBank size={17} /> <span>Tabungan Siswa</span>
                 </Link>
               </div>

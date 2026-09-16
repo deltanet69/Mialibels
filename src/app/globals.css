@@ -56,14 +56,17 @@ h6 {
   width: 5px;
   height: 5px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: rgba(15, 23, 42, 0.3);
   border-radius: 9999px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(100, 116, 139, 0.5);
   border-radius: 9999px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.8);
 }
@@ -96,19 +99,48 @@ h6 {
 .btn-tactile {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .btn-tactile:hover {
   transform: translateY(-2px);
 }
+
 .btn-tactile:active {
   transform: translateY(0);
 }
 
 /* Subtle mesh glow backgrounds */
 .bg-mesh-radial {
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(242, 100, 48, 0.08) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(15, 39, 68, 0.06) 0px, transparent 50%);
+}
+
+/* Micro-interaction keyframes for 21st.dev animated icons */
+@keyframes wiggle {
+
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.7));
+  }
+
+  50% {
+    opacity: 0.75;
+    filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.3));
+  }
 }
 
 /* Custom scrollbar to make it look premium */
@@ -130,17 +162,33 @@ h6 {
 }
 
 /* Lenis Recommended CSS */
-html.lenis, html.lenis body { height: auto; }
-.lenis.lenis-smooth { scroll-behavior: auto !important; }
-.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
-.lenis.lenis-stopped { overflow: hidden; }
-.lenis.lenis-smooth iframe { pointer-events: none; }
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
 
 /* Hide scrollbar but keep scrollable */
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -149,9 +197,11 @@ html.lenis, html.lenis body { height: auto; }
 .text-fluid-lg {
   font-size: clamp(1.25rem, 2.5vw, 1.875rem);
 }
+
 .text-fluid-xl {
   font-size: clamp(1.5rem, 3vw, 2.25rem);
 }
+
 .text-fluid-2xl {
   font-size: clamp(1.875rem, 4vw, 3rem);
 }
@@ -257,7 +307,7 @@ html.lenis, html.lenis body { height: auto; }
   background-color: #fbbf24 !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45) !important;
-} 
+}
 
 .driver-popover.driverjs-theme .driver-popover-prev-btn {
   background-color: rgba(255, 255, 255, 0.12) !important;
@@ -349,4 +399,3 @@ body.driver-active .driver-active-element * {
     border-radius: 0.5rem !important;
   }
 }
-

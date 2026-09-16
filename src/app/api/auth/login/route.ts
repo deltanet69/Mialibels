@@ -1,18 +1,13 @@
 import { compare } from 'bcryptjs'
 import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getAdminSupabase } from '@/lib/supabase'
 import { checkRateLimit, getIp } from '@/lib/rate-limit'
 import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
 
-// Use supabase-js directly (not the SSR client that needs cookies)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getAdminSupabase()
     const ip = getIp(request)
     const { success } = checkRateLimit(ip, 5, 60 * 1000) // 5x per menit
     

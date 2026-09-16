@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 /**
  * API Endpoint untuk migrasi ID Siswa ke format baru.
  * Format baru: {2-digit nomor kelas}{huruf kelas}{4-digit tahun}{3-digit nomor urut}
@@ -8,13 +8,9 @@
  * Akan me-regenerate student_number untuk SEMUA siswa sesuai format baru.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getAdminSupabase } from '@/lib/supabase'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { persistSession: false } }
-)
+const supabase = getAdminSupabase()
 
 /**
  * Fungsi utama pembentuk ID Siswa.

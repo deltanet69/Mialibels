@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
 export interface Notification {
   id: string;
@@ -31,6 +31,7 @@ export function useNotifications(userId: string) {
   useEffect(() => {
     if (!userId) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchNotifications();
 
     // Subscribe to realtime updates
@@ -95,6 +96,7 @@ export function usePushSubscription() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPermission(Notification.permission);
     }
   }, []);

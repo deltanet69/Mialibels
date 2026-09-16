@@ -1,16 +1,9 @@
 import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
+import { getAdminSupabase } from '@/lib/supabase'
 import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
 import { checkRateLimit, getIp } from '@/lib/rate-limit'
-
-// Use service role to bypass RLS for authentication
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { persistSession: false } }
-)
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,8 +26,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const supabase = getAdminSupabase()
+
     // Normalize: trim and uppercase (since ID Siswa is like 01A2026001)
     const nisTrimmed = nis.trim().toUpperCase()
+    const nisRaw = nis.trim()
 
     // 1. Try by student_number (ID Unik Siswa, e.g. "01A2026001")
     let { data: student } = await supabase
@@ -43,12 +39,12 @@ export async function POST(request: NextRequest) {
       .ilike('student_number', nisTrimmed)
       .maybeSingle()
 
-    // 2. Fallback: try by nisn (NISN national, e.g. "0123456701")
+    // 2. Fallback: try by nisn (NISN national, e.g. "8686821381")
     if (!student) {
       const { data: byNisn } = await supabase
         .from('students')
         .select('id, name, student_number, nisn, parent_name, parent_password, class, is_active')
-        .eq('nisn', nis.trim()) // NISN is numeric, keep original case
+        .ilike('nisn', nisRaw)
         .maybeSingle()
       student = byNisn
     }

@@ -1,19 +1,13 @@
+// @ts-nocheck
 import React from 'react';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabase } from '@/lib/supabase';
 import { getJwtSecretKey } from '@/lib/jwt';
+import { getWIBDateString, getWIBWeekDays, getWIBParts } from '@/lib/dateUtils';
 import { ParentDashboardClient } from '@/components/parent/ParentDashboardClient';
 
 export const dynamic = 'force-dynamic';
-
-function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 // Resolve the actual student UUID and classroom details from JWT payload
 async function resolveStudent(payload: any) {
@@ -84,91 +78,40 @@ async function resolveStudent(payload: any) {
   };
 }
 
-async function getDashboardData(studentId: string, feeWaiverType?: string | null) {
+async function getDashboardData(studentId: string, feeWaiverType?: string | null, classroomId?: string | null) {
   const supabase = getAdminSupabase();
 
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const wibParts = getWIBParts(now);
+  const year = wibParts.year;
+  const month = wibParts.month;
   const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endOfMonth = new Date(year, month, 0).toISOString().split('T')[0];
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-
-  // Calculate Monday to Friday of current week
-  const curr = new Date();
-  const day = curr.getDay(); // 0=Sun, 1=Mon...
-  const diffToMon = curr.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(curr);
-  monday.setDate(diffToMon);
-
-  const weekDayDates: { dayName: string; dateStr: string; dayNumber: number; isToday: boolean }[] = [];
-  const DAY_NAMES = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-
-  for (let i = 0; i < 5; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dStr = d.toISOString().split('T')[0];
-    weekDayDates.push({
-      dayName: DAY_NAMES[i],
-      dateStr: dStr,
-      dayNumber: d.getDate(),
-      isToday: dStr === todayStr
-    });
-  }
-
-  const mondayStr = weekDayDates[0].dateStr;
-  const fridayStr = weekDayDates[4].dateStr;
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+  
+  const { weekDays: baseWeekDays, mondayStr, fridayStr, todayStr } = getWIBWeekDays(now);
 
   const [
-    { data: classroomAttMonth },
-    { data: rfidAttMonth },
-    { data: classroomAttRecent },
-    { data: rfidAttRecent },
-    { data: classroomAttWeek },
-    { data: rfidAttWeek },
+    { data: classroomAttAll },
+    { data: rfidAttAll },
     { data: savings },
     { data: savingsTransactions },
     { data: sppInvoices },
-    { data: generalInvoices }
+    { data: generalInvoices },
+    { data: schedules }
   ] = await Promise.all([
     supabase
       .from('classroom_attendances')
       .select('id, date, status, reason')
       .eq('student_id', studentId)
-      .gte('date', startOfMonth)
-      .lte('date', endOfMonth)
-      .order('date', { ascending: false }),
-    supabase
-      .from('student_attendances')
-      .select('id, date, status, entry_time, exit_time')
-      .eq('student_id', studentId)
-      .gte('date', startOfMonth)
-      .lte('date', endOfMonth)
-      .order('date', { ascending: false }),
-    supabase
-      .from('classroom_attendances')
-      .select('id, date, status, reason')
-      .eq('student_id', studentId)
       .order('date', { ascending: false })
-      .limit(5),
+      .limit(35),
     supabase
       .from('student_attendances')
       .select('id, date, status, entry_time, exit_time')
       .eq('student_id', studentId)
       .order('date', { ascending: false })
-      .limit(5),
-    supabase
-      .from('classroom_attendances')
-      .select('id, date, status, reason')
-      .eq('student_id', studentId)
-      .gte('date', mondayStr)
-      .lte('date', fridayStr),
-    supabase
-      .from('student_attendances')
-      .select('id, date, status, entry_time, exit_time')
-      .eq('student_id', studentId)
-      .gte('date', mondayStr)
-      .lte('date', fridayStr),
+      .limit(35),
     supabase
       .from('tabungan_siswa')
       .select('balance')
@@ -190,8 +133,22 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
       .from('general_invoices')
       .select('id, title, items, total_amount, paid_amount, status, due_date, created_at')
       .eq('student_id', studentId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }),
+    classroomId
+      ? supabase
+          .from('classroom_schedules')
+          .select('*, teacher:staffs(id, name, image, position)')
+          .eq('classroom_id', classroomId)
+          .order('time', { ascending: true })
+      : Promise.resolve({ data: [] })
   ]);
+
+  const classroomAttMonth = (classroomAttAll || []).filter((c: any) => c.date >= startOfMonth && c.date <= endOfMonth);
+  const rfidAttMonth = (rfidAttAll || []).filter((r: any) => r.date >= startOfMonth && r.date <= endOfMonth);
+  const classroomAttWeek = (classroomAttAll || []).filter((c: any) => c.date >= mondayStr && c.date <= fridayStr);
+  const rfidAttWeek = (rfidAttAll || []).filter((r: any) => r.date >= mondayStr && r.date <= fridayStr);
+  const classroomAttRecent = classroomAttAll || [];
+  const rfidAttRecent = rfidAttAll || [];
 
   // Merge monthly attendance records
   const dateMap: Record<string, any> = {};
@@ -235,10 +192,10 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
 
   const persentaseHadir = attendanceSummary.total > 0
     ? Math.round((attendanceSummary.hadir / attendanceSummary.total) * 100)
-    : 100;
+    : 0;
 
   // Build week days array with merged RFID + manual status
-  const weekDays = weekDayDates.map(wd => {
+  const weekDays = baseWeekDays.map(wd => {
     const rMatch = rfidAttWeek?.find((r: any) => r.date === wd.dateStr);
     const cMatch = classroomAttWeek?.find((c: any) => c.date === wd.dateStr);
     const status = cMatch?.status || rMatch?.status || null;
@@ -316,7 +273,8 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
       sppSeptemberPaid,
       ulumFiftyPercent: true,
       lksMinimumPaid: true
-    }
+    },
+    schedules: schedules || []
   };
 }
 
@@ -350,8 +308,10 @@ export default async function ParentDashboardHome() {
     homeroomTeacher: studentObj?.classroom?.homeroom_teacher || null
   };
 
+  const classroomId = studentObj?.classroom?.id || studentObj?.class_id || null;
+
   const dashboardData = student.id
-    ? await getDashboardData(student.id, student.feeWaiverType)
+    ? await getDashboardData(student.id, student.feeWaiverType, classroomId)
     : {
         attendance: { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: 0 },
         persentaseHadir: 100,
@@ -376,7 +336,8 @@ export default async function ParentDashboardHome() {
           sppSeptemberPaid: true,
           ulumFiftyPercent: true,
           lksMinimumPaid: true
-        }
+        },
+        schedules: []
       };
 
   return (

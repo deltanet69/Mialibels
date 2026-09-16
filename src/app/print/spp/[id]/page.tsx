@@ -1,16 +1,8 @@
 import React from 'react'
-import { createClient } from "@supabase/supabase-js";
+import { getAdminSupabase } from "@/lib/supabase";
 import PrintButton from '@/components/print/invoice/PrintButton';
 import { getSession } from "@/lib/session";
 import Script from 'next/script';
-
-function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 export default async function PrintSppReceipt(props: { params: Promise<{ id: string }>, searchParams: Promise<{ mode?: string }> }) {
   const params = await props.params;

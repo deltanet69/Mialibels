@@ -1,10 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase } from '@/lib/supabase';
 
-// We initialize a client for server-side fetching in the app dir or server actions.
-// Using env vars, fallback to empty string so it doesn't crash on build if missing.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = getSupabase();
 
 export interface NewsArticle {
   id: string;

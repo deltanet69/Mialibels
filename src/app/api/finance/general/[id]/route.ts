@@ -1,16 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getAdminSupabase } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { canViewFinance, canManageFinance } from "@/lib/rbac";
-
-function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 // GET — ambil detail invoice beserta data siswa (parent_name, parent_phone)
 export async function GET(

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabase } from '@/lib/supabase';
 import ContactClient from './ContactClient';
 
 export const dynamic = 'force-dynamic';
@@ -15,10 +15,7 @@ export type ContactMessage = {
 };
 
 export default async function ContactPage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = getAdminSupabase();
 
   const { data: messages, error } = await supabase
     .from('contact_messages')

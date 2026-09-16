@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getLogoutCookieOptions } from '@/lib/jwt'
 
 export async function GET(request: NextRequest) {
-  const loginUrl = new URL('/parent/login', request.url)
+  const loginUrl = request.nextUrl.clone()
+  loginUrl.pathname = '/parent/login'
+  // If running on 0.0.0.0, replace it with localhost to prevent browser issues on Windows
+  if (loginUrl.hostname === '0.0.0.0') loginUrl.hostname = 'localhost'
+  
   const response = NextResponse.redirect(loginUrl)
   const cookieOptions = getLogoutCookieOptions(request)
   

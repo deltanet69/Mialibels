@@ -1,8 +1,11 @@
 import React from 'react'
 import { ParentSidebar } from '@/components/parent/ParentSidebar'
 import { ParentNavbar } from '@/components/parent/ParentNavbar'
+import { ParentBottomNav } from '@/components/parent/ParentBottomNav'
 import { ParentSidebarProvider } from '@/components/parent/ParentSidebarProvider'
+import { ParentNotificationProvider } from '@/components/parent/ParentNotificationProvider'
 import { cookies } from 'next/headers'
+
 import { jwtVerify } from 'jose'
 import { getJwtSecretKey } from '@/lib/jwt'
 import { redirect } from 'next/navigation'
@@ -16,6 +19,7 @@ async function getSessionData() {
     return {
       studentName: (payload.studentName as string) || '',
       parentName: (payload.parentName as string) || '',
+      studentId: (payload.sub as string) || '',
       isDefaultPassword: payload.isDefaultPassword === true,
     }
   } catch {
@@ -33,17 +37,22 @@ export default async function ParentDashboardLayout({ children }: { children: Re
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-      <ParentSidebarProvider>
-        <ParentSidebar />
-        
-        <div className="flex-1 flex flex-col min-w-0">
-          <ParentNavbar studentName={session.studentName} parentName={session.parentName} />
+      <ParentNotificationProvider studentId={session.studentId} studentName={session.studentName}>
+        <ParentSidebarProvider>
+          <ParentSidebar />
           
-          <main className="flex-1 p-4 md:p-6 overflow-auto">
-            {children}
-          </main>
-        </div>
-      </ParentSidebarProvider>
+          <div className="flex-1 flex flex-col min-w-0">
+            <ParentNavbar studentName={session.studentName} parentName={session.parentName} />
+            
+            <main className="flex-1 p-0 md:p-6 pb-28 md:pb-6">
+              {children}
+            </main>
+
+            {/* Floating Bottom Nav for Mobile Screens */}
+            <ParentBottomNav />
+          </div>
+        </ParentSidebarProvider>
+      </ParentNotificationProvider>
     </div>
   )
 }

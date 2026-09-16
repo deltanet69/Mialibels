@@ -1,15 +1,7 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminSupabase } from '@/lib/supabase';
 import { sendWhatsAppMessage, OPENWA_URL } from '@/lib/openwa';
 import { getSession } from "@/lib/session";
-
-function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 export async function POST(request: NextRequest) {
   const supabase = getAdminSupabase();

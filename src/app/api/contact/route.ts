@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Use service role key so we bypass RLS for admin operations
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { getAdminSupabase } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Save to database via Supabase JS client (uses HTTP, not port 5432)
-    const supabase = getAdminClient();
+    const supabase = getAdminSupabase();
     const { error: dbError } = await supabase
       .from('contact_messages')
       .insert({

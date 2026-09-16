@@ -1,17 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
+import { getAdminSupabase } from '@/lib/supabase'
 import { getJwtSecretKey, getAuthCookieOptions } from '@/lib/jwt'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { persistSession: false } }
-)
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getAdminSupabase()
     const token = request.cookies.get('parent_session')?.value
     if (!token) return NextResponse.json({ error: 'Tidak memiliki akses.' }, { status: 401 })
 

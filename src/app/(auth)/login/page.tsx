@@ -23,14 +23,20 @@ export default function LoginPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.error('Failed to parse JSON response:', jsonErr);
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan saat login.');
+        throw new Error(data?.error || `Terjadi kesalahan saat login (${res.status}).`);
       }
 
       // Hard navigation on success to ensure cookie inclusion and fresh server rendering

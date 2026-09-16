@@ -33,10 +33,11 @@ function StatusBadge({ status }: { status: string }) {
   return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-100"><XCircle size={11} /> Alpha</span>;
 }
 
+import { getWIBParts } from '@/lib/dateUtils';
+
 export default function ParentAttendancePage() {
-  const now = new Date();
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(() => getWIBParts(new Date()).month);
+  const [year, setYear] = useState(() => getWIBParts(new Date()).year);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);

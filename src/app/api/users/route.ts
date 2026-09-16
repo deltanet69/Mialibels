@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getAdminSupabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { hash } from 'bcryptjs'
 
 import { ALL_ROLES } from '@/lib/rbac'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = getAdminSupabase()
 
 function isAllowed(role: string | undefined, minRole: 'view' | 'manage') {
   if (!role) return false

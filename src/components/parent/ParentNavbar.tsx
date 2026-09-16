@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Menu, CheckCircle2, LogOut, HelpCircle } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useParentSidebar } from './ParentSidebarProvider';
 
 export function ParentNavbar({ studentName, parentName }: { studentName?: string; parentName?: string }) {
@@ -21,17 +21,19 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
     }
     document.addEventListener("mousedown", handleClickOutside);
     
-    // Fetch notifications
-    const fetchNotifs = async () => {
-      try {
-        const res = await fetch('/api/notifications');
-        const data = await res.json();
-        if (data.success) {
-          setNotifications(data.data);
-        }
-      } catch (err) {}
-    };
-    fetchNotifs();
+    // Fetch notifications only on desktop viewports
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      const fetchNotifs = async () => {
+        try {
+          const res = await fetch('/api/notifications');
+          const data = await res.json();
+          if (data.success) {
+            setNotifications(data.data);
+          }
+        } catch (err) {}
+      };
+      fetchNotifs();
+    }
     
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -50,14 +52,18 @@ export function ParentNavbar({ studentName, parentName }: { studentName?: string
     : 'WM';
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 sticky top-0 z-30 shrink-0">
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="p-2 hover:bg-slate-100 rounded-xl md:hidden text-slate-500 transition"
-        >
-          <Menu size={20} />
-        </button>
+    <header className="hidden md:flex h-16 bg-white/90 backdrop-blur-md border-b border-slate-100 items-center justify-between px-4 sm:px-6 sticky top-0 z-30 shrink-0">
+      <div className="flex items-center gap-3">
+        {/* Mobile Brand Title */}
+        <div className="flex items-center gap-2.5 md:hidden">
+          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-sm shadow-blue-600/30">
+            MI
+          </div>
+          <div>
+            <span className="font-black text-xs tracking-tight text-slate-800 block leading-tight">MI ATTAQWA 15</span>
+            <span className="text-[10px] text-slate-400 font-medium block leading-tight">Portal Wali Murid</span>
+          </div>
+        </div>
       </div>
       
       <div className="flex items-center gap-3 sm:gap-4">

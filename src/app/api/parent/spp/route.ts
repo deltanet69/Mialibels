@@ -1,17 +1,12 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAdminSupabase } from '@/lib/supabase';
 import { jwtVerify } from 'jose';
 import { getJwtSecretKey } from '@/lib/jwt';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  { auth: { persistSession: false } }
-);
-
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getAdminSupabase();
     const sessionCookie = request.cookies.get('parent_session')?.value;
     if (!sessionCookie) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -56,11 +51,7 @@ export async function PUT(request: NextRequest) {
 
     console.log(`[SPP PUT] studentId from JWT: ${studentId}, invoice_id: ${invoice_id}`);
 
-    const adminSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { persistSession: false } }
-    );
+    const adminSupabase = getAdminSupabase();
 
     // Verify the invoice exists and belongs to this student
     const { data: invoiceCheck, error: checkError } = await adminSupabase

@@ -1,13 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from "@supabase/supabase-js";
-
-function getAdminSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminSupabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {

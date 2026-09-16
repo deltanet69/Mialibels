@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  devIndicators: false,
   compress: true,
   poweredByHeader: false,
   turbopack: {
