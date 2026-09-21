@@ -164,7 +164,7 @@ export function ParentProfileMobile({
                 NIS (NOMOR INDUK)
               </p>
               <p className="text-xs font-black text-slate-800 font-mono mt-0.5 m-0 tracking-wide">
-                {student.student_number || '01A2026029'}
+                {student.student_number || '-'}
               </p>
             </div>
             <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100">
@@ -172,7 +172,7 @@ export function ParentProfileMobile({
                 NISN (NASIONAL)
               </p>
               <p className="text-xs font-black text-slate-800 font-mono mt-0.5 m-0 tracking-wide">
-                {student.nisn || '1923618923'}
+                {student.nisn || '-'}
               </p>
             </div>
           </div>
@@ -223,14 +223,14 @@ export function ParentProfileMobile({
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-xs text-slate-400 font-medium">Tempat, Tgl Lahir</span>
             <span className="text-xs font-bold text-slate-800 text-right">
-              {student.birth_place ? `${student.birth_place}, ${student.birth_date || ''}` : 'Bekasi, 15 Mei 2019'}
+              {student.birth_place ? `${student.birth_place}, ${student.birth_date || ''}` : '-'}
             </span>
           </div>
 
           <div className="py-2.5 last:pb-0 flex items-start justify-between gap-4">
             <span className="text-xs text-slate-400 font-medium shrink-0">Alamat Siswa</span>
             <span className="text-xs font-bold text-slate-800 text-right">
-              {student.address || 'Babelan, Kab. Bekasi'}
+              {student.address || '-'}
             </span>
           </div>
         </div>
@@ -274,11 +274,11 @@ export function ParentProfileMobile({
               className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold truncate border border-slate-100 transition-colors"
             >
               <Phone size={12} className="text-slate-400 shrink-0" />
-              <span className="truncate">{student.parent_phone || '0878-6254-1101'}</span>
+              <span className="truncate">{student.parent_phone || '-'}</span>
             </a>
             <div className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-50 text-slate-600 font-semibold truncate border border-slate-100">
               <Mail size={12} className="text-slate-400 shrink-0" />
-              <span className="truncate">{student.parent_email || 'betadev94@gmail.com'}</span>
+              <span className="truncate">{student.parent_email || '-'}</span>
             </div>
           </div>
         </div>
