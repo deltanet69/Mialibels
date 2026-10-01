@@ -19,13 +19,9 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   compress: true,
   poweredByHeader: false,
-  experimental: {
-    memoryBasedWorkersCount: true,
-    cpus: 1,
-  },
-  turbopack: {
-    root: __dirname,
-  },
+  // Empty turbopack config silences the webpack-without-turbopack error
+  // that is triggered by next-pwa injecting a webpack plugin
+  turbopack: {},
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
@@ -39,7 +35,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // ── Next.js static chunks & assets: immutable cache, allow Cloudflare to cache
         source: '/_next/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
@@ -47,14 +42,12 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // ── Next.js image optimization: short cache
         source: '/_next/image',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=86400' },
         ],
       },
       {
-        // ── Anti-stale HTML headers: ensure browsers & reverse proxy fetch fresh bundles upon deploy
         source: '/((?!api|_next|favicon.ico).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, max-age=0, must-revalidate' },
