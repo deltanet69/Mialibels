@@ -54,7 +54,15 @@ const CONFIDENTIAL_PATTERNS = [
   { regex: /(password|kata\s*sandi|login|akun|database|rahasia|confidential)/i, topic: 'informasi akun & data rahasia' },
 ];
 
-const KNOWLEDGE_BASE = [
+type KnowledgeBaseItem = {
+  keywords: string[];
+  response: string;
+  showSpmbButton?: boolean;
+  showWaButton?: boolean;
+  waText?: string;
+};
+
+const KNOWLEDGE_BASE: KnowledgeBaseItem[] = [
   { keywords: ['profil', 'tentang', 'sejarah', 'mi attaqwa', 'mi 15', 'siapa kamu', 'lo siapa', 'siape si lo'],
     response: '**MI Attaqwa 15 Babelan** adalah madrasah ibtidaiyah unggulan yang berkomitmen mencetak generasi Qur\'ani, berakhlak mulia, cerdas, dan mandiri.' },
   { keywords: ['visi', 'misi', 'tujuan'],
@@ -172,7 +180,7 @@ export default function Chatbot() {
         }
 
         // 2. Knowledge base search
-        let bestMatch = null;
+        let bestMatch: KnowledgeBaseItem | null = null;
         let highestScore = 0;
 
         for (const item of KNOWLEDGE_BASE) {
@@ -194,9 +202,9 @@ export default function Chatbot() {
             {
               role: 'assistant',
               content: bestMatch!.response,
-              showSpmbButton: (bestMatch as any).showSpmbButton,
-              showWaButton: (bestMatch as any).showWaButton,
-              waText: (bestMatch as any).waText,
+              showSpmbButton: bestMatch!.showSpmbButton,
+              showWaButton: bestMatch!.showWaButton,
+              waText: bestMatch!.waText,
             },
           ]);
         } else {

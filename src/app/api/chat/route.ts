@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json();
     return NextResponse.json({ reply: data.choices[0].message.content });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Chat API Error:", error);
     return NextResponse.json({ 
       error: "Maaf, asisten sedang tidak tersedia. Silakan hubungi kami langsung via WhatsApp." 
