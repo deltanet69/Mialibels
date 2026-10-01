@@ -20,6 +20,7 @@ export async function GET(
       .select(`
         *,
         student_accounts (*),
+        tabungan_siswa:tabungan_siswa(id, balance, updated_at),
         spp_invoices (*),
         general_invoices (*)
       `)
@@ -28,7 +29,17 @@ export async function GET(
 
     if (error) throw error
 
-    return NextResponse.json({ success: true, data: student })
+    // Normalise savings: prefer tabungan_siswa (the live savings table) over student_accounts
+    const tabunganRow = Array.isArray(student?.tabungan_siswa)
+      ? student.tabungan_siswa[0]
+      : student?.tabungan_siswa ?? null
+
+    const studentWithSavings = {
+      ...student,
+      tabungan: tabunganRow ?? null,
+    }
+
+    return NextResponse.json({ success: true, data: studentWithSavings })
   } catch (error: any) {
     console.error('Error fetching student:', error)
     return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 })

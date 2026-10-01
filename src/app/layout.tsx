@@ -26,6 +26,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${openSans.variable} ${archivo.variable} antialiased`}>
+      <head>
+        {process.env.NODE_ENV === 'development' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (let registration of registrations) {
+                      registration.unregister();
+                    }
+                  });
+                }
+              `,
+            }}
+          />
+        )}
+      </head>
       <body>
         {children}
       </body>

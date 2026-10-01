@@ -90,7 +90,7 @@ export default function StudentDetailPage() {
     )
   }
 
-  const account = student.student_accounts?.[0]
+  const account = student.tabungan ?? null
   const sppPayments = student.spp_invoices || []
   const photoSrc = getDirectImageUrl(student.photo_url, 300)
 
@@ -362,10 +362,10 @@ export default function StudentDetailPage() {
                 <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg">
                   <p className="text-blue-100 text-sm font-medium mb-1">Total Saldo Tabungan</p>
                   <h2 className="text-4xl font-bold">
-                    Rp {account ? account.balance.toLocaleString('id-ID') : '0'}
+                    Rp {account ? Number(account.balance || 0).toLocaleString('id-ID') : '0'}
                   </h2>
                   <div className="mt-4 text-sm font-medium text-blue-200 flex items-center gap-2">
-                    <Clock size={16} /> Diperbarui {account ? new Date(account.updated_at).toLocaleDateString('id-ID') : '-'}
+                    <Clock size={16} /> Diperbarui {account?.updated_at ? new Date(account.updated_at).toLocaleDateString('id-ID') : '-'}
                   </div>
                 </div>
 

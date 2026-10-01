@@ -3,6 +3,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import SmoothScrolling from '@/components/providers/SmoothScrolling';
 import AnnouncementPopup from '@/components/frontend/AnnouncementPopup';
+import Chatbot from '@/components/frontend/Chatbot';
 
 export const metadata: Metadata = {
   title: 'MI Attaqwa 15 Babelan | Membangun Generasi Islami',
@@ -23,6 +24,7 @@ export default function FrontendLayout({
           <Footer />
         </SmoothScrolling>
         <AnnouncementPopup />
+        <Chatbot />
       </div>
     </>
   );
