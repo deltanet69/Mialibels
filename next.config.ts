@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   compress: true,
   poweredByHeader: false,
+  experimental: {
+    memoryBasedWorkersCount: true,
+    cpus: 1,
+  },
   turbopack: {
     root: __dirname,
   },
