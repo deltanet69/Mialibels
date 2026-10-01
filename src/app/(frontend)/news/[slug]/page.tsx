@@ -16,6 +16,8 @@ import { getNewsBySlug, getRelatedNews } from '@/lib/api/news';
 import NewsCard from '@/components/frontend/NewsCard';
 import AnimatedSection from '@/components/frontend/AnimatedSection';
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const article = await getNewsBySlug(slug);
