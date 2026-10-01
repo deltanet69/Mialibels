@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "prebuild": "node prebuild.js",
-    "build": "next build",
+    "build": "next build --webpack",
     "postbuild": "node postbuild.js",
     "start": "next start",
     "lint": "echo 'Linting skipped during deployment'"
