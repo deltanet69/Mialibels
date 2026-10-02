@@ -312,7 +312,7 @@ export function ParentAdministrasiClient({
             {/* Rekening Tujuan Transfer */}
             <div className="bg-blue-50/80 border border-blue-100 rounded-xl p-3 mb-4 text-xs text-slate-700">
               <p className="font-bold text-blue-900 mb-1">Rekening Tujuan Madrasah:</p>
-              <p className="font-mono font-bold text-slate-900">Bank BRI: 0123-01-001234-53-0</p>
+              <p className="font-mono font-bold text-slate-900">Bank BTN: 28201500103158</p>
               <p className="text-[11px] text-slate-500 mt-0.5">a.n. MI Attaqwa 15 Babelan</p>
             </div>
 
