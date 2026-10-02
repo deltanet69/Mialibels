@@ -61,6 +61,7 @@ const PUBLIC_API_PREFIXES: string[] = [
   '/api/ppdb/upload',
   '/api/ppdb/status',
   '/api/ppdb/documents',
+  '/api/upload',         // file upload — auth handled by getAnySession() inside route handler
 ];
 
 /** Admin portal pages — require valid admin_session */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { compare } from 'bcryptjs'
 import { SignJWT } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'

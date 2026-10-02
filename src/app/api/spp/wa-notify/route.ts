@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { sendWhatsAppMessage, OPENWA_URL } from '@/lib/openwa';

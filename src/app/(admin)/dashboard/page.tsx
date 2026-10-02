@@ -7,7 +7,7 @@ import { TransactionsTable } from '@/components/portal/dashboard/TransactionsTab
 import { GuruDashboard } from '@/components/portal/dashboard/GuruDashboard';
 import { Sparkles } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30; // cache stats for 30s — attendance counts don't need per-request freshness
 
 // Timeout wrapper — prevents any single slow Supabase query from hanging the page forever
 function withTimeout<T>(promise: Promise<T> | PromiseLike<T>, ms = 5000): Promise<T> {
@@ -37,26 +37,29 @@ export default async function AdminDashboardPage() {
 
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-  // All 8 queries run in parallel — each has a 5s timeout so page never hangs
+  // All 6 queries run in parallel — each has a 5s timeout so page never hangs
+  // ponytail: 3 student queries collapsed into 1 (fetch all, count in JS)
   const [
-    { count: totalStudents },
-    { count: activeStudents },
-    { count: inactiveStudents },
+    { data: allStudents },
     { count: totalStaffs },
     { count: activeStaffs },
     { data: transactions },
     { count: studentHadir },
     { count: staffHadir }
   ] = await Promise.all([
-    safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }), null),
-    safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', true), null),
-    safeQuery(supabase.from('students').select('*', { count: 'exact', head: true }).eq('is_active', false), null),
+    safeQuery(supabase.from('students').select('is_active'), [] as any[]),
     safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }), null),
     safeQuery(supabase.from('staffs').select('*', { count: 'exact', head: true }).eq('is_active', true), null),
-    safeQuery(supabase.from('spp_transactions').select('*, admins(name), students(name, class), spp_invoices(title, month, year, amount)').order('created_at', { ascending: false }).limit(6), [] as any[]),
-    safeQuery(supabase.from('student_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
-    safeQuery(supabase.from('staff_attendance').select('*', { count: 'exact', head: true }).eq('date', todayStr).ilike('status', '%hadir%'), null),
+    safeQuery(supabase.from('spp_transactions').select('id, created_at, amount, admins(name), students(name, class), spp_invoices(title, month, year, amount)').order('created_at', { ascending: false }).limit(6), [] as any[]),
+    safeQuery(supabase.from('student_attendances').select('*', { count: 'exact', head: true }).eq('date', todayStr).eq('status', 'hadir'), null),
+    safeQuery(supabase.from('staff_attendance').select('*', { count: 'exact', head: true }).eq('date', todayStr).eq('status', 'hadir'), null),
   ]);
+
+  const students = Array.isArray(allStudents) ? allStudents : [];
+  const totalStudents = students.length;
+  const activeStudents = students.filter((s: any) => s.is_active).length;
+  const inactiveStudents = totalStudents - activeStudents;
+
 
   const stats = {
     students: {

@@ -82,9 +82,10 @@ async function getAdministrasiPageData() {
     sppInvoices: sppInvoices || [],
     generalInvoices: generalInvoices || [],
     savingsData: {
-      balance: tabungan?.balance || 0,
-      totalSetoran: tabungan?.total_setor || 0,
-      totalPenarikan: tabungan?.total_tarik || 0,
+      balance: (tabungan as any)?.balance || 0,
+      totalSetoran: (tabungan as any)?.total_setor || 0,
+      totalPenarikan: (tabungan as any)?.total_tarik || 0,
+      lastUpdated: (transactions as any)?.[0]?.created_at || null,
       transactions: transactions || [],
     }
   };

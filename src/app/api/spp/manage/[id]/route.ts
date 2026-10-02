@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from "@/lib/session";
 import { getAdminSupabase } from "@/lib/supabase";

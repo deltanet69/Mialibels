@@ -113,7 +113,7 @@ export default function ParentAttendancePage() {
         </div>
         <button
           onClick={nextMonth}
-          disabled={year === now.getFullYear() && month === now.getMonth() + 1}
+          disabled={year === getWIBParts(new Date()).year && month === getWIBParts(new Date()).month}
           className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 flex items-center justify-center transition text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronRight size={20} />

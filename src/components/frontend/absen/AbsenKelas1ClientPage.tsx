@@ -29,7 +29,7 @@ const formatTime = (isoString?: string | null) => {
 type PopupData = {
   type: 'success' | 'error' | 'idle'
   message: string
-  action?: 'check-in' | 'check-out' | 'already-checked-out' | 'early-checkout'
+  action?: 'check-in' | 'check-out' | 'already-checked-out' | 'early-checkout' | 'too-early-checkout'
   student?: {
     name: string
     class: string
@@ -40,6 +40,10 @@ type StudentAttendance = {
   id: string
   name: string
   class: string
+  status?: string
+  is_late?: boolean
+  entry_time?: string | null
+  exit_time?: string | null
   attendance?: {
     entry_time?: string
     exit_time?: string

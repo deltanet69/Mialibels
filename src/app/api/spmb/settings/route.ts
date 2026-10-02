@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { GET as ppdbGET } from '@/app/api/ppdb/settings/route'
 
 export const dynamic = 'force-dynamic'

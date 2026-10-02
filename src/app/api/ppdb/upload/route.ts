@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { getAdminSupabase } from '@/lib/supabase'

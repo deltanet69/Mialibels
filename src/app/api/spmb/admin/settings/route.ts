@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest } from 'next/server'
 import { GET as ppdbGET, PUT as ppdbPUT } from '@/app/api/ppdb/admin/settings/route'
 

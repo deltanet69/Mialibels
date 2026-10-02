@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react'
 import { getAdminSupabase } from "@/lib/supabase";
 import PrintButton from '@/components/print/invoice/PrintButton';

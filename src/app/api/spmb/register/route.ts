@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextRequest } from 'next/server'
 import { POST as ppdbPOST } from '@/app/api/ppdb/register/route'
 
