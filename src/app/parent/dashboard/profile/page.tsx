@@ -8,7 +8,7 @@ import { XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { ParentProfileClient } from '@/components/parent/profile/ParentProfileClient';
 
-export const dynamic = 'force-dynamic';
+
 
 export const metadata = {
   title: 'Profil Akun & Data Siswa - Portal Wali Murid | MI Attaqwa 15',

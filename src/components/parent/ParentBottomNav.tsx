@@ -75,7 +75,6 @@ export function ParentBottomNav() {
         zIndex: 50,
         padding: '0 12px',
         pointerEvents: 'none',
-        display: 'flex',
         justifyContent: 'center',
       }}
       suppressHydrationWarning

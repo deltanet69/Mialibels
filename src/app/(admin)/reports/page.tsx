@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
+
 
 function formatRp(num: number): string {
   return 'Rp ' + Number(num || 0).toLocaleString('id-ID');

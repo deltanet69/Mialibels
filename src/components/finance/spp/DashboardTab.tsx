@@ -16,6 +16,9 @@ interface DashboardStats {
   year: number;
 }
 
+// Global cache for instant loading across tab switches
+const STATS_CACHE: Record<string, DashboardStats> = {};
+
 export default function DashboardTab() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,12 +31,31 @@ export default function DashboardTab() {
     fetchStats();
   }, [filterMonth, filterYear, filterClass]);
 
-  const fetchStats = async () => {
+  const fetchStats = async (forceRefresh = false) => {
+    const cacheKey = `${filterMonth}-${filterYear}-${filterClass}`;
+    
+    if (!forceRefresh && STATS_CACHE[cacheKey]) {
+      setStats(STATS_CACHE[cacheKey]);
+      setLoading(false);
+      
+      // Background refetch
+      fetch(`/api/spp/dashboard?month=${filterMonth}&year=${filterYear}&class=${filterClass}`)
+        .then(res => res.json())
+        .then(result => {
+          if (!result.error) {
+            STATS_CACHE[cacheKey] = result.data;
+            setStats(result.data);
+          }
+        }).catch(() => {});
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/spp/dashboard?month=${filterMonth}&year=${filterYear}&class=${filterClass}`);
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
+      STATS_CACHE[cacheKey] = result.data;
       setStats(result.data);
     } catch (err: any) {
       setErrorMsg(err.message);

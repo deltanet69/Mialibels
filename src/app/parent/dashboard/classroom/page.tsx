@@ -7,7 +7,7 @@ import { getWIBParts } from '@/lib/dateUtils';
 import { ParentClassroomClient } from '@/components/parent/classroom/ParentClassroomClient';
 import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+
 
 export const metadata = {
   title: 'Kelas & Jadwal - Portal Wali Murid | MI Attaqwa 15',

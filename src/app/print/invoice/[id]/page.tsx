@@ -5,7 +5,7 @@ import PrintButton from '@/components/print/invoice/PrintButton';
 import { getSession } from "@/lib/session";
 import Script from 'next/script';
 
-export const dynamic = 'force-dynamic';
+
 export const revalidate = 0;
 
 export default async function PrintInvoiceReceipt(props: { params: Promise<{ id: string }>, searchParams: Promise<{ mode?: string, items?: string }> }) {

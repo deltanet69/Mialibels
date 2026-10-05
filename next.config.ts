@@ -23,7 +23,8 @@ const nextConfig: NextConfig = {
   // that is triggered by next-pwa injecting a webpack plugin
   turbopack: {},
   images: {
-    formats: ['image/avif', 'image/webp'],
+    formats: ['image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
         protocol: 'https',

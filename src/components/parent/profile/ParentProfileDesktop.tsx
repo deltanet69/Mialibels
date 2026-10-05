@@ -12,10 +12,12 @@ import {
   Hash,
   User,
   BookOpen,
+  Edit2,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { StudentProfileData } from './types';
+import { EditProfileSheet, EditMode, normalizeGender, formatBirthInfo } from './EditProfileSheet';
 import { ChangePasswordForm } from '@/components/parent/ChangePasswordForm';
 
 interface ParentProfileDesktopProps {
@@ -27,6 +29,8 @@ export function ParentProfileDesktop({
   student,
   formatCurrency,
 }: ParentProfileDesktopProps) {
+  const [editMode, setEditMode] = React.useState<EditMode | null>(null);
+
   const InfoRow = ({
     icon: Icon,
     label,
@@ -35,18 +39,27 @@ export function ParentProfileDesktop({
     icon: React.ElementType;
     label: string;
     value?: string | null;
-  }) =>
-    value ? (
-      <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
-          <Icon size={16} className="text-blue-500" />
-        </div>
-        <div>
-          <p className="text-xs text-slate-400 uppercase tracking-wider">{label}</p>
-          <p className="font-semibold text-slate-800 text-sm mt-0.5">{value}</p>
-        </div>
+  }) => (
+    <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+        <Icon size={16} className="text-blue-500" />
       </div>
-    ) : null;
+      <div>
+        <p className="text-xs text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="font-semibold text-slate-800 text-sm mt-0.5">{value || '-'}</p>
+      </div>
+    </div>
+  );
+
+  const EditButton = ({ mode, label }: { mode: EditMode; label: string }) => (
+    <button
+      type="button"
+      onClick={() => setEditMode(mode)}
+      className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs transition-colors"
+    >
+      <Edit2 size={13} /> {label}
+    </button>
+  );
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-sans">
@@ -111,6 +124,7 @@ export function ParentProfileDesktop({
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
             <BookOpen size={20} className="text-blue-600" />
             <h3 className="font-bold text-slate-800 text-lg">Data Siswa</h3>
+            <EditButton mode="biodata" label="Ubah Biodata" />
           </div>
           <div>
             <InfoRow icon={User} label="Nama Lengkap" value={student.name} />
@@ -118,13 +132,17 @@ export function ParentProfileDesktop({
             <InfoRow icon={Hash} label="NIS (Internal)" value={student.student_number} />
             <InfoRow icon={School} label="Kelas" value={student.class} />
             <InfoRow icon={User} label="Wali Kelas" value={student.homeroomTeacherName} />
+            <InfoRow icon={User} label="Jenis Kelamin" value={normalizeGender(student.gender)} />
+            <InfoRow icon={School} label="Tempat, Tanggal Lahir" value={formatBirthInfo(student.birth_place, student.birth_date)} />
+            <InfoRow icon={School} label="Alamat Siswa" value={student.address} />
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 self-start">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
             <User size={20} className="text-purple-600" />
             <h3 className="font-bold text-slate-800 text-lg">Data Wali Murid</h3>
+            <EditButton mode="contact" label="Ubah Kontak" />
           </div>
           <div>
             <InfoRow icon={User} label="Nama Wali" value={student.parent_name} />
@@ -133,6 +151,10 @@ export function ParentProfileDesktop({
           </div>
         </div>
       </div>
+
+      {editMode && (
+        <EditProfileSheet mode={editMode} student={student} onClose={() => setEditMode(null)} />
+      )}
 
       {/* Change Password Desktop */}
       <div>

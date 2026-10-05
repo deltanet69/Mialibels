@@ -14,8 +14,10 @@ import {
   User,
   ChevronDown,
   ChevronUp,
+  Edit2,
 } from 'lucide-react';
 import { StudentProfileData } from './types';
+import { EditProfileSheet, EditMode, normalizeGender, formatBirthInfo } from './EditProfileSheet';
 import { ChangePasswordForm } from '@/components/parent/ChangePasswordForm';
 import { CardDownloader } from '@/components/portal/students/CardDownloader';
 
@@ -29,6 +31,7 @@ export function ParentProfileMobile({
   formatCurrency,
 }: ParentProfileMobileProps) {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [editMode, setEditMode] = useState<EditMode | null>(null);
 
   const studentInitial = student.name ? student.name.charAt(0).toUpperCase() : 'S';
   const parentInitial = student.parent_name ? student.parent_name.charAt(0).toUpperCase() : 'W';
@@ -202,50 +205,67 @@ export function ParentProfileMobile({
           </span>
         </div>
 
-        <div className="bg-white rounded-[26px] p-4.5 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(22,51,100,0.06)] divide-y divide-slate-100">
-          <div className="py-2.5 first:pt-0 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Nama Lengkap</span>
-            <span className="text-xs font-bold text-slate-800 text-right">{student.name}</span>
+        <div className="bg-white rounded-[26px] p-4.5 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(22,51,100,0.06)]">
+          <div className="divide-y divide-slate-100">
+            <div className="py-2.5 first:pt-0 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">Nama Lengkap</span>
+              <span className="text-xs font-bold text-slate-800 text-right">{student.name}</span>
+            </div>
+
+            <div className="py-2.5 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">Tingkat / Kelas</span>
+              <span className="text-xs font-bold text-slate-800">Kelas {student.class || '1A'}</span>
+            </div>
+
+            <div className="py-2.5 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-medium">Jenis Kelamin</span>
+              <span className="text-xs font-bold text-slate-800">
+                {normalizeGender(student.gender) || '-'}
+              </span>
+            </div>
+
+            <div className="py-2.5 flex items-center justify-between gap-4">
+              <span className="text-xs text-slate-400 font-medium shrink-0">Tempat, Tgl Lahir</span>
+              <span className="text-xs font-bold text-slate-800 text-right">
+                {formatBirthInfo(student.birth_place, student.birth_date)}
+              </span>
+            </div>
+
+            <div className="py-2.5 flex items-start justify-between gap-4">
+              <span className="text-xs text-slate-400 font-medium shrink-0">Alamat Siswa</span>
+              <span className="text-xs font-bold text-slate-800 text-right">{student.address || '-'}</span>
+            </div>
           </div>
 
-          <div className="py-2.5 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Tingkat / Kelas</span>
-            <span className="text-xs font-bold text-slate-800">Kelas {student.class || '1A'}</span>
-          </div>
-
-          <div className="py-2.5 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Jenis Kelamin</span>
-            <span className="text-xs font-bold text-slate-800">
-              {student.gender === 'L' || student.gender === 'Laki-laki' ? 'Laki-laki' : 'Perempuan'}
-            </span>
-          </div>
-
-          <div className="py-2.5 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-medium">Tempat, Tgl Lahir</span>
-            <span className="text-xs font-bold text-slate-800 text-right">
-              {student.birth_place ? `${student.birth_place}, ${student.birth_date || ''}` : '-'}
-            </span>
-          </div>
-
-          <div className="py-2.5 last:pb-0 flex items-start justify-between gap-4">
-            <span className="text-xs text-slate-400 font-medium shrink-0">Alamat Siswa</span>
-            <span className="text-xs font-bold text-slate-800 text-right">
-              {student.address || '-'}
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setEditMode('biodata')}
+            className="mt-3 w-full py-3 rounded-2xl bg-blue-50 hover:bg-blue-100 active:scale-[0.98] text-blue-700 text-xs font-bold flex items-center justify-center gap-2 border border-blue-100 transition"
+          >
+            <Edit2 size={13} />
+            Ubah Jenis Kelamin, TTL & Alamat
+          </button>
         </div>
       </div>
 
-      {/* 4. DATA WALI MURID (ORANG TUA) - DATA SINGKAT BUKAN DOMINAN */}
+      {/* 4. DATA WALI MURID (ORANG TUA) */}
       <div className="mt-5 px-4">
-        <div className="flex items-center gap-1.5 mb-2.5 px-1">
-          <ShieldCheck size={14} className="text-slate-400" />
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 m-0">
-            DATA WALI MURID (ORANG TUA)
-          </h2>
+        <div className="flex items-center justify-between mb-2.5 px-1">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck size={14} className="text-slate-400" />
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 m-0">
+              DATA WALI MURID (ORANG TUA)
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEditMode('contact')}
+            className="text-[11px] font-bold text-blue-600 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-50 transition"
+          >
+            <Edit2 size={11} /> Ubah
+          </button>
         </div>
 
-        {/* Compact Parent Card */}
         <div className="bg-white rounded-[26px] p-4.5 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(22,51,100,0.06)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 font-black text-sm flex items-center justify-center shrink-0 border border-blue-100">
@@ -266,23 +286,29 @@ export function ParentProfileMobile({
             </div>
           </div>
 
-          <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-            <a
-              href={`https://wa.me/${(student.parent_phone || '').replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold truncate border border-slate-100 transition-colors"
-            >
-              <Phone size={12} className="text-slate-400 shrink-0" />
-              <span className="truncate">{student.parent_phone || '-'}</span>
-            </a>
-            <div className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-50 text-slate-600 font-semibold truncate border border-slate-100">
-              <Mail size={12} className="text-slate-400 shrink-0" />
-              <span className="truncate">{student.parent_email || '-'}</span>
+          <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-col gap-2 text-xs">
+            <div className="flex items-center justify-between px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-1.5 text-slate-600 font-medium">
+                <Phone size={12} className="text-slate-400 shrink-0" />
+                <span>No. WhatsApp</span>
+              </div>
+              <span className="font-bold text-slate-800">{student.parent_phone || '-'}</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-1.5 text-slate-600 font-medium shrink-0">
+                <Mail size={12} className="text-slate-400 shrink-0" />
+                <span>Email</span>
+              </div>
+              <span className="font-bold text-slate-800 truncate">{student.parent_email || '-'}</span>
             </div>
           </div>
         </div>
       </div>
+
+      {editMode && (
+        <EditProfileSheet mode={editMode} student={student} onClose={() => setEditMode(null)} />
+      )}
 
       {/* 5. KEAMANAN AKUN SECTION (Collapsible Ganti Password) */}
       <div className="mt-5 px-4">

@@ -6,7 +6,7 @@ import { getJwtSecretKey } from '@/lib/jwt';
 import { ParentAdministrasiClient } from '@/components/parent/administrasi/ParentAdministrasiClient';
 import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+
 
 export const metadata = {
   title: 'Administrasi & Keuangan - Portal Wali Murid | MI Attaqwa 15',

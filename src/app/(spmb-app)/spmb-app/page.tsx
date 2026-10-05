@@ -2,7 +2,7 @@ import React from 'react'
 import type { Metadata } from 'next'
 import PpdbClientPage from '@/components/frontend/ppdb/PpdbClientPage'
 
-export const dynamic = 'force-dynamic'
+
 
 export const metadata: Metadata = {
   title: 'Pendaftaran SPMB Online | MI Attaqwa 15 Babelan',

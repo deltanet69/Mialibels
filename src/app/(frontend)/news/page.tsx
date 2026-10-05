@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { getPublishedNews } from '@/lib/api/news';
 import NewsPageClient from '@/components/frontend/NewsPageClient';
 
-export const dynamic = 'force-dynamic';
+
 
 export const metadata: Metadata = {
   title: 'Berita & Artikel - MI Attaqwa 15 Babelan',

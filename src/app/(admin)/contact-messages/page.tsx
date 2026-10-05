@@ -1,7 +1,7 @@
 import { getAdminSupabase } from '@/lib/supabase';
 import ContactClient from './ContactClient';
 
-export const dynamic = 'force-dynamic';
+
 
 export type ContactMessage = {
   id: string;

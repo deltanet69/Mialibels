@@ -110,9 +110,11 @@ export function ParentSidebar() {
                 ADMINISTRASI & KEUANGAN
               </h4>
               <div className="flex flex-col gap-1">
-                <Link href="/parent/dashboard/administrasi" prefetch={true} className={linkClass('/parent/dashboard/administrasi')} onClick={() => setIsOpen(false)}>
-                  <CreditCard size={17} /> <span>Portal Keuangan</span>
-                </Link>
+                <div className="md:hidden">
+                  <Link href="/parent/dashboard/administrasi" prefetch={true} className={linkClass('/parent/dashboard/administrasi')} onClick={() => setIsOpen(false)}>
+                    <CreditCard size={17} /> <span>Portal Keuangan</span>
+                  </Link>
+                </div>
                 <Link href="/parent/dashboard/spp" prefetch={true} className={linkClass('/parent/dashboard/spp')} onClick={() => setIsOpen(false)}>
                   <CreditCard size={17} /> <span>Tagihan SPP</span>
                 </Link>

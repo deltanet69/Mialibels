@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { getSession } from '@/lib/session';
 import { JadwalMengajarClient, ScheduleItem } from '@/components/portal/jadwal/JadwalMengajarClient';
 
-export const dynamic = 'force-dynamic';
+
 
 function parseScheduleTime(timeStr?: string) {
   if (!timeStr) return { startTime: '--:--', endTime: '--:--', startMinutes: 0, endMinutes: 0, durationStr: '' };

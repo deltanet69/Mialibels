@@ -5,7 +5,7 @@ import { getJwtSecretKey } from '@/lib/jwt';
 import { ParentInformasiClient } from '@/components/parent/informasi/ParentInformasiClient';
 import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+
 
 export const metadata = {
   title: 'Informasi Sekolah - Portal Wali Murid | MI Attaqwa 15',

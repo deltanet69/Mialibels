@@ -7,7 +7,7 @@ import { getJwtSecretKey } from '@/lib/jwt';
 import { getWIBDateString, getWIBWeekDays, getWIBParts } from '@/lib/dateUtils';
 import { ParentDashboardClient } from '@/components/parent/ParentDashboardClient';
 
-export const dynamic = 'force-dynamic';
+
 
 // Resolve the actual student UUID and classroom details from JWT payload
 async function resolveStudent(payload: any) {

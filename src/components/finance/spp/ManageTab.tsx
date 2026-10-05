@@ -21,6 +21,9 @@ const STATUS_LABELS: Record<string, string> = {
   "LATE": "Terlambat"
 };
 
+// Global cache for instant loading across tab switches
+const INVOICES_CACHE: Record<string, any[]> = {};
+
 export default function ManageTab() {
   // Raw data from server (only changes when month/year changes)
   const [allInvoices, setAllInvoices] = useState<any[]>([]);
@@ -143,13 +146,35 @@ export default function ManageTab() {
   const [waCurrentName, setWaCurrentName] = useState("");
 
   // Fetch from server ONLY when month or year changes
-  const fetchInvoices = useCallback(async (month: number, year: number) => {
+  const fetchInvoices = useCallback(async (month: number, year: number, forceRefresh = false) => {
+    const cacheKey = `${month}-${year}`;
+    
+    // Use cache if available and not forcing refresh
+    if (!forceRefresh && INVOICES_CACHE[cacheKey]) {
+      setAllInvoices(INVOICES_CACHE[cacheKey]);
+      setLoading(false);
+      
+      // Background refetch to ensure data is up to date without blocking UI
+      fetch(`/api/spp/manage?month=${month}&year=${year}`, { cache: 'no-store' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            INVOICES_CACHE[cacheKey] = data.data;
+            // Update state so any new changes are reflected instantly
+            setAllInvoices(data.data);
+          }
+        })
+        .catch(console.error);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({ month: month.toString(), year: year.toString() });
       const res = await fetch(`/api/spp/manage?${params.toString()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
+        INVOICES_CACHE[cacheKey] = data.data;
         setAllInvoices(data.data);
       }
     } catch (error) {
@@ -221,7 +246,7 @@ export default function ManageTab() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus');
       setMessage({ text: 'Item infaq berhasil dihapus', type: 'success' });
-      fetchInvoices(filterMonth, filterYear);
+      fetchInvoices(filterMonth, filterYear, true);
     } catch (err: any) {
       setMessage({ text: err.message, type: 'error' });
     } finally {
@@ -285,7 +310,7 @@ export default function ManageTab() {
   const paginatedInvoices = invoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleInvoiceUpdated = () => {
-    fetchInvoices(filterMonth, filterYear);
+    fetchInvoices(filterMonth, filterYear, true);
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -328,7 +353,7 @@ export default function ManageTab() {
       // Refresh listing
       setFilterMonth(genMonth);
       setFilterYear(genYear);
-      await fetchInvoices(genMonth, genYear);
+      await fetchInvoices(genMonth, genYear, true);
 
       // Tampilkan pesan sukses di listing (setelah fetch selesai)
       setMessage({ text: data.message || "Berhasil membuat tagihan Infaq", type: "success" });
