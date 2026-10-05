@@ -213,7 +213,7 @@ export async function middleware(request: NextRequest) {
       pathname === '/spmb' ||
       pathname === '/ppdb'
     ) {
-      return NextResponse.redirect(new URL('/spmb-app', request.url));
+      return NextResponse.rewrite(new URL('/spmb-app', request.url));
     }
     // Allow public API and static assets to pass through
     return NextResponse.next();

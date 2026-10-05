@@ -103,6 +103,8 @@ async function getStudentData() {
 
   return {
     ...student,
+    birth_place: student.place_of_birth,
+    birth_date: student.date_of_birth,
     homeroomTeacherName,
     tabunganBalance: tabungan?.balance || 0,
     sppInvoices,

@@ -89,12 +89,12 @@ export async function PUT(request: NextRequest) {
       }
       updateData.gender = body.gender;
     }
-    if (body.birth_place !== undefined) updateData.birth_place = String(body.birth_place).trim().slice(0, 100);
+    if (body.birth_place !== undefined) updateData.place_of_birth = String(body.birth_place).trim().slice(0, 100);
     if (body.birth_date !== undefined) {
       if (body.birth_date && isNaN(new Date(body.birth_date).getTime())) {
         return NextResponse.json({ error: 'Tanggal lahir tidak valid.' }, { status: 400 });
       }
-      updateData.birth_date = body.birth_date || null;
+      updateData.date_of_birth = body.birth_date || null;
     }
     if (body.address !== undefined) updateData.address = String(body.address).trim().slice(0, 500);
     if (body.parent_phone !== undefined) updateData.parent_phone = String(body.parent_phone).trim().slice(0, 20);
@@ -115,6 +115,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Data berhasil diperbarui.' });
   } catch (error: any) {
+    console.error('Update Profile Error:', error);
     return NextResponse.json({ error: 'Terjadi kesalahan internal pada server.' }, { status: 500 });
   }
 }

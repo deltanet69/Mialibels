@@ -212,7 +212,7 @@ export async function sendSpmbRegistrationEmail(params: {
   const phone = getParentPhone(reg)
   if (phone) {
     try {
-      const waText = `*BUKTI PENDAFTARAN SPMB ${academicYear}*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, pendaftaran calon siswa baru telah kami terima:\n\n• *No. Registrasi:* ${reg.registration_number}\n• *Nama Siswa:* ${reg.student_name}\n• *Program:* ${programLabel}\n• *Status:* Menunggu Verifikasi Berkas\n\nEmail bukti pendaftaran lengkap telah dikirimkan ke *${recipientEmail || 'email Anda'}*.\n\nCek status berkala: https://miattaqwa15.sch.id/spmb-app\n_Terima kasih atas kepercayaan Bapak/Ibu._`
+      const waText = `*BUKTI PENDAFTARAN SPMB ${academicYear}*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, pendaftaran calon siswa baru telah kami terima:\n\n• *No. Registrasi:* ${reg.registration_number}\n• *Nama Siswa:* ${reg.student_name}\n• *Program:* ${programLabel}\n• *Status:* Menunggu Verifikasi Berkas\n\nEmail bukti pendaftaran lengkap telah dikirimkan ke *${recipientEmail || 'email Anda'}*.\n\nCek status berkala: https://spmb.miattaqwa15.sch.id\n_Terima kasih atas kepercayaan Bapak/Ibu._`
       await sendWhatsAppMessage(phone, waText)
       results.waSent = true
     } catch (waErr) {
@@ -316,7 +316,7 @@ export async function sendSpmbApprovalEmail(params: {
     const phone = getParentPhone(reg)
     if (phone) {
       try {
-        const waText = `*SELAMAT! PENDAFTARAN SPMB DITERIMA*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, calon siswa atas nama:\n\n• *Nama Siswa:* ${reg.student_name}\n• *No. Registrasi:* ${reg.registration_number}\n• *Program:* ${programLabel}\n• *T.A:* ${academicYear}\n\n*DINYATAKAN DITERIMA* di ${SCHOOL_NAME}.\n\nSurat pengumuman kelulusan resmi telah dikirim ke email *${recipientEmail}*.\n\nCek status resmi: https://miattaqwa15.sch.id/spmb-app\n\nSelamat bergabung di madrasah kami!`
+        const waText = `*SELAMAT! PENDAFTARAN SPMB DITERIMA*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, calon siswa atas nama:\n\n• *Nama Siswa:* ${reg.student_name}\n• *No. Registrasi:* ${reg.registration_number}\n• *Program:* ${programLabel}\n• *T.A:* ${academicYear}\n\n*DINYATAKAN DITERIMA* di ${SCHOOL_NAME}.\n\nSurat pengumuman kelulusan resmi telah dikirim ke email *${recipientEmail}*.\n\nCek status resmi: https://spmb.miattaqwa15.sch.id\n\nSelamat bergabung di madrasah kami!`
         await sendWhatsAppMessage(phone, waText)
       } catch (waErr) {
         // Non-blocking

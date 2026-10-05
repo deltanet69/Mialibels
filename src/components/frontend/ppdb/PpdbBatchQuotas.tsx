@@ -61,7 +61,7 @@ export default function PpdbBatchQuotas({ settings: initialSettings, onRegisterC
   const regularPercent = Math.min(100, Math.round((regularTotal / regularQuota) * 100))
 
   const spmbAppUrl = typeof window !== 'undefined' && window.location.hostname.includes('spmb.') 
-    ? '/spmb-app' 
+    ? '/' 
     : getSpmbUrl()
 
   return (
