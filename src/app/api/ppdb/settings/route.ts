@@ -27,7 +27,7 @@ export async function GET() {
       active_batch: 1,
       batch_1_name: 'Periode Pendaftaran 2027/2028',
       batch_1_period: 'Oktober – Kuota Terpenuhi',
-      batch_1_quota: 120,
+      batch_1_quota: 150,
       registration_fee: 300000,
       bank_name: 'Bank BTN',
       bank_account_number: '00129-01-30-00015-9',
@@ -48,27 +48,27 @@ export async function GET() {
     const allRegs = registrations || []
     const totalCount = allRegs.length
 
-    // Fullday program count (Max 30)
+    // Fullday program count (75 siswa)
     const fulldayRegs = allRegs.filter((r: any) => 
       (r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
       (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday'))
     )
     const fulldayCount = fulldayRegs.length
     const fulldayApproved = fulldayRegs.filter((r: any) => r.status === 'approved').length
-    const fulldayQuota = 30
+    const fulldayQuota = 75
     const isFulldayFull = fulldayCount >= fulldayQuota
 
-    // Regular program count
+    // Regular program count (75 siswa)
     const regularRegs = allRegs.filter((r: any) => 
       !((r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
         (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday')))
     )
     const regularCount = regularRegs.length
     const regularApproved = regularRegs.filter((r: any) => r.status === 'approved').length
-    const totalQuota = Number(currentSettings.batch_1_quota) || 120
-    const regularQuota = Math.max(0, totalQuota - fulldayQuota)
+    const totalQuota = Number(currentSettings.batch_1_quota) || 150
+    const regularQuota = 75
     const isRegularFull = regularCount >= regularQuota
-    const isTotalFull = totalCount >= totalQuota
+    const isTotalFull = totalCount >= totalQuota || (isFulldayFull && isRegularFull)
 
     return NextResponse.json({
       success: true,

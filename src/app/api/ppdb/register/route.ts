@@ -5,17 +5,37 @@ import { sendSpmbRegistrationEmail } from '@/lib/spmb-email'
 
 export const runtime = 'nodejs'
 
-// Helper to calculate exact age in years & months as of 1 July 2027
-function calculateAgeAsOfJuly2027(birthDateStr: string, cutoffYear = 2027) {
-  const birthDate = new Date(birthDateStr)
-  const cutoffDate = new Date(cutoffYear, 6, 1) // 1 July of cutoffYear
+// Helper to calculate exact age in years & months as of 16 July 2027
+function calculateAgeAsOfJuly16_2027(birthDateStr: string, cutoffYear = 2027) {
+  let bYear: number, bMonth: number, bDay: number
+  let cleanStr = birthDateStr
+  if (cleanStr.includes('T')) {
+    cleanStr = cleanStr.split('T')[0]
+  }
+  const parts = cleanStr.split('-').map(Number)
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    bYear = parts[0]
+    bMonth = parts[1] - 1 // 0-indexed month
+    bDay = parts[2]
+  } else {
+    const d = new Date(birthDateStr)
+    bYear = d.getFullYear()
+    bMonth = d.getMonth()
+    bDay = d.getDate()
+  }
 
-  let years = cutoffDate.getFullYear() - birthDate.getFullYear()
-  let months = cutoffDate.getMonth() - birthDate.getMonth()
-  let days = cutoffDate.getDate() - birthDate.getDate()
+  const cYear = cutoffYear
+  const cMonth = 6 // July (0-indexed)
+  const cDay = 16 // 16 July
+
+  let years = cYear - bYear
+  let months = cMonth - bMonth
+  let days = cDay - bDay
 
   if (days < 0) {
     months -= 1
+    const daysInPrevMonth = new Date(cYear, cMonth, 0).getDate()
+    days += daysInPrevMonth
   }
   if (months < 0) {
     years -= 1
@@ -23,7 +43,10 @@ function calculateAgeAsOfJuly2027(birthDateStr: string, cutoffYear = 2027) {
   }
 
   const totalMonths = years * 12 + months
-  return { years, months, totalMonths }
+  // Syarat minimum usia: 6 tahun 5 bulan pertanggal 16 Juli 2027
+  const isValid = years > 6 || (years === 6 && months >= 5)
+
+  return { years, months, days, totalMonths, isValid }
 }
 
 export async function POST(request: NextRequest) {
@@ -42,7 +65,7 @@ export async function POST(request: NextRequest) {
       academic_year: '2027/2028',
       is_active: true,
       active_batch: 1,
-      batch_1_quota: 120,
+      batch_1_quota: 150,
       registration_fee: 300000,
     }
 
@@ -112,22 +135,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Bukti transfer biaya pendaftaran ke rekening Bank BTN sekolah wajib diunggah.' }, { status: 400 })
     }
 
-    // 4. Age validation (Minimum 6 years per 1 July 2027)
-    const age = calculateAgeAsOfJuly2027(birth_date, 2027)
-    if (age.totalMonths < 72) { // 6 tahun = 72 bulan
+    // 4. Age validation (Minimum 6 years 5 months as of 16 July 2027)
+    const age = calculateAgeAsOfJuly16_2027(birth_date, 2027)
+    if (!age.isValid) {
       return NextResponse.json({
-        error: `Usia calon siswa pada 1 Juli 2027 adalah ${age.years} tahun ${age.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun.`
+        error: `Usia calon siswa pada 16 Juli 2027 adalah ${age.years} tahun ${age.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun 5 bulan pertanggal 16 Juli 2027 (lahir maksimal 16 Februari 2021).`
       }, { status: 400 })
     }
 
-    // 5. Check Quota: Total Quota & Fullday Class Quota (Max 30 Siswa)
+    // 5. Check Quota: Total Quota (150) & Class Quotas (Fullday 75, Regular 75)
     const { data: existingRegs, count: totalCount } = await supabase
       .from('ppdb_registrations')
       .select('student_nickname, special_needs', { count: 'exact' })
       .eq('academic_year', ppdbSettings.academic_year)
 
     const totalRegistered = totalCount || 0
-    const totalQuota = Number(ppdbSettings.batch_1_quota) || 120
+    const totalQuota = Number(ppdbSettings.batch_1_quota) || 150
+    const fulldayQuota = 75
+    const regularQuota = 75
 
     if (totalRegistered >= totalQuota) {
       return NextResponse.json({
@@ -136,15 +161,22 @@ export async function POST(request: NextRequest) {
     }
 
     const isFullday = String(class_program).toLowerCase() === 'fullday'
-    if (isFullday) {
-      const fulldayCount = (existingRegs || []).filter((r: any) => 
-        (r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
-        (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday'))
-      ).length
+    const fulldayCount = (existingRegs || []).filter((r: any) => 
+      (r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
+      (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday'))
+    ).length
+    const regularCount = Math.max(0, totalRegistered - fulldayCount)
 
-      if (fulldayCount >= 30) {
+    if (isFullday) {
+      if (fulldayCount >= fulldayQuota) {
         return NextResponse.json({
-          error: 'Kuota Program Kelas Fullday (Maksimal 30 Siswa) telah terpenuhi. Silakan pilih Program Kelas Regular.'
+          error: `Kuota Program Kelas Fullday (Maksimal ${fulldayQuota} Siswa) telah terpenuhi. Silakan pilih Program Kelas Regular.`
+        }, { status: 400 })
+      }
+    } else {
+      if (regularCount >= regularQuota) {
+        return NextResponse.json({
+          error: `Kuota Program Kelas Regular (Maksimal ${regularQuota} Siswa) telah terpenuhi. Silakan pilih Program Kelas Fullday.`
         }, { status: 400 })
       }
     }
@@ -169,7 +201,7 @@ export async function POST(request: NextRequest) {
       gender: gender || 'Laki-laki',
       nisn: nisn ? nisn.trim() : null,
       previous_school: religion ? `Agama: ${religion}` : 'Agama: Islam',
-      special_needs: isFullday ? 'Program Kelas Fullday (Maks 30 Siswa)' : 'Program Kelas Regular',
+      special_needs: isFullday ? 'Program Kelas Fullday (75 Siswa)' : 'Program Kelas Regular (75 Siswa)',
       medical_history: `Hubungan: ${parent_relation} | Agama Ortu: ${parent_religion}`,
       father_name: parent_name.trim(),
       father_nik: parent_nik.trim(),

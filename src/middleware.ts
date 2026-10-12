@@ -208,11 +208,28 @@ export async function middleware(request: NextRequest) {
   // SPMB SUBDOMAIN — spmb.miattaqwa15.sch.id
   // ══════════════════════════════════════════════════════════════════════════
   if (subdomain === 'spmb') {
+    // Canonical 301 redirect for legacy ppdb.* hostname to spmb.*
+    const hostHeader = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+    if (hostHeader.startsWith('ppdb.')) {
+      const isDev = process.env.NODE_ENV === 'development' || request.nextUrl.hostname.includes('localhost');
+      const port = request.nextUrl.port ? `:${request.nextUrl.port}` : '';
+      const canonicalHost = isDev ? `http://spmb.localhost${port}` : 'https://spmb.miattaqwa15.sch.id';
+      return NextResponse.redirect(new URL(canonicalHost + (cleanPath === '/spmb' || cleanPath === '/ppdb' ? '/' : pathname)), 301);
+    }
+
+    // Pastikan tidak ada /spmb atau /ppdb pada URL subdomain SPMB — redirect ke root '/'
     if (
-      pathname === '/' ||
-      pathname === '/spmb' ||
-      pathname === '/ppdb'
+      cleanPath === '/spmb' ||
+      cleanPath === '/ppdb' ||
+      cleanPath === '/spmb-app' ||
+      cleanPath === '/ppdb-app' ||
+      cleanPath.startsWith('/spmb/') ||
+      cleanPath.startsWith('/ppdb/')
     ) {
+      return NextResponse.redirect(new URL('/', request.url), 301);
+    }
+
+    if (pathname === '/') {
       return NextResponse.rewrite(new URL('/spmb-app', request.url));
     }
     // Allow public API and static assets to pass through
@@ -361,7 +378,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── 2. Public pages (main domain / localhost) ─────────────────────────────
+  // ── 2. SPMB Redirect on main domain -> redirect directly to spmb subdomain (tanpa /spmb) ─
+  if (
+    cleanPath === '/spmb' ||
+    cleanPath === '/ppdb' ||
+    cleanPath === '/spmb-app' ||
+    cleanPath === '/ppdb-app' ||
+    cleanPath.startsWith('/spmb/') ||
+    cleanPath.startsWith('/ppdb/')
+  ) {
+    const isDev = process.env.NODE_ENV === 'development' || request.nextUrl.hostname.includes('localhost');
+    const port = request.nextUrl.port ? `:${request.nextUrl.port}` : '';
+    const targetUrl = isDev ? `http://spmb.localhost${port}` : 'https://spmb.miattaqwa15.sch.id';
+    return NextResponse.redirect(new URL(targetUrl), 301);
+  }
+
+  // ── 3. Public pages (main domain / localhost) ─────────────────────────────
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }

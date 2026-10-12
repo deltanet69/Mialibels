@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { FileEdit, CreditCard, UserCheck, FileCheck2, BookOpen, ArrowRight } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 
 const STEPS = [
   {
     step: '01',
     title: 'Isi Formulir Online',
-    description: 'Lengkapi identitas calon siswa (usia min. 6 th 5 bln per 1 Juli 2027) dan data lengkap orang tua/wali melalui portal SPMB.',
+    description: 'Lengkapi identitas calon siswa (usia min. 6 th 5 bln per 16 Juli 2027) dan data lengkap orang tua/wali melalui portal SPMB.',
     icon: FileEdit,
     badgeColor: 'bg-blue-600 text-white',
     cardBg: 'bg-blue-50/40 border-blue-100 hover:border-blue-300',
@@ -47,7 +48,7 @@ const STEPS = [
 ];
 
 export default function PpdbWhyChooseUs() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : '#';
+  const spmbUrl = getSpmbUrl();
 
   return (
     <section id="petunjuk-pendaftaran" className="py-14 sm:py-20 lg:py-24 bg-white relative scroll-mt-20">

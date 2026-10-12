@@ -145,7 +145,7 @@ const FASILITAS_ABOUT = [
 ];
 
 export default function AboutPage() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : 'https://spmb.miattaqwa15.sch.id';
+  const spmbUrl = getSpmbUrl();
 
   return (
     <div className="flex flex-col w-full min-h-screen">
@@ -550,9 +550,9 @@ export default function AboutPage() {
 
                 <div className="mt-6 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100 flex items-center justify-between text-xs text-teal-900 font-semibold">
                   <span>Seluruh fasilitas terawat &amp; berstandar Kemenag</span>
-                  <Link href="/spmb" className="text-primary hover:underline flex items-center gap-1 text-xs">
+                  <a href={spmbUrl} className="text-primary hover:underline flex items-center gap-1 text-xs">
                     Informasi Pendaftaran <ArrowRight className="w-3 h-3" />
-                  </Link>
+                  </a>
                 </div>
               </div>
 
@@ -599,7 +599,7 @@ export default function AboutPage() {
                 </h2>
 
                 <p className="font-body text-slate-200 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed mb-8 sm:mb-10 max-w-4xl mx-auto px-2">
-                  Mari bertumbuh bersama madrasah yang mengutamakan akhlakul karimah, ketajaman intelektual, dan kesiapan menghadapi masa depan digital. Kuota terbatas 120 siswa!
+                  Mari bertumbuh bersama madrasah yang mengutamakan akhlakul karimah, ketajaman intelektual, dan kesiapan menghadapi masa depan digital. Kuota terbatas 150 siswa!
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">

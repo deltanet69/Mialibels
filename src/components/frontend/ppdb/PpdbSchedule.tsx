@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { Users, Calendar, ArrowRight, Flame, Clock, CheckCircle2, AlertCircle, ShieldAlert, Sparkles, GraduationCap, School } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 
 export default function PpdbSchedule() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : '#';
+  const spmbUrl = getSpmbUrl();
 
   return (
     <section className="py-14 sm:py-20 lg:py-24 bg-[#F4F7FC]">
@@ -20,7 +21,7 @@ export default function PpdbSchedule() {
             JADWAL PENERIMAAN &amp; KUOTA SISWA
           </h2>
           <p className="font-body text-gray-500 text-sm sm:text-base md:text-lg px-2 leading-relaxed">
-            Pendaftaran SPMB MI Attaqwa 15 dibuka dalam <strong>satu gelombang resmi</strong> mulai <strong>Bulan Oktober</strong> dan akan langsung ditutup otomatis begitu kuota <strong>120 siswa</strong> terpenuhi.
+            Pendaftaran SPMB MI Attaqwa 15 dibuka dalam <strong>satu gelombang resmi</strong> mulai <strong>Bulan Oktober</strong> dan akan langsung ditutup otomatis begitu kuota <strong>150 siswa (75 Fullday &amp; 75 Regular)</strong> terpenuhi.
           </p>
         </div>
 
@@ -58,14 +59,14 @@ export default function PpdbSchedule() {
                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 space-y-3">
                   <div className="flex items-center justify-between text-xs text-slate-200">
                     <span className="font-semibold">Target Daya Tampung</span>
-                    <span className="font-black text-amber-300 text-sm">120 Siswa Baru</span>
+                    <span className="font-black text-amber-300 text-sm">150 Siswa Baru</span>
                   </div>
                   <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
                     <div className="bg-gradient-to-r from-amber-400 to-emerald-400 h-full rounded-full w-full animate-pulse" />
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-teal-100 font-medium">
-                    <span>4 Rombongan Belajar (Rombel)</span>
-                    <span>@ 30 Siswa / Kelas</span>
+                    <span>Fullday (75 Siswa) &amp; Regular (75 Siswa)</span>
+                    <span>Total Kuota: 150 Siswa</span>
                   </div>
                 </div>
               </div>
@@ -145,11 +146,11 @@ export default function PpdbSchedule() {
                           Penutupan Pendaftaran Otomatis
                         </h5>
                         <span className="text-[11px] font-bold text-rose-800 bg-rose-50 border border-rose-100 px-2.5 py-0.5 rounded-full">
-                          Maks. 120 Siswa
+                          Maks. 150 Siswa
                         </span>
                       </div>
                       <p className="font-body text-gray-500 text-xs sm:text-sm leading-relaxed">
-                        Pendaftaran langsung ditutup saat total 120 kursi terisi penuh. Daftar ulang &amp; penyerahan berkas fisik dilakukan segera.
+                        Pendaftaran langsung ditutup saat total 150 kursi terisi penuh (75 Fullday &amp; 75 Regular). Daftar ulang &amp; penyerahan berkas fisik dilakukan segera.
                       </p>
                     </div>
                   </div>

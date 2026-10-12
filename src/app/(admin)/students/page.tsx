@@ -10,7 +10,7 @@ import { getDirectImageUrl } from '@/lib/imageUtils'
 import Link from 'next/link'
 
 // Exam eligibility helper
-export function checkExamEligibility(student: any) {
+function checkExamEligibility(student: any) {
   const rawClass = student.class || '';
   const isFullday = !!rawClass.match(/A$/i);
   const isClass6 = rawClass.startsWith('6');

@@ -210,13 +210,13 @@ export default function AkademikPage() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/spmb" 
+              <a
+                href={getSpmbUrl()} 
                 className="btn-tactile inline-flex items-center justify-center gap-2 bg-gradient-to-r from-btn-secondary via-orange-500 to-amber-500 text-white px-8 py-3.5 sm:py-4 rounded-full font-body text-sm font-bold shadow-xl shadow-orange-950/20 hover:shadow-2xl hover:brightness-110 transition-all w-full sm:w-auto"
               >
                 <span>Informasi SPMB &amp; Biaya</span>
                 <ArrowRight className="w-5 h-5 ml-1" />
-              </Link>
+              </a>
               
               <Link 
                 href="/contact" 

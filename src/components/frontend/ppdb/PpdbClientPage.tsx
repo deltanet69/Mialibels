@@ -24,6 +24,9 @@ import {
 } from 'lucide-react'
 import PpdbRegistrationForm from './PpdbRegistrationForm'
 import PpdbStatusChecker from './PpdbStatusChecker'
+import PpdbRequirements from './PpdbRequirements'
+import PpdbSchedule from './PpdbSchedule'
+import PpdbFaq from './PpdbFaq'
 
 type PpdbClientPageProps = {
   initialSettings?: any
@@ -57,7 +60,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
   const currentSettings = settings || {
     academic_year: '2027/2028',
     is_active: true,
-    batch_1_quota: 120,
+    batch_1_quota: 150,
     registration_fee: 300000,
     bank_name: 'Bank BTN',
     bank_account_number: '00129-01-30-00015-9',
@@ -154,7 +157,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
           <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
               <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-              <span>Usia Min. 6 Tahun</span>
+              <span>Usia Min. 6 Thn 5 Bln</span>
             </div>
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
               <GraduationCap size={14} className="text-amber-400 shrink-0" />
@@ -202,9 +205,10 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         <div ref={formRef} className="pt-2 scroll-mt-24">
           
           {/* Tab Switcher */}
-          {/* <div className="flex items-center justify-center mb-8">
+          <div className="flex items-center justify-center mb-8">
             <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1 shadow-inner max-w-md w-full">
               <button
+                type="button"
                 onClick={() => setActiveTab('register')}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                   activeTab === 'register'
@@ -217,6 +221,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('status')}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
                   activeTab === 'status'
@@ -228,7 +233,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                 <span>Cek Status Pendaftaran</span>
               </button>
             </div>
-          </div> */}
+          </div>
 
           {/* Tab Content Display */}
           {activeTab === 'register' ? (
@@ -240,6 +245,13 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         </div>
 
       </main>
+
+      {/* ── INFORMASI LENGKAP SPMB (Syarat, Jadwal, FAQ) ── */}
+      <section className="mt-16 space-y-6">
+        <PpdbRequirements />
+        <PpdbSchedule />
+        <PpdbFaq />
+      </section>
 
     </div>
   )

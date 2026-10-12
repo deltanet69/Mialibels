@@ -47,18 +47,19 @@ export default function PpdbBatchQuotas({ settings: initialSettings, onRegisterC
   const currentSettings = dataSettings || {
     academic_year: '2027/2028',
     is_active: true,
-    batch_1_quota: 120
+    batch_1_quota: 150
   }
 
   const fulldayTotal = currentSettings.stats?.fullday?.total || 0
-  const fulldayQuota = 30
+  const fulldayQuota = currentSettings.stats?.fullday?.quota || 75
   const fulldayPercent = Math.min(100, Math.round((fulldayTotal / fulldayQuota) * 100))
   const isFulldayFull = fulldayTotal >= fulldayQuota
 
   const regularTotal = currentSettings.stats?.regular?.total || 0
-  const totalQuota = Number(currentSettings.batch_1_quota) || 120
-  const regularQuota = Math.max(0, totalQuota - fulldayQuota)
+  const totalQuota = Number(currentSettings.batch_1_quota) || 150
+  const regularQuota = currentSettings.stats?.regular?.quota || 75
   const regularPercent = Math.min(100, Math.round((regularTotal / regularQuota) * 100))
+  const isRegularFull = regularTotal >= regularQuota
 
   const spmbAppUrl = typeof window !== 'undefined' && window.location.hostname.includes('spmb.') 
     ? '/' 
@@ -125,7 +126,7 @@ export default function PpdbBatchQuotas({ settings: initialSettings, onRegisterC
                     </span>
                   ) : (
                     <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-extrabold">
-                      Maks. 30 Siswa
+                      Maks. 75 Siswa
                     </span>
                   )}
                 </div>
@@ -163,7 +164,7 @@ export default function PpdbBatchQuotas({ settings: initialSettings, onRegisterC
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                   <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-                  <span>Maksimal 30 siswa per kelas untuk bimbingan intensif</span>
+                  <span>Target kuota 75 siswa untuk bimbingan terpadu intensif</span>
                 </div>
               </div>
             </div>
@@ -176,9 +177,15 @@ export default function PpdbBatchQuotas({ settings: initialSettings, onRegisterC
                     <School size={12} />
                     <span>Program Standar Nasional</span>
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">
-                    Tersedia
-                  </span>
+                  {isRegularFull ? (
+                    <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-xs font-bold">
+                      Kuota Penuh
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">
+                      Maks. 75 Siswa
+                    </span>
+                  )}
                 </div>
 
                 <div>

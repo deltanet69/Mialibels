@@ -71,7 +71,7 @@ export async function sendSpmbRegistrationEmail(params: {
   const academicYear = reg.academic_year || settings?.academic_year || '2027/2028'
   const isFullday = (reg.student_nickname && String(reg.student_nickname).toLowerCase().includes('fullday')) ||
     (reg.special_needs && String(reg.special_needs).toLowerCase().includes('fullday'))
-  const programLabel = isFullday ? 'Program Kelas Fullday (Maks 30 Siswa)' : 'Program Kelas Regular'
+  const programLabel = isFullday ? 'Program Kelas Fullday' : 'Program Kelas Regular'
   const parentName = reg.father_name || reg.mother_name || 'Bapak/Ibu Orang Tua'
   const waContact = settings?.whatsapp_contact || '+62 812-3456-7890'
 

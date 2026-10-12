@@ -29,14 +29,14 @@ A. KELAS REGULER
 - Shalat dhuha/dzuhur berjamaah setiap hari
 - Pembiasaan hafalan Juz 30 dan surat-surat pilihan
 - Ekstrakurikuler pilihan
-- Maksimal 30 siswa per kelas
+- Kuota program: 75 siswa
 
 B. KELAS FULLDAY MADRASAH (Program Unggulan)
 - Semua program reguler PLUS:
 - Tahfidz Al-Qur'an intensif (target Juz 30 + Surat Yasin, Al-Mulk, Ar-Rahman)
 - Makan siang bersama
 - Aktivitas sore terbimbing
-- Kuota sangat terbatas: maks. 30 siswa per angkatan
+- Kuota program: 75 siswa
 
 === AKADEMIK & KEUNGGULAN ===
 - Pembelajaran Aktif & Ceria: diskusi, praktik langsung, proyek kreatif
@@ -65,9 +65,9 @@ B. KELAS FULLDAY MADRASAH (Program Unggulan)
 
 === INFORMASI SPMB/PPDB 2027/2028 ===
 Tahun Ajaran: 2027/2028
-Total Kuota: 120 siswa baru (4 Rombongan Belajar @ 30 siswa)
-  - Kelas Fullday: maks. 30 siswa
-  - Kelas Reguler: sisa dari total 120
+Total Kuota: 150 siswa baru (Fullday 75 siswa, Regular 75 siswa)
+  - Kelas Fullday: 75 siswa
+  - Kelas Reguler: 75 siswa
 
 JADWAL:
 - Pembukaan: Mulai Bulan Oktober
@@ -75,7 +75,7 @@ JADWAL:
 - PENTING: Tidak ada gelombang susulan
 
 SYARAT UMUM:
-1. Batas Usia Minimal: 6 tahun 5 bulan per 1 Juli 2027
+1. Batas Usia Minimal: 6 tahun 5 bulan per 16 Juli 2027
 2. Beragama Islam
 3. Berkomitmen mengikuti shalat berjamaah dan program tahfidz
 4. Orang tua bersedia mematuhi tata tertib madrasah

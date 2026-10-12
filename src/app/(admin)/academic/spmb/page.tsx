@@ -1380,7 +1380,7 @@ export default function AdminSpmbPage() {
                 <label className="block text-xs font-bold text-slate-700">Target Kuota Total Penerimaan</label>
                 <input
                   type="number"
-                  value={settingsForm.batch_1_quota || 120}
+                  value={settingsForm.batch_1_quota || 150}
                   onChange={(e) => setSettingsForm({ ...settingsForm, batch_1_quota: Number(e.target.value) })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
                 />

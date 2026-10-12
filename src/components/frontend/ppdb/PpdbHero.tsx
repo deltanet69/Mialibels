@@ -4,9 +4,10 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight, CalendarDays, GraduationCap, Sparkles, CheckCircle2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { getSpmbUrl } from '@/lib/urls';
 
 export default function PpdbHero() {
-  const spmbUrl = process.env.NODE_ENV === 'development' ? 'http://spmb.localhost:3000' : '#';
+  const spmbUrl = getSpmbUrl();
 
   return (
     <section className="relative pt-10 pb-20 sm:pt-36 sm:pb-20 lg:pt-20 lg:pb-20 overflow-hidden bg-mesh-radial">
@@ -54,7 +55,7 @@ export default function PpdbHero() {
           </div>
           <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/80 backdrop-blur-md border border-white/80 shadow-2xs text-sm font-semibold text-gray-700">
             <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
-            <span>Kuota Terbatas 120 Siswa</span>
+            <span>Kuota Terbatas 150 Siswa</span>
           </div>
         </div>
 

@@ -7,18 +7,23 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, PhoneCall, Sparkles, ChevronRight } from 'lucide-react';
 import { getSpmbUrl } from '@/lib/urls';
 
-const navLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'Tentang Kami', href: '/about' },
-  { label: 'Akademik', href: '/akademik' },
-  { label: 'Artikel', href: '/news' },
-  { label: 'SPMB', href: '/spmb', highlight: true },
-];
-
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [spmbUrl, setSpmbUrl] = useState(getSpmbUrl());
   const pathname = usePathname();
+
+  useEffect(() => {
+    setSpmbUrl(getSpmbUrl());
+  }, []);
+
+  const navLinks = [
+    { label: 'Home', href: '/' },
+    { label: 'Tentang Kami', href: '/about' },
+    { label: 'Akademik', href: '/akademik' },
+    { label: 'Artikel', href: '/news' },
+    { label: 'SPMB', href: spmbUrl, highlight: true, external: true },
+  ];
 
   useEffect(() => { 
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -64,24 +69,41 @@ export default function Header() {
             <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 p-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white/80 shadow-sm">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
+                const linkContent = (
+                  <span className="flex items-center gap-1.5">
+                    {link.highlight && !isActive && (
+                      <span className="w-2 h-2 rounded-full bg-btn-secondary animate-ping inline-block" />
+                    )}
+                    {link.label}
+                  </span>
+                );
+                const className = `relative px-3 xl:px-4 py-1.5 xl:py-2 rounded-full font-body text-xs xl:text-sm font-semibold transition-all duration-300 ${
+                  isActive
+                    ? 'text-white bg-primary shadow-md shadow-teal-700/20'
+                    : link.highlight
+                    ? 'text-btn-secondary hover:text-white hover:bg-btn-secondary/90'
+                    : 'text-secondary/80 hover:text-primary hover:bg-teal-50/70'
+                }`;
+
+                if (link.external) {
+                  return (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className={className}
+                    >
+                      {linkContent}
+                    </a>
+                  );
+                }
+
                 return (
                   <Link
                     key={link.label}
                     href={link.href}
-                    className={`relative px-3 xl:px-4 py-1.5 xl:py-2 rounded-full font-body text-xs xl:text-sm font-semibold transition-all duration-300 ${
-                      isActive
-                        ? 'text-white bg-primary shadow-md shadow-teal-700/20'
-                        : link.highlight
-                        ? 'text-btn-secondary hover:text-white hover:bg-btn-secondary/90'
-                        : 'text-secondary/80 hover:text-primary hover:bg-teal-50/70'
-                    }`}
+                    className={className}
                   >
-                    <span className="flex items-center gap-1.5">
-                      {link.highlight && !isActive && (
-                        <span className="w-2 h-2 rounded-full bg-btn-secondary animate-ping inline-block" />
-                      )}
-                      {link.label}
-                    </span>
+                    {linkContent}
                   </Link>
                 );
               })}
@@ -150,19 +172,15 @@ export default function Header() {
         <nav className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-2">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.label}
-                href={link.href}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between px-4 py-3.5 rounded-2xl font-body text-sm font-bold transition-all ${
-                  isActive
-                    ? 'text-white bg-primary shadow-md shadow-teal-700/20'
-                    : link.highlight
-                    ? 'text-btn-secondary bg-orange-50/80 border border-orange-200/60'
-                    : 'text-secondary hover:text-primary hover:bg-slate-50'
-                }`}
-              >
+            const itemClass = `flex items-center justify-between px-4 py-3.5 rounded-2xl font-body text-sm font-bold transition-all ${
+              isActive
+                ? 'text-white bg-primary shadow-md shadow-teal-700/20'
+                : link.highlight
+                ? 'text-btn-secondary bg-orange-50/80 border border-orange-200/60'
+                : 'text-secondary hover:text-primary hover:bg-slate-50'
+            }`;
+            const itemContent = (
+              <>
                 <div className="flex items-center gap-2">
                   {link.highlight && (
                     <Sparkles className="w-4 h-4 text-btn-secondary" />
@@ -170,6 +188,30 @@ export default function Header() {
                   <span>{link.label}</span>
                 </div>
                 <ChevronRight className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+              </>
+            );
+
+            if (link.external) {
+              return (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setIsOpen(false)}
+                  className={itemClass}
+                >
+                  {itemContent}
+                </a>
+              );
+            }
+
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className={itemClass}
+              >
+                {itemContent}
               </Link>
             );
           })}

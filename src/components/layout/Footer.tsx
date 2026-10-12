@@ -36,15 +36,16 @@ const socialLinks = [
 ];
 import { getSpmbUrl } from '@/lib/urls';
 
-const menuLinks = [
+const getMenuLinks = () => [
   { label: 'Home', href: '/' },
   { label: 'Tentang Kami', href: '/about' },
   { label: 'Akademik', href: '/akademik' },
   { label: 'Artikel & Berita', href: '/news' },
-  { label: 'SPMB 2027/2028', href: '/spmb' },
+  { label: 'SPMB 2027/2028', href: getSpmbUrl(), isExternal: true },
 ];
 
 export default function Footer() {
+  const menuLinks = getMenuLinks();
   return (
     <footer className="bg-white border-t border-slate-200/80 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -96,13 +97,23 @@ export default function Footer() {
             <ul className="flex flex-col gap-2.5 mt-1">
               {menuLinks.map((link) => (
                 <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="font-body text-md text-gray-500 hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-primary transition-colors" />
-                    <span>{link.label}</span>
-                  </Link>
+                  {link.isExternal ? (
+                    <a
+                      href={link.href}
+                      className="font-body text-md text-gray-500 hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-primary transition-colors" />
+                      <span>{link.label}</span>
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="font-body text-md text-gray-500 hover:text-primary transition-colors duration-200 inline-flex items-center gap-1.5 group"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-primary transition-colors" />
+                      <span>{link.label}</span>
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

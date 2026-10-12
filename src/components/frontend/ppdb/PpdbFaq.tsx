@@ -6,11 +6,11 @@ import { ChevronDown, HelpCircle, Sparkles, MessageCircle, Phone, ArrowRight } f
 const FAQS = [
   {
     q: 'Kapan pendaftaran SPMB dibuka dan berapa kuotanya?',
-    a: 'Pendaftaran dibuka dalam satu gelombang resmi mulai Bulan Oktober hingga kuota 120 siswa baru (4 rombongan belajar @ 30 siswa) terpenuhi. Pendaftaran akan otomatis ditutup lebih awal bila kuota telah terverifikasi penuh.'
+    a: 'Pendaftaran dibuka dalam satu gelombang resmi mulai Bulan Oktober hingga kuota 150 siswa baru (Fullday 75 siswa & Regular 75 siswa) terpenuhi. Pendaftaran akan otomatis ditutup lebih awal bila kuota telah terverifikasi penuh.'
   },
   {
     q: 'Berapa batas usia minimum calon siswa kelas 1 MI?',
-    a: 'Sesuai ketentuan Kementerian Agama dan regulasi madrasah, calon siswa wajib berusia minimal 6 tahun 5 bulan terhitung per tanggal 1 Juli tahun ajaran baru 2027.'
+    a: 'Sesuai ketentuan Kementerian Agama dan regulasi madrasah, calon siswa wajib berusia minimal 6 tahun 5 bulan terhitung per tanggal 16 Juli tahun ajaran baru 2027.'
   },
   {
     q: 'Berapa biaya pendaftaran formulir dan bagaimana cara pembayarannya?',

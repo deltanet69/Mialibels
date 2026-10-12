@@ -106,29 +106,51 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     payment_proof_url: ''
   })
 
-  // Live Age Calculation (Cutoff: 1 Juli 2027)
+  // Live Age Calculation (Cutoff: 16 Juli 2027)
   const calculatedAge = useMemo(() => {
     if (!formData.birth_date) return null
-    const birthDate = new Date(formData.birth_date)
-    if (isNaN(birthDate.getTime())) return null
+    let cleanStr = formData.birth_date
+    if (cleanStr.includes('T')) cleanStr = cleanStr.split('T')[0]
+    const parts = cleanStr.split('-').map(Number)
+    let bYear: number, bMonth: number, bDay: number
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      bYear = parts[0]
+      bMonth = parts[1] - 1
+      bDay = parts[2]
+    } else {
+      const birthDate = new Date(formData.birth_date)
+      if (isNaN(birthDate.getTime())) return null
+      bYear = birthDate.getFullYear()
+      bMonth = birthDate.getMonth()
+      bDay = birthDate.getDate()
+    }
 
-    const cutoffDate = new Date(2027, 6, 1) // 1 Juli 2027
-    let years = cutoffDate.getFullYear() - birthDate.getFullYear()
-    let months = cutoffDate.getMonth() - birthDate.getMonth()
-    let days = cutoffDate.getDate() - birthDate.getDate()
+    const cYear = 2027
+    const cMonth = 6 // July (0-indexed)
+    const cDay = 16 // 16 July
 
-    if (days < 0) months -= 1
+    let years = cYear - bYear
+    let months = cMonth - bMonth
+    let days = cDay - bDay
+
+    if (days < 0) {
+      months -= 1
+      const daysInPrevMonth = new Date(cYear, cMonth, 0).getDate()
+      days += daysInPrevMonth
+    }
     if (months < 0) {
       years -= 1
       months += 12
     }
 
     const totalMonths = years * 12 + months
-    const isValid = totalMonths >= 72 // Minimum 6 years
+    // Minimum usia: 6 tahun 5 bulan pertanggal 16 Juli 2027
+    const isValid = years > 6 || (years === 6 && months >= 5)
 
     return {
       years,
       months,
+      days,
       totalMonths,
       isValid
     }
@@ -190,11 +212,15 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     if (!formData.class_program) return 'Pilihan program kelas (Fullday / Regular) wajib dipilih.'
     
     if (formData.class_program === 'fullday' && settings.stats?.fullday?.isFull) {
-      return 'Kuota Kelas Fullday (Maksimal 30 Siswa) telah terpenuhi. Silakan pilih Kelas Regular.'
+      return 'Kuota Kelas Fullday (Maksimal 75 Siswa) telah terpenuhi. Silakan pilih Kelas Regular.'
+    }
+
+    if (formData.class_program === 'regular' && settings.stats?.regular?.isFull) {
+      return 'Kuota Kelas Regular (Maksimal 75 Siswa) telah terpenuhi. Silakan pilih Kelas Fullday.'
     }
 
     if (calculatedAge && !calculatedAge.isValid) {
-      return `Usia calon siswa pada 1 Juli 2027 adalah ${calculatedAge.years} tahun ${calculatedAge.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun.`
+      return `Usia calon siswa pada 16 Juli 2027 adalah ${calculatedAge.years} tahun ${calculatedAge.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun 5 bulan pertanggal 16 Juli 2027 (lahir maksimal 16 Februari 2021).`
     }
     return null
   }
@@ -301,6 +327,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
   const isClosed = !settings.is_active || settings.stats?.isTotalFull
   const fulldayIsFull = Boolean(settings.stats?.fullday?.isFull)
+  const regularIsFull = Boolean(settings.stats?.regular?.isFull)
 
   if (isClosed) {
     return (
@@ -441,7 +468,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                       </span>
                     ) : (
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider">
-                        Maks. 30 Siswa
+                        Maks. 75 Siswa
                       </span>
                     )}
                   </div>
@@ -455,6 +482,8 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   className={`relative p-4.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     formData.class_program === 'regular'
                       ? 'border-blue-600 bg-blue-50/50 shadow-sm'
+                      : regularIsFull
+                      ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
                       : 'border-slate-200/80 hover:border-slate-300 bg-white'
                   }`}
                 >
@@ -464,15 +493,22 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                         type="radio"
                         name="class_program"
                         value="regular"
+                        disabled={regularIsFull}
                         checked={formData.class_program === 'regular'}
                         onChange={handleChange}
                         className="text-blue-600 focus:ring-blue-500 w-4 h-4"
                       />
                       <span className="font-extrabold text-sm text-slate-900">Kelas Regular</span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase tracking-wider">
-                      Tersedia
-                    </span>
+                    {regularIsFull ? (
+                      <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold uppercase">
+                        Kuota Penuh
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase tracking-wider">
+                        Maks. 75 Siswa
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                     Kurikulum terakreditasi A Kemenag &amp; Kemendikbud dengan fokus penguatan materi dasar agama dan pengetahuan umum.
@@ -598,12 +634,12 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 )}
                 <div>
                   <p className="font-bold">
-                    Usia per 1 Juli 2027: {calculatedAge.years} Tahun {calculatedAge.months} Bulan
+                    Usia per 16 Juli 2027: {calculatedAge.years} Tahun {calculatedAge.months} Bulan
                   </p>
                   <p className="text-xs opacity-90 mt-0.5">
                     {calculatedAge.isValid
-                      ? '✓ Memenuhi syarat usia minimum masuk madrasah (min. 6 tahun).'
-                      : '⚠ Usia calon siswa di bawah 6 tahun per 1 Juli 2027. Diperlukan rekomendasi kesiapan belajar.'}
+                      ? '✓ Memenuhi syarat usia minimum masuk madrasah (min. 6 tahun 5 bulan).'
+                      : '⚠ Usia calon siswa di bawah 6 tahun 5 bulan per 16 Juli 2027. Syarat minimum adalah 6 tahun 5 bulan (lahir maksimal 16 Februari 2021).'}
                   </p>
                 </div>
               </div>
