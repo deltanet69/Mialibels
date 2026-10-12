@@ -20,7 +20,9 @@ import {
   AlertCircle,
   MessageCircle,
   ExternalLink,
-  Users
+  Users,
+  Lock,
+  CalendarX
 } from 'lucide-react'
 import PpdbRegistrationForm from './PpdbRegistrationForm'
 import PpdbStatusChecker from './PpdbStatusChecker'
@@ -34,7 +36,10 @@ type PpdbClientPageProps = {
 
 export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps) {
   const [settings, setSettings] = useState<any>(initialSettings || null)
-  const [activeTab, setActiveTab] = useState<'register' | 'status'>('register')
+  
+  // Jika initialSettings ada dan pendaftaran ditutup, arahkan default tab ke 'status'
+  const isInitiallyOpen = initialSettings ? Boolean(initialSettings.is_active && !initialSettings.stats?.isTotalFull) : false
+  const [activeTab, setActiveTab] = useState<'register' | 'status'>(isInitiallyOpen ? 'register' : 'status')
   const [loading, setLoading] = useState(!initialSettings)
 
   const formRef = useRef<HTMLDivElement>(null)
@@ -42,10 +47,14 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/spmb/settings?_t=' + Date.now())
+        const res = await fetch('/api/spmb/settings?_t=' + Date.now(), { cache: 'no-store' })
         const json = await res.json()
-        if (json.success) {
+        if (json.success && json.data) {
           setSettings(json.data)
+          // Jika pendaftaran ditutup, otomatis pindah ke tab status agar tidak melihat form error
+          if (!json.data.is_active || json.data.stats?.isTotalFull) {
+            setActiveTab('status')
+          }
         }
       } catch (err) {
         console.error('Error fetching SPMB settings:', err)
@@ -57,9 +66,10 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     fetchSettings()
   }, [])
 
+  // Default fallback jika data belum siap — default is_active: false demi keamanan
   const currentSettings = settings || {
     academic_year: '2027/2028',
-    is_active: true,
+    is_active: false,
     batch_1_quota: 150,
     registration_fee: 300000,
     bank_name: 'Bank BTN',
@@ -67,6 +77,9 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     bank_account_holder: 'MI ATTAQWA 15 BABELAN',
     whatsapp_contact: '6281234567890'
   }
+
+  const isTotalFull = Boolean(currentSettings.stats?.isTotalFull)
+  const isRegistrationOpen = Boolean(currentSettings.is_active && !isTotalFull)
 
   const scrollToForm = (tab: 'register' | 'status' = 'register') => {
     setActiveTab(tab)
@@ -76,7 +89,6 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
   }
 
   const waNumber = (currentSettings.whatsapp_contact || '6281234567890').replace(/[^0-9]/g, '')
-  const isTotalFull = Boolean(currentSettings.stats?.isTotalFull)
 
   return (
     <div className="font-sans min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white pb-20">
@@ -101,12 +113,19 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             </div>
           </div>
 
-          {/* Right Action & WhatsApp Help */}
+          {/* Right Action: Status Badge & WhatsApp Help */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Pendaftaran SPMB Dibuka</span>
-            </div>
+            {isRegistrationOpen ? (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Pendaftaran SPMB Dibuka</span>
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                <span>Pendaftaran SPMB Ditutup</span>
+              </div>
+            )}
 
             <a
               href={`https://wa.me/${waNumber}?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran%20murid%20baru.`}
@@ -134,11 +153,17 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
 
         <div className="max-w-6xl mx-auto relative z-10 text-center space-y-5">
           
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
-            {/* <Sparkles size={14} className="text-amber-400" /> */}
-            <span>Sistem Penerimaan Murid Baru (SPMB) Online</span>
-          </div>
+          {/* Status Badge */}
+          {isRegistrationOpen ? (
+            <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
+              <span>Sistem Penerimaan Murid Baru (SPMB) Online</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-rose-500/20 backdrop-blur-md border border-rose-400/40 text-rose-200 text-xs font-bold tracking-wide">
+              <Lock size={13} className="text-rose-400" />
+              <span>Pendaftaran SPMB T.A {currentSettings.academic_year} Ditutup</span>
+            </div>
+          )}
 
           {/* Heading */}
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-white font-headline">
@@ -149,9 +174,15 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xs sm:text-base text-slate-200 max-w-2xl mx-auto leading-relaxed font-normal">
-            Selamat datang di portal resmi pendaftaran siswa baru MI Attaqwa 15 Babelan. Pendaftaran tahun ajaran <strong>{currentSettings.academic_year}</strong> telah dibuka secara online, mudah, dan transparan.
-          </p>
+          {isRegistrationOpen ? (
+            <p className="text-xs sm:text-base text-slate-200 max-w-2xl mx-auto leading-relaxed font-normal">
+              Selamat datang di portal resmi pendaftaran siswa baru MI Attaqwa 15 Babelan. Pendaftaran tahun ajaran <strong>{currentSettings.academic_year}</strong> telah dibuka secara online, mudah, dan transparan.
+            </p>
+          ) : (
+            <p className="text-xs sm:text-base text-rose-100 max-w-2xl mx-auto leading-relaxed font-normal bg-rose-950/40 border border-rose-500/30 p-3.5 rounded-2xl">
+              Mohon maaf, sistem pendaftaran online murid baru MI Attaqwa 15 Tahun Ajaran <strong>{currentSettings.academic_year}</strong> saat ini <strong>sedang ditutup</strong> oleh panitia atau kuota penerimaan telah terpenuhi. Bagi calon wali murid yang sudah mendaftar, silakan lakukan pengecekan status di bawah.
+            </p>
+          )}
 
           {/* Key Metric Badges */}
           <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
@@ -171,7 +202,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
 
           {/* Direct CTA Buttons */}
           <div className="max-w-5xl mx-auto flex flex-col xs:flex-row items-center justify-center gap-3 pt-3">
-            {currentSettings.is_active && !isTotalFull ? (
+            {isRegistrationOpen ? (
               <button
                 onClick={() => scrollToForm('register')}
                 className="btn-tactile w-full xs:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 px-6 sm:px-8 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition cursor-pointer"
@@ -180,15 +211,21 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                 <ArrowRight size={16} />
               </button>
             ) : (
-              <div className="px-5 py-2.5 rounded-xl bg-rose-500/20 border border-rose-400/30 text-rose-200 font-bold text-xs">
-                Pendaftaran SPMB Sedang Ditutup / Kuota Terpenuhi
+              <div className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 font-bold text-xs sm:text-sm">
+                <Lock size={15} />
+                <span>Pendaftaran Sedang Ditutup</span>
               </div>
             )}
 
             <button
               onClick={() => scrollToForm('status')}
-              className="btn-tactile w-full xs:w-auto flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 sm:px-6 py-3 rounded-xl font-bold text-xs sm:text-sm border border-white/20 transition cursor-pointer"
+              className={`btn-tactile w-full xs:w-auto flex items-center justify-center gap-2 px-6 sm:px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer ${
+                !isRegistrationOpen
+                  ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-amber-400'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+              }`}
             >
+              <UserCheck size={16} />
               <span>Cek Status Pendaftaran</span>
             </button>
           </div>
@@ -216,8 +253,12 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <FileCheck size={16} className={activeTab === 'register' ? 'text-blue-600' : ''} />
-                <span>Formulir Pendaftaran</span>
+                {isRegistrationOpen ? (
+                  <FileCheck size={16} className={activeTab === 'register' ? 'text-blue-600' : ''} />
+                ) : (
+                  <Lock size={16} className="text-rose-500" />
+                )}
+                <span>Formulir Pendaftaran {isRegistrationOpen ? '' : '(Ditutup)'}</span>
               </button>
 
               <button
@@ -237,7 +278,60 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
 
           {/* Tab Content Display */}
           {activeTab === 'register' ? (
-            <PpdbRegistrationForm settings={currentSettings} />
+            isRegistrationOpen ? (
+              <PpdbRegistrationForm settings={currentSettings} />
+            ) : (
+              /* Notice saat pendaftaran ditutup — Mencegah akses formulir sama sekali */
+              <div className="bg-white rounded-3xl p-6 sm:p-12 text-center border border-rose-200/80 shadow-xl shadow-slate-900/5 max-w-3xl mx-auto space-y-6 animate-in fade-in duration-200">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+                  <Lock size={36} className="animate-pulse" />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold uppercase tracking-wider">
+                    <AlertCircle size={14} />
+                    <span>Akses Formulir Ditutup</span>
+                  </div>
+                  <h3 className="text-xl sm:text-3xl font-extrabold text-slate-900 font-headline">
+                    Pendaftaran SPMB Online Sedang Ditutup
+                  </h3>
+                  <p className="text-xs sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
+                    Mohon maaf, sistem penerimaan murid baru MI Attaqwa 15 Tahun Ajaran <strong>{currentSettings.academic_year}</strong> saat ini sedang ditutup sementara oleh pihak panitia madrasah.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 text-left max-w-xl mx-auto space-y-2.5 text-xs sm:text-sm text-slate-700">
+                  <div className="flex items-start gap-2.5">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Calon murid yang sudah mendaftar</strong> tetap dapat memantau proses verifikasi berkas dan pengumuman melalui tab <strong>Cek Status Pendaftaran</strong>.</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <HelpCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                    <span>Untuk informasi pembukaan pendaftaran gelombang berikutnya atau konsultasi kuota, silakan hubungi kontak panitia madrasah via WhatsApp.</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('status')}
+                    className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-blue-600/20 transition cursor-pointer"
+                  >
+                    <UserCheck size={16} />
+                    <span>Buka Cek Status Pendaftaran</span>
+                  </button>
+                  <a
+                    href={`https://wa.me/${waNumber}?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20menanyakan%20jadwal%20pembukaan%20pendaftaran%20murid%20baru.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-tactile w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition cursor-pointer"
+                  >
+                    <MessageCircle size={16} />
+                    <span>Hubungi Panitia via WA</span>
+                  </a>
+                </div>
+              </div>
+            )
           ) : (
             <PpdbStatusChecker />
           )}

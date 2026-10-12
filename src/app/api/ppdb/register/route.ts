@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     const ppdbSettings = settings || {
       academic_year: '2027/2028',
-      is_active: true,
+      is_active: false,
       active_batch: 1,
       batch_1_quota: 150,
       registration_fee: 300000,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!ppdbSettings.is_active) {
       return NextResponse.json({
         error: 'Pendaftaran SPMB Tahun Ajaran ' + ppdbSettings.academic_year + ' saat ini sedang ditutup.'
-      }, { status: 400 })
+      }, { status: 403 })
     }
 
     // 2. Extract input fields

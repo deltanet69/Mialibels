@@ -281,8 +281,15 @@ export default function AdminSpmbPage() {
     if (!settings || !canManage) return
     const newActive = !settings.is_active
 
+    const confirmMsg = newActive
+      ? 'Buka pendaftaran SPMB? Calon murid baru akan dapat mengisi formulir pendaftaran online.'
+      : 'Tutup pendaftaran SPMB? Formulir pendaftaran online akan langsung dinonaktifkan untuk publik.'
+
+    if (!window.confirm(confirmMsg)) return
+
     // Optimistic UI
     setSettings((prev: any) => ({ ...prev, is_active: newActive }))
+    setSettingsForm((prev: any) => ({ ...prev, is_active: newActive }))
 
     try {
       const res = await fetch('/api/spmb/admin/settings', {
@@ -294,12 +301,17 @@ export default function AdminSpmbPage() {
       const json = await res.json()
       if (!json.success) {
         setSettings((prev: any) => ({ ...prev, is_active: !newActive }))
+        setSettingsForm((prev: any) => ({ ...prev, is_active: !newActive }))
         alert('Gagal mengubah status SPMB: ' + json.error)
       } else {
-        sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify({ ...settings, is_active: newActive }))
+        const updated = json.data || { ...settings, is_active: newActive }
+        setSettings(updated)
+        setSettingsForm(updated)
+        sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify(updated))
       }
     } catch (err) {
       setSettings((prev: any) => ({ ...prev, is_active: !newActive }))
+      setSettingsForm((prev: any) => ({ ...prev, is_active: !newActive }))
       console.error('Failed to toggle SPMB status:', err)
     }
   }
@@ -1366,6 +1378,29 @@ export default function AdminSpmbPage() {
             </div>
 
             <form onSubmit={handleSaveSettings} className="p-6 space-y-4">
+              {/* Status Switcher in Modal */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div>
+                  <span className="block text-xs font-bold text-slate-800">Status Pendaftaran SPMB</span>
+                  <span className="text-[11px] text-slate-500">
+                    {settingsForm.is_active ? 'Portal pendaftaran dibuka untuk umum' : 'Portal pendaftaran ditutup untuk umum'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettingsForm({ ...settingsForm, is_active: !settingsForm.is_active })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    settingsForm.is_active ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      settingsForm.is_active ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-slate-700">Tahun Ajaran</label>
                 <input

@@ -21,7 +21,8 @@ import {
   Calendar,
   HeartHandshake,
   AlertCircle,
-  FileText
+  FileText,
+  Lock
 } from 'lucide-react'
 import PpdbSuccessModal from './PpdbSuccessModal'
 
