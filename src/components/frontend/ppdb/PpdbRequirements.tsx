@@ -16,7 +16,7 @@ const SYARAT_ITEMS: SyaratItem[] = [
   {
     title: 'Batas Usia Minimal',
     highlight: '6 Tahun 5 Bulan',
-    desc: 'Calon murid baru kelas 1 MI wajib berusia minimal 6 tahun 5 bulan terhitung per tanggal 16 Juli 2027.',
+    desc: 'Calon murid baru kelas 1 MI wajib berusia minimal 6 tahun 5 pad bulan Juli 2027.',
     icon: UserCheck,
     color: 'text-teal-600',
     bg: 'bg-teal-50 border-teal-100'
