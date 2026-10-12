@@ -1,9 +1,18 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, FileText, UserCheck, Sparkles, CreditCard, HeartHandshake, ShieldCheck, Info, FileCheck } from 'lucide-react';
+import { CheckCircle2, FileText, UserCheck, Sparkles, CreditCard, HeartHandshake, ShieldCheck } from 'lucide-react';
 
-const SYARAT_ITEMS = [
+type SyaratItem = {
+  title: string;
+  highlight: string;
+  desc: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
+};
+
+const SYARAT_ITEMS: SyaratItem[] = [
   {
     title: 'Batas Usia Minimal',
     highlight: '6 Tahun 5 Bulan',
@@ -15,11 +24,19 @@ const SYARAT_ITEMS = [
   {
     title: 'Biaya Pendaftaran',
     highlight: 'Rp 300.000',
-    desc: 'Membayar biaya formulir & tes observasi via transfer Bank BTN (00129-01-30-00015-9 a.n MI ATTAQWA 15 BABELAN) / QRIS.',
+    desc: (
+      <>
+        Membayar biaya formulir &amp; tes observasi via transfer Bank{' '}
+        <strong className="font-bold text-gray-900">
+          BTN 2820-15-0010-3158&nbsp;&nbsp;a.n MI ATTAQWA 15 BABELAN
+        </strong>{' '}
+        / QRIS.
+      </>
+    ),
     icon: CreditCard,
     color: 'text-amber-600',
     bg: 'bg-amber-50 border-amber-100'
-  },
+  }, 
   {
     title: 'Komitmen Keagamaan',
     highlight: 'Pembiasaan Ibadah',
@@ -41,10 +58,7 @@ const SYARAT_ITEMS = [
 const BERKAS_ITEMS = [
   { nama: 'Fotokopi Akta Kelahiran', ket: '2 Lembar', detail: 'Legalisir / fotokopi jelas' },
   { nama: 'Fotokopi Kartu Keluarga (KK)', ket: '2 Lembar', detail: 'Update barcode Disdukcapil' },
-  { nama: 'Fotokopi KTP Orang Tua / Wali', ket: '2 Lembar', detail: 'KTP Ayah & Ibu (1 Lembar)' },
-  { nama: 'Pas Foto Siswa 3x4 Terbaru', ket: '4 Lembar', detail: 'Background Merah rapi' },
-  { nama: 'Surat Keterangan Sehat', ket: '1 Berkas', detail: 'Dari Dokter / Puskesmas' },
-  { nama: 'Ijazah / SKHU RA / TK', ket: '2 Lembar', detail: 'Bagi lulusan RA / TK (jika ada)' }
+  { nama: 'Fotokopi KTP Orang Tua / Wali', ket: '2 Lembar', detail: 'KTP Ayah & Ibu (1 Lembar)' }
 ];
 
 export default function PpdbRequirements() {
@@ -138,7 +152,7 @@ export default function PpdbRequirements() {
                 </div>
               </div>
               
-              {/* 6 Document List Cards */}
+              {/* 3 Document List Cards */}
               <div className="space-y-2.5">
                 {BERKAS_ITEMS.map((berkas, idx) => (
                   <div
@@ -165,14 +179,6 @@ export default function PpdbRequirements() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Bottom Tip Notice */}
-            <div className="mt-6 p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100 flex items-start gap-2.5">
-              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <p className="font-body text-[11px] sm:text-xs text-teal-900 leading-snug">
-                <strong>Catatan Penyerahan:</strong> Berkas fisik dimasukkan ke dalam map merah (putra) / hijau (putri) dan dibawa saat verifikasi observasi di sekretariat madrasah.
-              </p>
             </div>
           </div>
 

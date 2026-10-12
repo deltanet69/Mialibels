@@ -198,7 +198,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
   }
 
   const handleCopyBank = () => {
-    navigator.clipboard.writeText(settings.bank_account_number || '00129-01-30-00015-9')
+    navigator.clipboard.writeText(settings.bank_account_number || '2820-15-0010-3158')
     setCopiedBank(true)
     setTimeout(() => setCopiedBank(false), 2000)
   }
@@ -1011,7 +1011,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   <span className="text-xs text-blue-200 block mb-1">Nomor Rekening Bank BTN:</span>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xl sm:text-2xl font-black text-white tracking-wider">
-                      {settings.bank_account_number || '00129-01-30-00015-9'}
+                      {settings.bank_account_number || '2820-15-0010-3158'}
                     </span>
                     <button
                       type="button"

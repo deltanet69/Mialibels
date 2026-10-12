@@ -73,7 +73,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     batch_1_quota: 150,
     registration_fee: 300000,
     bank_name: 'Bank BTN',
-    bank_account_number: '00129-01-30-00015-9',
+    bank_account_number: '2820-15-0010-3158',
     bank_account_holder: 'MI ATTAQWA 15 BABELAN',
     whatsapp_contact: '6281234567890'
   }
@@ -180,7 +180,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             </p>
           ) : (
             <p className="text-xs sm:text-base text-rose-100 max-w-2xl mx-auto leading-relaxed font-normal bg-rose-950/40 border border-rose-500/30 p-3.5 rounded-2xl">
-              Mohon maaf, sistem pendaftaran online murid baru MI Attaqwa 15 Tahun Ajaran <strong>{currentSettings.academic_year}</strong> saat ini <strong>sedang ditutup</strong> oleh panitia atau kuota penerimaan telah terpenuhi. Bagi calon wali murid yang sudah mendaftar, silakan lakukan pengecekan status di bawah.
+              Mohon maaf, sistem pendaftaran online murid baru MI Attaqwa 15 Tahun Ajaran <strong>{currentSettings.academic_year}</strong> saat ini <strong>Belum dibuka</strong> oleh panitia atau kuota penerimaan telah terpenuhi. Bagi calon wali murid yang sudah mendaftar, silakan lakukan pengecekan status di bawah.
             </p>
           )}
 
@@ -213,7 +213,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             ) : (
               <div className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 font-bold text-xs sm:text-sm">
                 <Lock size={15} />
-                <span>Pendaftaran Sedang Ditutup</span>
+                <span>Pendaftaran belum dibuka</span>
               </div>
             )}
 

@@ -81,17 +81,12 @@ SYARAT UMUM:
 4. Orang tua bersedia mematuhi tata tertib madrasah
 
 BIAYA PENDAFTARAN: Rp 300.000
-Cara Bayar: Transfer Bank BTN (No. Rek: 00129-01-30-00015-9 a.n MI ATTAQWA 15 BABELAN) atau QRIS
+Cara Bayar: Transfer Bank BTN (No. Rek: 2820-15-0010-3158 a.n MI ATTAQWA 15 BABELAN) atau QRIS
 
 DOKUMEN YANG DIPERLUKAN (diserahkan saat verifikasi):
 1. Fotokopi Akta Kelahiran — 2 lembar
 2. Fotokopi Kartu Keluarga (KK) — 2 lembar (update barcode Disdukcapil)
 3. Fotokopi KTP Orang Tua/Wali — 2 lembar (Ayah & Ibu)
-4. Pas Foto Siswa 3x4 terbaru — 4 lembar (background merah)
-5. Surat Keterangan Sehat — 1 berkas (dari Dokter/Puskesmas)
-6. Ijazah/SKHU RA/TK — 2 lembar (jika ada)
-
-Catatan: Berkas fisik dimasukkan ke dalam map merah (putra) / hijau (putri), dibawa saat verifikasi observasi di sekretariat madrasah.
 
 LINK DAFTAR ONLINE: https://spmb.miattaqwa15.sch.id
 

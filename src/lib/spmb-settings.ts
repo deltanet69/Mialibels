@@ -23,7 +23,7 @@ export async function getSpmbSettings() {
       batch_1_quota: 150,
       registration_fee: 300000,
       bank_name: 'Bank BTN',
-      bank_account_number: '00129-01-30-00015-9',
+      bank_account_number: '2820-15-0010-3158',
       bank_account_holder: 'MI ATTAQWA 15 BABELAN',
       whatsapp_contact: '6281234567890'
     }
@@ -96,7 +96,7 @@ export async function getSpmbSettings() {
       batch_1_quota: 150,
       registration_fee: 300000,
       bank_name: 'Bank BTN',
-      bank_account_number: '00129-01-30-00015-9',
+      bank_account_number: '2820-15-0010-3158',
       bank_account_holder: 'MI ATTAQWA 15 BABELAN',
       whatsapp_contact: '6281234567890',
       stats: {

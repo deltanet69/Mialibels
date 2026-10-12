@@ -18,7 +18,7 @@ const STEPS = [
   {
     step: '02',
     title: 'Transfer & Upload Struk',
-    description: 'Transfer biaya formulir Rp 300.000 ke Bank BTN (00129-01-30-00015-9 a.n MI ATTAQWA 15 BABELAN) / QRIS dan unggah bukti transfer.',
+    description: 'Transfer biaya formulir Rp 300.000 ke Bank BTN (2820-15-0010-3158 a.n MI ATTAQWA 15 BABELAN) / QRIS dan unggah bukti transfer.',
     icon: CreditCard,
     badgeColor: 'bg-amber-500 text-white',
     cardBg: 'bg-amber-50/40 border-amber-100 hover:border-amber-300',

@@ -6,19 +6,19 @@ import { ChevronDown, HelpCircle, Sparkles, MessageCircle, Phone, ArrowRight } f
 const FAQS = [
   {
     q: 'Kapan pendaftaran SPMB dibuka dan berapa kuotanya?',
-    a: 'Pendaftaran dibuka dalam satu gelombang resmi mulai Bulan Oktober hingga kuota 150 siswa baru (Fullday 75 siswa & Regular 75 siswa) terpenuhi. Pendaftaran akan otomatis ditutup lebih awal bila kuota telah terverifikasi penuh.'
+    a: 'Pendaftaran dibuka dalam satu gelombang resmi mulai 7 November 2026 hingga kuota 150 siswa baru (Fullday 75 siswa & Regular 75 siswa) terpenuhi. Pendaftaran akan otomatis ditutup lebih awal bila kuota telah terverifikasi penuh.'
   },
   {
     q: 'Berapa batas usia minimum calon siswa kelas 1 MI?',
-    a: 'Sesuai ketentuan Kementerian Agama dan regulasi madrasah, calon siswa wajib berusia minimal 6 tahun 5 bulan terhitung per tanggal 16 Juli tahun ajaran baru 2027.'
+    a: 'Sesuai ketentuan Kementerian Agama dan regulasi madrasah, calon siswa wajib berusia minimal Minimal 6 tahun 5 bulan pada bulan juli 2027.'
   },
   {
     q: 'Berapa biaya pendaftaran formulir dan bagaimana cara pembayarannya?',
-    a: 'Biaya formulir pendaftaran dan tes observasi adalah sebesar Rp 300.000. Pembayaran dapat ditransfer ke rekening resmi Bank BTN: 00129-01-30-00015-9 (a.n MI ATTAQWA 15 BABELAN) atau melalui QRIS resmi, kemudian unggah bukti struk transfer di formulir online.'
+    a: 'Biaya formulir pendaftaran dan tes observasi adalah sebesar Rp 300.000. Pembayaran dapat ditransfer ke rekening resmi Bank BTN : 2820-15-0010-3158 (a.n MI ATTAQWA 15 BABELAN) atau melalui QRIS resmi, kemudian unggah bukti struk transfer di formulir online.'
   },
   {
     q: 'Bagaimana cara mengetahui status kelulusan & verifikasi?',
-    a: 'Anda dapat mengecek status pendaftaran secara realtime melalui menu "Cek Status & Berkas" atau di dalam Parent Portal. Sistem juga otomatis mengirimkan email konfirmasi dan notifikasi WhatsApp panitia.'
+    a: 'Anda dapat mengecek status pendaftaran secara realtime melalui menu "Cek Status & Berkas" atau di dalam Parent Portal. Sistem juga otomatis mengirimkan email konfirmasi pendaftaran oleh panitia resmi SMPB tahun ajaran 2027/2028.'
   },
   {
     q: 'Apakah uang formulir dapat dikembalikan jika mengundurkan diri?',
@@ -26,7 +26,7 @@ const FAQS = [
   },
   {
     q: 'Kapan berkas fisik diserahkan ke pihak madrasah?',
-    a: 'Berkas fisik (fotokopi Akta Kelahiran 2 lbr, KK 2 lbr, KTP orang tua 2 lbr, Pas Foto 3x4 4 lbr background merah, dan Surat Keterangan Sehat) diserahkan ke sekretariat madrasah saat proses daftar ulang setelah status pendaftaran dinyatakan Approved.'
+    a: 'Berkas fisik (fotokopi Akta Kelahiran 2 lbr, KK 2 lbr, KTP orang tua 2 lbr) diserahkan ke sekretariat madrasah saat proses daftar ulang setelah status pendaftaran dinyatakan Approved.'
   }
 ];
 
@@ -38,7 +38,7 @@ export default function PpdbFaq() {
   };
 
   return (
-    <section className="py-14 sm:py-20 lg:py-24 bg-white">
+    <section className="py-14 sm:py-20 lg:py-24 bg-white"> 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
@@ -121,11 +121,11 @@ export default function PpdbFaq() {
               <p className="font-body text-xs sm:text-sm text-gray-500">
                 Panitia SPMB siap membantu Anda melalui konsultasi langsung via WhatsApp.
               </p>
-            </div>
+            </div> 
           </div>
 
           <a
-            href="https://wa.me/6281234567890?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran"
+            href="https://wa.me/628567858268?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-tactile inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-body text-xs sm:text-sm font-bold bg-emerald-600 text-white shadow-md shadow-emerald-950/20 hover:bg-emerald-700 transition-all shrink-0 w-full sm:w-auto"

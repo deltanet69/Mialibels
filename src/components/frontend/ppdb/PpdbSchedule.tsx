@@ -21,7 +21,7 @@ export default function PpdbSchedule() {
             JADWAL PENERIMAAN &amp; KUOTA SISWA
           </h2>
           <p className="font-body text-gray-500 text-sm sm:text-base md:text-lg px-2 leading-relaxed">
-            Pendaftaran SPMB MI Attaqwa 15 dibuka dalam <strong>satu gelombang resmi</strong> mulai <strong>Bulan Oktober</strong> dan akan langsung ditutup otomatis begitu kuota <strong>150 siswa (75 Fullday &amp; 75 Regular)</strong> terpenuhi.
+            Pendaftaran SPMB MI Attaqwa 15 dibuka dalam <strong>satu gelombang resmi</strong> Mulai <strong>7 November 2026</strong> dan akan langsung ditutup otomatis begitu kuota <strong>150 siswa (75 Fullday &amp; 75 Regular)</strong> terpenuhi.
           </p>
         </div>
 
@@ -42,7 +42,7 @@ export default function PpdbSchedule() {
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-200 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Mulai Oktober</span>
+                    <span>Mulai 7 November 2026</span>
                   </span>
                 </div>
 
@@ -106,7 +106,7 @@ export default function PpdbSchedule() {
                           Pembukaan Pendaftaran Online
                         </h5>
                         <span className="text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-full">
-                          Mulai Oktober
+                          Mulai 7 November 2026
                         </span>
                       </div>
                       <p className="font-body text-gray-500 text-xs sm:text-sm leading-relaxed">
@@ -161,7 +161,7 @@ export default function PpdbSchedule() {
               <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200/80 flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-700 shrink-0" />
                 <p className="font-body text-xs text-amber-900 leading-snug">
-                  <strong>Penting:</strong> Tidak ada gelombang susulan. Pastikan segera menyelesaikan pengisian data dan pembayaran begitu pendaftaran dibuka di bulan Oktober.
+                  <strong>Penting:</strong> Tidak ada gelombang susulan. Pastikan segera menyelesaikan pengisian data dan pembayaran begitu pendaftaran dibuka di bulan mulai 7 November 2026.
                 </p>
               </div>
             </div>
