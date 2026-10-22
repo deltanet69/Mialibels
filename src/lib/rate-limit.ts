@@ -45,10 +45,20 @@ export function checkRateLimit(ip: string, limit: number, windowMs: number): { s
 }
 
 export function getIp(request: Request): string {
+  // Cloudflare sets cf-connecting-ip to the real client IP — most reliable
+  // value when the app sits behind Cloudflare + hosting proxies.
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) {
+    return cfIp.trim();
+  }
   const forwardedFor = request.headers.get('x-forwarded-for');
   if (forwardedFor) {
     return forwardedFor.split(',')[0].trim();
   }
-  // Fallback if no x-forwarded-for (e.g. localhost)
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) {
+    return realIp.trim();
+  }
+  // Fallback if no proxy headers at all (e.g. localhost)
   return '127.0.0.1';
 }

@@ -10,16 +10,21 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = getAdminSupabase()
     const ip = getIp(request)
-    const { success } = checkRateLimit(ip, 5, 60 * 1000) // 5x per menit
-    
+
+    const { email, password } = await request.json()
+
+    // Rate limit per IP + akun (bukan per IP saja): semua staff satu kantor
+    // berbagi satu IP publik (NAT), limit per-IP membuat mereka saling
+    // memblokir setelah 5 percobaan semenit. 10x per menit per akun per IP.
+    const rlKey = `${ip}:${(email || '').toLowerCase().trim()}`
+    const { success } = checkRateLimit(rlKey, 10, 60 * 1000)
+
     if (!success) {
       return NextResponse.json(
         { error: 'Terlalu banyak percobaan login. Silakan coba lagi nanti.' },
         { status: 429 }
       )
     }
-
-    const { email, password } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json(
