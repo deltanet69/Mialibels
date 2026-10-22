@@ -9,16 +9,22 @@ import { checkRateLimit, getIp } from '@/lib/rate-limit'
 export async function POST(request: NextRequest) {
   try {
     const ip = getIp(request)
-    const { success } = checkRateLimit(ip, 5, 60 * 1000) // 5x per menit
-    
+
+    const { nis, password } = await request.json()
+
+    // Rate limit per IP + akun (bukan per IP saja): orang tua banyak yang
+    // berbagi satu IP publik (CGNAT operator seluler / WiFi sekolah), limit
+    // per-IP membuat mereka saling memblokir setelah 5 percobaan semenit.
+    // 10x per menit per akun per IP.
+    const rlKey = `${ip}:${(nis || '').toLowerCase().trim()}`
+    const { success } = checkRateLimit(rlKey, 10, 60 * 1000)
+
     if (!success) {
       return NextResponse.json(
         { error: 'Terlalu banyak percobaan login. Silakan coba lagi nanti.' },
         { status: 429 }
       )
     }
-
-    const { nis, password } = await request.json()
 
     if (!nis || !password) {
       return NextResponse.json(
