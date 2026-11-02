@@ -7,7 +7,7 @@ type PpdbStatusCheckerProps = {
   whatsappContact?: string
 }
 
-export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }: PpdbStatusCheckerProps) {
+export default function PpdbStatusChecker({ whatsappContact = '628567858268' }: PpdbStatusCheckerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<any[] | null>(null)
@@ -130,7 +130,7 @@ export default function PpdbStatusChecker({ whatsappContact = '6281234567890' }:
     }
   }
 
-  const waNum = (whatsappContact || '6281234567890').replace(/[^0-9]/g, '')
+  const waNum = (whatsappContact || '628567858268').replace(/[^0-9]/g, '')
 
   return (
     <div className="font-sans w-full max-w-6xl mx-auto space-y-6">

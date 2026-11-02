@@ -18,7 +18,7 @@ type PpdbSuccessModalProps = {
   onClose: () => void
 }
 
-export default function PpdbSuccessModal({ data, temporaryPassword, whatsappContact = '6281234567890', onClose }: PpdbSuccessModalProps) {
+export default function PpdbSuccessModal({ data, temporaryPassword, whatsappContact = '628567858268', onClose }: PpdbSuccessModalProps) {
   const [copied, setCopied] = React.useState(false)
 
   const handleCopyRegNumber = () => {

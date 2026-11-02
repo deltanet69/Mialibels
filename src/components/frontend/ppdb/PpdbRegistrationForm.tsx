@@ -168,6 +168,18 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     if (error) setError(null)
   }
 
+  // Date picker tanggal lahir (3 dropdown) — hasil gabungan disimpan ke formData.birth_date (YYYY-MM-DD)
+  const [birthParts, setBirthParts] = useState({ d: '', m: '', y: '' })
+  const handleBirthPart = (part: 'd' | 'm' | 'y', value: string) => {
+    const next = { ...birthParts, [part]: value }
+    setBirthParts(next)
+    const composed = next.d && next.m && next.y
+      ? `${next.y}-${next.m.padStart(2, '0')}-${next.d.padStart(2, '0')}`
+      : ''
+    setFormData(prev => ({ ...prev, birth_date: composed }))
+    if (error) setError(null)
+  }
+
   // Handle generic file upload for documents & payment proof
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string, folder = 'ppdb/documents') => {
     const file = e.target.files?.[0]
@@ -342,7 +354,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
         </p>
         <div className="pt-3">
           <a
-            href={`https://wa.me/${(settings.whatsapp_contact || '6281234567890').replace(/[^0-9]/g, '')}`}
+            href={`https://wa.me/${(settings.whatsapp_contact || '628567858268').replace(/[^0-9]/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-blue-600 text-white font-bold text-sm px-6 py-3 rounded-2xl hover:bg-blue-700 transition shadow-sm"
@@ -358,50 +370,43 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
   return (
     <div className="font-sans w-full max-w-5xl mx-auto">
       
-      {/* ── STEP INDICATOR (4 STEPS) ── */}
-      <div className="mb-8">
-        <div className="grid grid-cols-4 gap-2 sm:gap-4">
-          {[
-            { step: 1, title: 'Data Siswa', icon: User },
-            { step: 2, title: 'Data Orang Tua', icon: Users },
-            { step: 3, title: 'Dokumen & Janji', icon: FileCheck },
-            { step: 4, title: 'Pembayaran', icon: CreditCard }
-          ].map((item) => {
-            const Icon = item.icon
-            const isPassed = currentStep > item.step
-            const isCurrent = currentStep === item.step
-            return (
-              <div
-                key={item.step}
-                className={`flex flex-col items-center p-3 rounded-2xl border transition-all text-center ${
-                  isCurrent
-                    ? 'bg-gray-100 border-blue-500 text-blue-700 shadow-xs'
-                    : isPassed
-                    ? 'bg-emerald-50/70 border-emerald-300/60 text-emerald-700'
-                    : 'bg-white border-slate-200/80 text-slate-400'
-                }`}
-              >
+      {/* ── STEPPER VISUAL (4 LANGKAH) ── */}
+      <div className="mb-8 flex items-start max-w-3xl mx-auto px-1">
+        {[
+          { step: 1, title: 'Anak', sub: 'Biodata & program' },
+          { step: 2, title: 'Orang Tua', sub: 'NIK & kontak' },
+          { step: 3, title: 'Dokumen', sub: 'Upload berkas' },
+          { step: 4, title: 'Bayar', sub: 'Transfer & bukti' }
+        ].map((item, idx, arr) => {
+          const isPassed = currentStep > item.step
+          const isCurrent = currentStep === item.step
+          return (
+            <React.Fragment key={item.step}>
+              <div className="flex flex-col items-center text-center w-[64px] sm:w-[76px] shrink-0">
                 <div
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center mb-1.5 transition-colors ${
-                    isCurrent
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : isPassed
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-100 text-slate-400'
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-extrabold border-[2.5px] transition-all ${
+                    isPassed
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : isCurrent
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/30'
+                      : 'bg-white border-slate-300 text-slate-400'
                   }`}
                 >
-                  {isPassed ? <Check size={16} className="stroke-[2.5]" /> : <Icon size={16} />}
+                  {isPassed ? <Check size={17} className="stroke-[3]" /> : item.step}
                 </div>
-                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider block">
-                  Langkah {item.step}
-                </span>
-                <span className="text-xs font-bold hidden sm:block truncate max-w-full">
+                <span className={`mt-1.5 text-xs sm:text-[13px] font-extrabold leading-tight ${isCurrent ? 'text-slate-900' : isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>
                   {item.title}
                 </span>
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 leading-tight hidden xs:block">
+                  {item.sub}
+                </span>
               </div>
-            )
-          })}
-        </div>
+              {idx < arr.length - 1 && (
+                <div className={`flex-1 h-[2.5px] rounded mt-[18px] sm:mt-[20px] mx-1 transition-colors ${isPassed ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+              )}
+            </React.Fragment>
+          )
+        })}
       </div>
 
       {/* ── ERROR NOTIFICATION BOX ── */}
@@ -430,6 +435,9 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Lengkapi biodata lengkap calon murid baru sesuai akta kelahiran.
+              </p>
+              <p className="mt-2.5 rounded-lg border-l-[3px] border-blue-600 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+                Siapkan: akta kelahiran anak — nama &amp; tanggal lahir harus sama persis.
               </p>
             </div>
 
@@ -591,14 +599,41 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Tanggal Lahir <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  name="birth_date"
-                  value={formData.birth_date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm font-medium transition bg-white"
-                  required
-                />
+                <div className="grid grid-cols-[1fr_1.5fr_1.2fr] gap-2">
+                  <select
+                    aria-label="Tanggal lahir"
+                    value={birthParts.d}
+                    onChange={(e) => handleBirthPart('d', e.target.value)}
+                    className="w-full px-2.5 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm font-medium transition bg-white"
+                  >
+                    <option value="">Tgl</option>
+                    {Array.from({ length: 31 }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>{i + 1}</option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Bulan lahir"
+                    value={birthParts.m}
+                    onChange={(e) => handleBirthPart('m', e.target.value)}
+                    className="w-full px-2.5 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm font-medium transition bg-white"
+                  >
+                    <option value="">Bulan</option>
+                    {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((n, i) => (
+                      <option key={n} value={i + 1}>{n}</option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Tahun lahir"
+                    value={birthParts.y}
+                    onChange={(e) => handleBirthPart('y', e.target.value)}
+                    className="w-full px-2.5 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-sm font-medium transition bg-white"
+                  >
+                    <option value="">Tahun</option>
+                    {[2023, 2022, 2021, 2020, 2019, 2018, 2017].map((yy) => (
+                      <option key={yy} value={yy}>{yy}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Agama */}
@@ -663,6 +698,9 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Informasi orang tua atau wali penanggung jawab ananda.
+              </p>
+              <p className="mt-2.5 rounded-lg border-l-[3px] border-blue-600 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+                Siapkan: KTP orang tua — NIK 16 digit, nomor WA &amp; email aktif.
               </p>
             </div>
 
@@ -826,6 +864,9 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Unggah dokumen persyaratan resmi dan setujui surat pernyataan tata tertib madrasah.
               </p>
+              <p className="mt-2.5 rounded-lg border-l-[3px] border-blue-600 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+                Siapkan: scan / foto Akta, KK &amp; KTP (JPG, PNG, atau PDF — jelas terbaca).
+              </p>
             </div>
 
             {/* Upload Grid */}
@@ -942,7 +983,11 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 </h4>
               </div>
 
-              <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2.5 bg-white/80 p-4 sm:p-5 rounded-2xl border border-slate-200">
+              <details className="bg-white/80 rounded-2xl border border-slate-200">
+                <summary className="cursor-pointer select-none px-4 sm:px-5 py-3.5 text-xs sm:text-sm font-bold text-slate-800">
+                  Baca isi lengkap surat pernyataan
+                </summary>
+                <div className="text-xs sm:text-sm text-slate-700 leading-relaxed space-y-2.5 px-4 sm:px-5 pb-4 sm:pb-5">
                 <p className="font-semibold text-slate-800">
                   Dengan ini kami menyatakan dengan sesungguhnya, bahwa selama di Madrasah ini :
                 </p>
@@ -955,7 +1000,8 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 <p className="font-semibold text-slate-800 pt-1">
                   Demikian surat pernyataan ini kami buat dengan sebenarnya dan penuh rasa tanggung jawab.
                 </p>
-              </div>
+                </div>
+              </details>
 
               {/* Checkbox Wajib */}
               <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-indigo-300 cursor-pointer hover:bg-indigo-50/30 transition">
@@ -991,6 +1037,9 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Silakan transfer biaya pendaftaran ke rekening resmi madrasah dan unggah bukti transfer.
+              </p>
+              <p className="mt-2.5 rounded-lg border-l-[3px] border-blue-600 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-900">
+                Siapkan: bukti transfer Rp {(Number(settings.registration_fee) || 300000).toLocaleString('id-ID')} ke rekening BTN di bawah ini.
               </p>
             </div>
 
@@ -1084,6 +1133,11 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                 <div className="col-span-2">Email Notifikasi: <strong className="text-slate-900">{formData.parent_email}</strong></div>
               </div>
             </div>
+
+            {/* Setelah kirim */}
+            <p className="rounded-lg border-l-[3px] border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
+              Setelah kirim: nomor registrasi muncul di layar dan terkirim ke email — simpan nomor itu untuk cek status &amp; daftar ulang.
+            </p>
 
             {/* Submit Action */}
             <div className="pt-2">

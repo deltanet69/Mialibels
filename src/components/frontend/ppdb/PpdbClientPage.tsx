@@ -1,46 +1,132 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import Image from 'next/image'
 import {
-  Sparkles,
   CheckCircle2,
   ShieldCheck,
-  BookOpen,
   Clock,
-  HeartHandshake,
-  Phone,
   ArrowRight,
   HelpCircle,
   FileCheck,
-  Award,
   GraduationCap,
   ChevronDown,
   UserCheck,
   AlertCircle,
   MessageCircle,
-  ExternalLink,
-  Users,
   Lock,
-  CalendarX
+  FileText,
+  CalendarDays
 } from 'lucide-react'
 import PpdbRegistrationForm from './PpdbRegistrationForm'
 import PpdbStatusChecker from './PpdbStatusChecker'
-import PpdbRequirements from './PpdbRequirements'
-import PpdbSchedule from './PpdbSchedule'
-import PpdbFaq from './PpdbFaq'
 
 type PpdbClientPageProps = {
   initialSettings?: any
 }
 
+const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
+const SYARAT = [
+  'Usia minimal 6 tahun 5 bulan per 16 Juli 2027 (sesuai KMA 1503/2025). Cek dengan alat Cek Usia di samping.',
+  'Beragama Islam dan siap mengikuti pembiasaan ibadah serta tahfidz di madrasah.',
+  'Orang tua dan anak bersedia mematuhi tata tertib madrasah.',
+  'Biaya pendaftaran Rp 300.000 dibayar via transfer BTN atau QRIS panitia — tidak dapat dikembalikan.'
+]
+
+const BERKAS_UPLOAD = [
+  { t: 'Akta Kelahiran Anak', req: true },
+  { t: 'Kartu Keluarga (KK) Terbaru', req: true },
+  { t: 'KTP Ayah & Ibu', req: true },
+  { t: 'SK Tamat Belajar PAUD/TK/RA', req: false }
+]
+
+const BERKAS_FISIK = [
+  { t: 'Fotokopi Akta Kelahiran', n: '2 lembar' },
+  { t: 'Fotokopi Kartu Keluarga (barcode terbaru)', n: '2 lembar' },
+  { t: 'Fotokopi KTP Ayah & Ibu', n: '2 lembar' }
+]
+
+const FAQS = [
+  {
+    q: 'Berapa biaya pendaftaran dan apakah bisa dikembalikan?',
+    a: 'Biaya pendaftaran Rp 300.000, dibayar via transfer ke Bank BTN 2820-15-0010-3158 a.n. MI ATTAQWA 15 BABELAN atau QRIS melalui panitia. Biaya yang sudah dibayarkan tidak dapat dikembalikan (non-refundable).'
+  },
+  {
+    q: 'Bagaimana cara cek status pendaftaran?',
+    a: 'Buka tab Cek Status di halaman ini, lalu masukkan Nomor Registrasi (contoh: MI2027001) atau nomor WhatsApp yang dipakai saat mendaftar. Hasil verifikasi panitia juga dikirim ke email yang didaftarkan.'
+  },
+  {
+    q: 'Kapan berkas fisik diserahkan ke madrasah?',
+    a: 'Berkas fisik diserahkan saat daftar ulang, setelah status pendaftaran dinyatakan Approved: fotokopi Akta Kelahiran, Kartu Keluarga, dan KTP Ayah & Ibu masing-masing 2 lembar — map merah untuk Fullday, hijau untuk Reguler.'
+  }
+]
+
+/* ── Alat cek usia: date picker 3 dropdown, patokan 16 Juli 2027 (sama dengan validasi formulir) ── */
+function CekUsia() {
+  const [d, setD] = useState('')
+  const [m, setM] = useState('')
+  const [y, setY] = useState('')
+
+  let result: React.ReactNode = (
+    <div className="mt-3 rounded-xl border-[1.5px] border-dashed border-blue-300 bg-white px-3.5 py-2.5 text-[13px] font-semibold text-slate-500">
+      Pilih tanggal, bulan, dan tahun lahir anak — hasilnya langsung muncul di sini.
+    </div>
+  )
+
+  if (d && m && y) {
+    let years = 2027 - Number(y)
+    let months = 6 - (Number(m) - 1)
+    let days = 16 - Number(d)
+    if (days < 0) { months -= 1; days += 30 }
+    if (months < 0) { years -= 1; months += 12 }
+    const valid = years > 6 || (years === 6 && months >= 5)
+    result = valid ? (
+      <div className="mt-3 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-[13px] font-bold leading-relaxed text-emerald-800">
+        Memenuhi syarat — usia anak {years} tahun {months} bulan per 16 Juli 2027.
+        <span className="block text-xs font-semibold">Silakan lanjut isi formulir di atas.</span>
+      </div>
+    ) : (
+      <div className="mt-3 rounded-xl bg-rose-50 px-3.5 py-2.5 text-[13px] font-bold leading-relaxed text-rose-800">
+        Belum memenuhi syarat — usia anak baru {years} tahun {months} bulan per 16 Juli 2027.
+        <span className="block text-xs font-semibold">Syarat minimal 6 tahun 5 bulan (lahir maksimal 16 Februari 2021).</span>
+      </div>
+    )
+  }
+
+  const selCls = 'w-full rounded-xl border-[1.5px] border-slate-200 bg-white px-2.5 py-2.5 text-sm font-semibold text-slate-800 focus:border-blue-500 focus:outline-none'
+
+  return (
+    <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+      <p className="text-[13px] font-extrabold text-slate-900">Cek Usia Anak</p>
+      <p className="mb-2.5 mt-0.5 text-xs font-medium text-[#3D5A80]">Pastikan usia anak memenuhi syarat sebelum mengisi formulir.</p>
+      <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">Tanggal Lahir Anak — pilih, tidak perlu mengetik</span>
+      <div className="grid grid-cols-[1fr_1.5fr_1.2fr] gap-2">
+        <select aria-label="Tanggal" className={selCls} value={d} onChange={(e) => setD(e.target.value)}>
+          <option value="">Tgl</option>
+          {Array.from({ length: 31 }, (_, i) => (<option key={i + 1} value={i + 1}>{i + 1}</option>))}
+        </select>
+        <select aria-label="Bulan" className={selCls} value={m} onChange={(e) => setM(e.target.value)}>
+          <option value="">Bulan</option>
+          {BULAN.map((n, i) => (<option key={n} value={i + 1}>{n}</option>))}
+        </select>
+        <select aria-label="Tahun" className={selCls} value={y} onChange={(e) => setY(e.target.value)}>
+          <option value="">Tahun</option>
+          {[2023, 2022, 2021, 2020, 2019, 2018, 2017].map((yy) => (<option key={yy} value={yy}>{yy}</option>))}
+        </select>
+      </div>
+      {result}
+    </div>
+  )
+}
+
 export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps) {
   const [settings, setSettings] = useState<any>(initialSettings || null)
-  
+
   // Jika initialSettings ada dan pendaftaran ditutup, arahkan default tab ke 'status'
   const isInitiallyOpen = initialSettings ? Boolean(initialSettings.is_active && !initialSettings.stats?.isTotalFull) : false
   const [activeTab, setActiveTab] = useState<'register' | 'status'>(isInitiallyOpen ? 'register' : 'status')
   const [loading, setLoading] = useState(!initialSettings)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -75,7 +161,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     bank_name: 'Bank BTN',
     bank_account_number: '2820-15-0010-3158',
     bank_account_holder: 'MI ATTAQWA 15 BABELAN',
-    whatsapp_contact: '6281234567890'
+    whatsapp_contact: '628567858268'
   }
 
   const isTotalFull = Boolean(currentSettings.stats?.isTotalFull)
@@ -88,42 +174,42 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     }
   }
 
-  const waNumber = (currentSettings.whatsapp_contact || '6281234567890').replace(/[^0-9]/g, '')
+  const rawWa = (currentSettings.whatsapp_contact || '628567858268').replace(/[^0-9]/g, '')
+  const waNumber = rawWa.startsWith('0') ? '62' + rawWa.slice(1) : rawWa
+  const feeText = 'Rp ' + (Number(currentSettings.registration_fee) || 300000).toLocaleString('id-ID')
+  const fd = currentSettings.stats?.fullday
+  const rg = currentSettings.stats?.regular
+
+  const h2Cls = 'flex items-center gap-2.5 text-xl sm:text-2xl font-black tracking-tight text-slate-900 font-headline'
+  const h2Bar = <span className="h-[21px] w-[5px] flex-none rounded-full bg-amber-500" />
 
   return (
-    <div className="font-sans min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white pb-20">
-      
+    <div className="font-sans min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white pb-20 relative">
+
       {/* ════════════════════════════════════════════════════════════════════
-          TOP BRANDING & ADMISSION NAVBAR (Dedicated for SPMB Portal)
+          NAVBAR — overlay transparan di atas hero
          ════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
-          
-          {/* Logo & School Identity */}
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-sm sm:text-base text-slate-900 tracking-tight leading-none">
-                  MI ATTAQWA 15 BABELAN 
-                </span>
-              </div>
-              <p className="text-[11px] sm:text-xs font-semibold text-slate-500 mt-0.5">
-                Portal SPMB Online Tahun Ajaran {currentSettings.academic_year}
-              </p>
-            </div>
+      <header className="absolute inset-x-0 top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-3">
+          <div>
+            <span className="font-black text-sm sm:text-base text-white tracking-tight leading-none">
+              MI ATTAQWA 15 BABELAN
+            </span>
+            <p className="text-[11px] sm:text-xs font-semibold text-blue-200 mt-0.5">
+              Portal SPMB Online Tahun Ajaran {currentSettings.academic_year}
+            </p>
           </div>
 
-          {/* Right Action: Status Badge & WhatsApp Help */}
           <div className="flex items-center gap-2 sm:gap-3">
             {isRegistrationOpen ? (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Pendaftaran SPMB Dibuka</span>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-emerald-300 text-xs font-bold backdrop-blur-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Pendaftaran Dibuka</span>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-rose-500" />
-                <span>Pendaftaran SPMB Ditutup</span>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-rose-300 text-xs font-bold backdrop-blur-sm">
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                <span>Pendaftaran Ditutup</span>
               </div>
             )}
 
@@ -131,77 +217,70 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
               href={`https://wa.me/${waNumber}?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran%20murid%20baru.`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-tactile inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-600/20 transition cursor-pointer"
+              className="btn-tactile inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-950/30 transition cursor-pointer"
             >
               <MessageCircle size={15} />
-              <span className="hidden xs:inline">Bantuan WA</span>
+              <span>Bantuan WA</span>
             </a>
           </div>
-
         </div>
       </header>
 
       {/* ════════════════════════════════════════════════════════════════════
-          HERO BANNER
+          HERO — ringkas: pill jadwal buka, judul, 4 chip fakta, CTA
          ════════════════════════════════════════════════════════════════════ */}
-      <section className="bg-gradient-to-b from-[#002244] via-[#002d5a] to-[#001e3d] text-white py-12 sm:py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        
-        {/* Subtle Background Pattern */}
+      <section className="bg-gradient-to-b from-[#002957] via-[#00244a] to-[#001E3D] text-white px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-14 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto relative z-10 text-center space-y-5">
-          
-          {/* Status Badge */}
+        <div className="max-w-3xl mx-auto relative z-10 text-center space-y-5">
           {isRegistrationOpen ? (
-            <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
-              <span>Sistem Penerimaan Murid Baru (SPMB) Online</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold tracking-wide">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Pendaftaran dibuka Sabtu, 7 November 2026 · 08.00 WIB</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-rose-500/20 backdrop-blur-md border border-rose-400/40 text-rose-200 text-xs font-bold tracking-wide">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/20 backdrop-blur-md border border-rose-400/40 text-rose-200 text-xs font-bold tracking-wide">
               <Lock size={13} className="text-rose-400" />
               <span>Pendaftaran SPMB T.A {currentSettings.academic_year} Ditutup</span>
             </div>
           )}
 
-          {/* Heading */}
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight text-white font-headline">
-            Membentuk Generasi Qur&apos;ani, <br className="hidden sm:inline" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-200 to-teal-200">
-              Berakhlak Mulia &amp; Berprestasi
-            </span>
+          <h1 className="text-3xl sm:text-4xl lg:text-[44px] font-extrabold tracking-tight leading-tight text-white font-headline">
+            Pendaftaran Murid Baru {currentSettings.academic_year}
           </h1>
 
-          {/* Subtitle */}
           {isRegistrationOpen ? (
-            <p className="text-xs sm:text-base text-slate-200 max-w-2xl mx-auto leading-relaxed font-normal">
-              Selamat datang di portal resmi pendaftaran siswa baru MI Attaqwa 15 Babelan. Pendaftaran tahun ajaran <strong>{currentSettings.academic_year}</strong> telah dibuka secara online, mudah, dan transparan.
+            <p className="text-sm sm:text-base text-blue-100/90 max-w-xl mx-auto leading-relaxed">
+              Satu halaman untuk semua: cek persyaratan, isi formulir, bayar, lalu pantau status — tanpa antre di kantor.
             </p>
           ) : (
-            <p className="text-xs sm:text-base text-rose-100 max-w-2xl mx-auto leading-relaxed font-normal bg-rose-950/40 border border-rose-500/30 p-3.5 rounded-2xl">
+            <p className="text-xs sm:text-base text-rose-100 max-w-2xl mx-auto leading-relaxed bg-rose-950/40 border border-rose-500/30 p-3.5 rounded-2xl">
               Mohon maaf, sistem pendaftaran online murid baru MI Attaqwa 15 Tahun Ajaran <strong>{currentSettings.academic_year}</strong> saat ini <strong>Belum dibuka</strong> oleh panitia atau kuota penerimaan telah terpenuhi. Bagi calon wali murid yang sudah mendaftar, silakan lakukan pengecekan status di bawah.
             </p>
           )}
 
-          {/* Key Metric Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
-              <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-              <span>Usia Min. 6 Thn 5 Bln</span>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[.07] border border-white/[.14] text-xs font-semibold text-slate-100">
+              <CalendarDays size={14} className="text-amber-400 shrink-0" />
+              <span>Dibuka 7 Nov 2026</span>
             </div>
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[.07] border border-white/[.14] text-xs font-semibold text-slate-100">
               <GraduationCap size={14} className="text-amber-400 shrink-0" />
-              <span>Biaya Rp {(Number(currentSettings.registration_fee) || 300000).toLocaleString('id-ID')}</span>
+              <span>Kuota 150 — Fullday 75 · Reguler 75</span>
             </div>
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/15 text-xs font-semibold text-slate-100">
-              <ShieldCheck size={14} className="text-teal-400 shrink-0" />
-              <span>Pilihan Kelas Fullday &amp; Regular</span>
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[.07] border border-white/[.14] text-xs font-semibold text-slate-100">
+              <FileCheck size={14} className="text-amber-400 shrink-0" />
+              <span>Biaya {feeText}</span>
+            </div>
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[.07] border border-white/[.14] text-xs font-semibold text-slate-100">
+              <CheckCircle2 size={14} className="text-amber-400 shrink-0" />
+              <span>Usia min. 6 th 5 bln</span>
             </div>
           </div>
 
-          {/* Direct CTA Buttons */}
-          <div className="max-w-5xl mx-auto flex flex-col xs:flex-row items-center justify-center gap-3 pt-3">
+          <div className="flex flex-col xs:flex-row items-center justify-center gap-3 pt-2">
             {isRegistrationOpen ? (
               <button
                 onClick={() => scrollToForm('register')}
@@ -229,20 +308,15 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
               <span>Cek Status Pendaftaran</span>
             </button>
           </div>
-
         </div>
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════
-          MAIN CONTENT AREA (Direct Form & Status Tabs)
+          KARTU UTAMA — tab Formulir / Cek Status + strip kuota approved
          ════════════════════════════════════════════════════════════════════ */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-8">
-        
-        {/* ── MAIN INTERACTIVE TABS (DAFTAR vs CEK STATUS) ── */}
-        <div ref={formRef} className="pt-2 scroll-mt-24">
-          
-          {/* Tab Switcher */}
-          <div className="flex items-center justify-center mb-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
+        <div ref={formRef} className="scroll-mt-24">
+          <div className="flex items-center justify-center mb-6">
             <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center gap-1 shadow-inner max-w-md w-full">
               <button
                 type="button"
@@ -276,10 +350,22 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
             </div>
           </div>
 
-          {/* Tab Content Display */}
           {activeTab === 'register' ? (
             isRegistrationOpen ? (
-              <PpdbRegistrationForm settings={currentSettings} />
+              <div>
+                {/* Strip kuota — angka = pendaftar Approved (online + manual), sesuai aturan panitia */}
+                <div className="max-w-5xl mx-auto mb-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
+                  <p className="text-[13px] font-bold text-slate-700">
+                    Kuota Fullday <b className="text-slate-900">{fd?.approved ?? 0}/{fd?.quota ?? 75}</b>
+                    <span className="mx-2 text-slate-300">|</span>
+                    Kuota Reguler <b className="text-slate-900">{rg?.approved ?? 0}/{rg?.quota ?? 75}</b>
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    Kuota terisi dari pendaftaran yang sudah disetujui panitia — online dan manual di kantor. Berubah setiap ada persetujuan atau penolakan.
+                  </p>
+                </div>
+                <PpdbRegistrationForm settings={currentSettings} />
+              </div>
             ) : (
               /* Notice saat pendaftaran ditutup — Mencegah akses formulir sama sekali */
               <div className="bg-white rounded-3xl p-6 sm:p-12 text-center border border-rose-200/80 shadow-xl shadow-slate-900/5 max-w-3xl mx-auto space-y-6 animate-in fade-in duration-200">
@@ -335,16 +421,153 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
           ) : (
             <PpdbStatusChecker />
           )}
-
         </div>
-
       </main>
 
-      {/* ── INFORMASI LENGKAP SPMB (Syarat, Jadwal, FAQ) ── */}
-      <section className="mt-16 space-y-6">
-        <PpdbRequirements />
-        <PpdbSchedule />
-        <PpdbFaq />
+      {/* ════════════════════════════════════════════════════════════════════
+          INFO — Jadwal & Alur (satu kartu terang)
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+          <h2 className={h2Cls}>{h2Bar}Jadwal &amp; Alur Pendaftaran</h2>
+          <div className="mt-6 grid gap-8 md:grid-cols-2">
+            <div>
+              <h3 className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-blue-700">
+                <CalendarDays size={15} /> Jadwal
+              </h3>
+              <div className="mt-3.5 space-y-3.5 text-sm leading-relaxed text-slate-600">
+                <p className="flex gap-2.5"><Clock size={16} className="mt-0.5 flex-none text-blue-600" /><span><b className="text-slate-900">Pendaftaran dibuka</b><br />Sabtu, 7 November 2026 pukul 08.00 WIB — satu gelombang, langsung ditutup saat kuota 150 terpenuhi.</span></p>
+                <p className="flex gap-2.5"><Clock size={16} className="mt-0.5 flex-none text-blue-600" /><span><b className="text-slate-900">Verifikasi &amp; observasi</b><br />Dilakukan panitia secara berkala setelah berkas masuk; pantau hasilnya di tab Cek Status.</span></p>
+                <p className="flex gap-2.5"><Clock size={16} className="mt-0.5 flex-none text-blue-600" /><span><b className="text-slate-900">Daftar ulang</b><br />Setelah status Approved — serahkan berkas fisik ke sekretariat madrasah.</span></p>
+              </div>
+            </div>
+            <div>
+              <h3 className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-blue-700">
+                <ShieldCheck size={15} /> Alur — 3 Tahap Saja
+              </h3>
+              <div className="mt-3.5 space-y-3.5">
+                {[
+                  { t: 'Isi formulir & bayar', d: 'Lengkapi 4 langkah formulir di atas, transfer biaya pendaftaran, lalu unggah buktinya.' },
+                  { t: 'Verifikasi panitia', d: 'Panitia memeriksa berkas dan usia anak. Pantau hasilnya lewat tab Cek Status.' },
+                  { t: 'Daftar ulang', d: 'Status Approved? Serahkan berkas fisik ke sekretariat untuk mengunci kursi anak.' }
+                ].map((s, i) => (
+                  <div key={s.t} className="flex gap-3">
+                    <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-blue-600 text-xs font-extrabold text-white">{i + 1}</span>
+                    <p className="text-sm leading-relaxed text-slate-600"><b className="text-slate-900">{s.t}</b><br />{s.d}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          PERSYARATAN — syarat + cek usia interaktif | listing berkas
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+          <h2 className={h2Cls}>{h2Bar}Persyaratan Pendaftaran</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">Cek dulu sebelum mengisi formulir — kurang dari satu menit.</p>
+
+          <div className="mt-6 grid gap-9 md:grid-cols-2">
+            <div>
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-blue-700">Syarat Umum</h3>
+              <ul className="mt-3.5 space-y-2.5 text-sm leading-relaxed text-slate-600">
+                {SYARAT.map((s) => (
+                  <li key={s} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex h-[23px] w-[23px] flex-none items-center justify-center rounded-full bg-emerald-50">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+              <CekUsia />
+            </div>
+
+            <div>
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-blue-700">Berkas yang Diunggah</h3>
+              <div className="mt-3.5 space-y-2.5">
+                {BERKAS_UPLOAD.map((b) => (
+                  <div key={b.t} className="flex items-center gap-3 rounded-xl border-[1.5px] border-slate-200 px-3.5 py-3 transition hover:border-blue-300 hover:shadow-sm">
+                    <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-lg bg-blue-50">
+                      <FileText size={16} className="text-blue-600" />
+                    </span>
+                    <span className="text-sm font-semibold text-slate-800">
+                      {b.t}
+                      <small className="block text-[11.5px] font-semibold text-slate-500">Foto / scan jelas · JPG, PNG, atau PDF</small>
+                    </span>
+                    {b.req ? (
+                      <span className="ml-auto flex-none rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-extrabold text-rose-700">Wajib</span>
+                    ) : (
+                      <span className="ml-auto flex-none rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-extrabold text-slate-500">Opsional</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <h3 className="mt-6 text-xs font-extrabold uppercase tracking-wider text-blue-700">Fisik saat daftar ulang</h3>
+              <div className="mt-1.5">
+                {BERKAS_FISIK.map((f) => (
+                  <div key={f.t} className="flex items-center justify-between gap-3 border-t border-dashed border-slate-200 py-2 text-sm text-slate-600 first:border-t-0">
+                    <span>{f.t}</span>
+                    <b className="whitespace-nowrap text-slate-900">{f.n}</b>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2.5 text-xs font-medium text-slate-500">Map merah untuk Fullday, hijau untuk Reguler.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          FAQ — 3 pertanyaan teratas + strip WhatsApp
+         ════════════════════════════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8">
+          <h2 className={h2Cls}>{h2Bar}Sering Ditanyakan</h2>
+          <div className="mt-5 space-y-2.5">
+            {FAQS.map((f, i) => {
+              const open = openFaq === i
+              return (
+                <div key={f.q} className={`rounded-2xl border-[1.5px] transition ${open ? 'border-blue-500' : 'border-slate-200'}`}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(open ? null : i)}
+                    className="flex w-full items-center justify-between gap-3 px-4.5 py-4 text-left cursor-pointer"
+                  >
+                    <span className="text-sm font-bold text-slate-900 sm:text-[15px]">{f.q}</span>
+                    <ChevronDown size={18} className={`flex-none text-blue-600 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+                  </button>
+                  <div className={`grid transition-all duration-300 ${open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div className="overflow-hidden">
+                      <p className="px-4.5 pb-4.5 text-sm leading-relaxed text-slate-600">{f.a}</p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-5 flex flex-col items-start justify-between gap-3 rounded-2xl bg-slate-50 px-5 py-4 sm:flex-row sm:items-center">
+            <p className="text-sm font-semibold text-slate-700">Masih ada yang ingin ditanyakan? Panitia siap membantu.</p>
+            <a
+              href={`https://wa.me/${waNumber}?text=Halo%20Panitia%20SPMB%20MI%20Attaqwa%2015,%20saya%20ingin%20bertanya%20seputar%20pendaftaran%20murid%20baru.`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-tactile inline-flex flex-none items-center gap-1.5 rounded-xl bg-emerald-600 px-4.5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
+            >
+              <MessageCircle size={15} />
+              <span>Chat Panitia</span>
+            </a>
+          </div>
+        </div>
+
+        <p className="mt-8 text-center text-xs font-medium text-slate-400">
+          MI Attaqwa 15 Babelan — Portal SPMB Online {currentSettings.academic_year}
+        </p>
       </section>
 
     </div>

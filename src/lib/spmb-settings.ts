@@ -25,7 +25,7 @@ export async function getSpmbSettings() {
       bank_name: 'Bank BTN',
       bank_account_number: '2820-15-0010-3158',
       bank_account_holder: 'MI ATTAQWA 15 BABELAN',
-      whatsapp_contact: '6281234567890'
+      whatsapp_contact: '628567858268'
     }
 
     const { data: registrations, error: regError } = await supabase
@@ -98,7 +98,7 @@ export async function getSpmbSettings() {
       bank_name: 'Bank BTN',
       bank_account_number: '2820-15-0010-3158',
       bank_account_holder: 'MI ATTAQWA 15 BABELAN',
-      whatsapp_contact: '6281234567890',
+      whatsapp_contact: '628567858268',
       stats: {
         total: 0,
         totalQuota: 150,
