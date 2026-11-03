@@ -92,6 +92,25 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const inputBuffer = Buffer.from(arrayBuffer)
 
+    // Tolak file yang tidak terbaca utuh / bukan gambar valid — file terpotong
+    // (mis. hanya header PNG) tidak boleh tersimpan sebagai bukti rusak.
+    if (inputBuffer.length !== file.size || inputBuffer.length < 1024) {
+      return NextResponse.json({
+        error: 'File tidak terbaca utuh (' + inputBuffer.length + ' dari ' + file.size + ' byte). Periksa koneksi internet Anda, lalu coba unggah kembali.'
+      }, { status: 422 })
+    }
+    try {
+      const sharpValidate = (await import('sharp')).default
+      const meta = await sharpValidate(inputBuffer, { failOn: 'error' }).metadata()
+      if (!meta.width || !meta.height) throw new Error('invalid image')
+      // Probe decode penuh — menangkap file yang terpotong di tengah data.
+      await sharpValidate(inputBuffer, { failOn: 'error' }).raw().toBuffer()
+    } catch {
+      return NextResponse.json({
+        error: 'File gambar tidak valid atau rusak. Silakan pilih ulang foto/screenshot yang jelas, lalu coba lagi.'
+      }, { status: 422 })
+    }
+
     // Compress to WebP
     let finalBuffer: Buffer = inputBuffer
     let contentType = file.type
@@ -131,6 +150,17 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       console.error('Supabase upload error:', uploadError)
       return NextResponse.json({ error: `Gagal mengunggah ke penyimpanan: ${uploadError.message}` }, { status: 500 })
+    }
+
+    // Verifikasi ukuran objek tersimpan == buffer yang dikirim; beda = tidak
+    // utuh -> hapus objeknya dan minta unggah ulang.
+    const { data: listed } = await supabase.storage.from('uploads').list('', { search: fileName })
+    const storedObj: any = (listed || []).find((o: any) => o.name === fileName)
+    const storedSize = storedObj?.metadata?.size
+    if (typeof storedSize === 'number' && storedSize !== finalBuffer.length) {
+      await supabase.storage.from('uploads').remove([fileName])
+      console.error('Stored size mismatch:', storedSize, 'vs', finalBuffer.length)
+      return NextResponse.json({ error: 'Unggahan tidak tersimpan utuh di server. Silakan coba unggah kembali.' }, { status: 502 })
     }
 
     // Get public URL

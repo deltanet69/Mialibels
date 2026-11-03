@@ -9,8 +9,21 @@ export const runtime = "nodejs"
 const MAX_OUTPUT_BYTES = 300 * 1024 // 300 KB target
 
 async function compressImage(input: Buffer): Promise<{ buffer: Buffer; ext: string; contentType: string }> {
+  const sharp = (await import("sharp")).default
+  // Validasi dulu: buffer harus gambar UTUH yang metadata + dimensinya bisa dibaca.
+  // File terpotong (mis. header PNG saja) gagal di sini dan ditolak, bukan disimpan.
+  const meta0 = await sharp(input, { failOn: "error" }).metadata().catch(() => null)
+  if (!meta0 || !meta0.width || !meta0.height) {
+    throw new Error("INVALID_IMAGE")
+  }
+  // Probe decode PENUH: file yang header-nya utuh tapi datanya terpotong di
+  // tengah (IDAT) lolos metadata, tapi gagal di sini.
   try {
-    const sharp = (await import("sharp")).default
+    await sharp(input, { failOn: "error" }).raw().toBuffer()
+  } catch {
+    throw new Error("INVALID_IMAGE")
+  }
+  try {
     let s = sharp(input, { failOn: "none" }).rotate()
     const meta = await s.metadata()
     const maxDim = 1600
@@ -40,6 +53,10 @@ async function compressImage(input: Buffer): Promise<{ buffer: Buffer; ext: stri
     return { buffer: buf, ext: "webp", contentType: "image/webp" }
   } catch (err) {
     console.warn("[upload-proof] Sharp compression failed, using original:", err)
+    // Fallback: simpan file asli dengan label format ASLINYA (jangan paksa .jpg —
+    // PNG berlabel jpeg membuat gambar tidak bisa dibuka di sebagian penampil).
+    if (meta0.format === "png") return { buffer: input, ext: "png", contentType: "image/png" }
+    if (meta0.format === "webp") return { buffer: input, ext: "webp", contentType: "image/webp" }
     return { buffer: input, ext: "jpg", contentType: "image/jpeg" }
   }
 }
@@ -108,7 +125,28 @@ export async function POST(request: NextRequest) {
     // Compress & upload image
     const arrayBuffer = await file.arrayBuffer()
     const inputBuffer = Buffer.from(arrayBuffer)
-    const { buffer: finalBuffer, ext, contentType } = await compressImage(inputBuffer)
+
+    // Tolak file yang tidak terbaca utuh (terpotong di tengah jalan) — jangan
+    // sampai tersimpan sebagai bukti rusak yang tidak bisa dibuka admin.
+    if (inputBuffer.length !== file.size || inputBuffer.length < 1024) {
+      return NextResponse.json({
+        error: "File bukti tidak terbaca utuh (" + inputBuffer.length + " dari " + file.size + " byte). Periksa koneksi internet Anda, lalu coba unggah kembali.",
+      }, { status: 422 })
+    }
+
+    let finalBuffer: Buffer
+    let ext: string
+    let contentType: string
+    try {
+      const compressed = await compressImage(inputBuffer)
+      finalBuffer = compressed.buffer
+      ext = compressed.ext
+      contentType = compressed.contentType
+    } catch {
+      return NextResponse.json({
+        error: "File gambar tidak valid atau rusak. Silakan pilih ulang foto/screenshot bukti transfer yang jelas, lalu coba lagi.",
+      }, { status: 422 })
+    }
 
     const uniqueId = Date.now() + "-" + Math.round(Math.random() * 1e9)
     const fileName = `bukti-${type}-${uniqueId}.${ext}`
@@ -124,6 +162,17 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       console.error("[upload-proof] Supabase upload error:", uploadError)
       return NextResponse.json({ error: "Gagal mengunggah ke penyimpanan: " + uploadError.message }, { status: 500 })
+    }
+
+    // Verifikasi objek yang tersimpan ukurannya sama persis dengan buffer yang
+    // dikirim. Beda ukuran = tersimpan tidak utuh -> hapus dan minta unggah ulang.
+    const { data: listed } = await adminSupabase.storage.from("uploads").list("", { search: fileName })
+    const storedObj: any = (listed || []).find((o: any) => o.name === fileName)
+    const storedSize = storedObj?.metadata?.size
+    if (typeof storedSize === "number" && storedSize !== finalBuffer.length) {
+      await adminSupabase.storage.from("uploads").remove([fileName])
+      console.error("[upload-proof] Stored size mismatch:", storedSize, "vs", finalBuffer.length)
+      return NextResponse.json({ error: "Unggahan tidak tersimpan utuh di server. Silakan coba unggah kembali." }, { status: 502 })
     }
 
     const { data: { publicUrl } } = adminSupabase.storage.from("uploads").getPublicUrl(fileName)
