@@ -4,6 +4,7 @@ import { getAdminSupabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
 import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
 import { sendSpmbApprovalEmail, sendSpmbRejectionEmail } from '@/lib/spmb-email'
+import { parseRegistration, isFulldayRow } from '@/lib/spmb-registration'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,7 +92,8 @@ export async function PUT(request: NextRequest) {
       status,
       assigned_batch,
       payment_status,
-      admin_notes
+      admin_notes,
+      edit // data form lengkap (sama dengan form pendaftaran) untuk mengubah isi pendaftaran
     } = body
 
     if (!id) {
@@ -108,6 +110,26 @@ export async function PUT(request: NextRequest) {
     if (assigned_batch !== undefined) updatePayload.assigned_batch = Number(assigned_batch)
     if (payment_status !== undefined) updatePayload.payment_status = payment_status
     if (admin_notes !== undefined) updatePayload.admin_notes = admin_notes
+
+    if (edit) {
+      const parsed = parseRegistration(edit)
+      if ('error' in parsed) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 })
+      }
+      const { data: current } = await supabase.from('ppdb_registrations').select('id, academic_year, student_nickname, special_needs').eq('id', id).single()
+      if (!current) {
+        return NextResponse.json({ error: 'Data pendaftar tidak ditemukan.' }, { status: 404 })
+      }
+      // Pindah program kelas: kuota program tujuan (75) tidak boleh terlampaui.
+      if (parsed.isFullday !== isFulldayRow(current)) {
+        const { data: regs } = await supabase.from('ppdb_registrations').select('id, student_nickname, special_needs').eq('academic_year', current.academic_year)
+        const inTarget = (regs || []).filter((r: any) => r.id !== id && isFulldayRow(r) === parsed.isFullday).length
+        if (inTarget >= 75) {
+          return NextResponse.json({ error: `Kuota Program Kelas ${parsed.isFullday ? 'Fullday' : 'Regular'} (Maksimal 75 Siswa) telah terpenuhi.` }, { status: 400 })
+        }
+      }
+      Object.assign(updatePayload, parsed.fields)
+    }
 
     // Auto-sync payment_status with status
     if (status === 'approved' && !payment_status) {
@@ -159,7 +181,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Status pendaftar berhasil diperbarui.',
+      message: edit ? 'Data pendaftar berhasil diperbarui.' : 'Status pendaftar berhasil diperbarui.',
       data: updated,
       notification
     })

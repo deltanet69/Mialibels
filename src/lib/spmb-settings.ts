@@ -1,5 +1,8 @@
 import { getAdminSupabase } from '@/lib/supabase'
 
+// Perhitungan kuota baru berjalan mulai Sabtu 7 Nov 2026 08.00 WIB; sebelumnya dikunci 150 tersedia.
+const QUOTA_LIVE_AT_MS = Date.parse('2026-11-07T08:00:00+07:00')
+
 export async function getSpmbSettings() {
   try {
     const supabase: any = getAdminSupabase()
@@ -37,7 +40,7 @@ export async function getSpmbSettings() {
       console.error('Error counting SPMB registrations in db:', regError)
     }
 
-    const allRegs = registrations || []
+    const allRegs = Date.now() < QUOTA_LIVE_AT_MS ? [] : (registrations || [])
     const totalCount = allRegs.length
 
     // Fullday program count (75 siswa)

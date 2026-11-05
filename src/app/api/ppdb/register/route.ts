@@ -2,52 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSupabase } from '@/lib/supabase'
 import { sendSpmbRegistrationEmail } from '@/lib/spmb-email'
+import { getSession } from '@/lib/session'
+import { canManageSpmb } from '@/lib/rbac'
+import { parseRegistration, isFulldayRow } from '@/lib/spmb-registration'
 
 export const runtime = 'nodejs'
-
-// Helper to calculate exact age in years & months as of 16 July 2027
-function calculateAgeAsOfJuly16_2027(birthDateStr: string, cutoffYear = 2027) {
-  let bYear: number, bMonth: number, bDay: number
-  let cleanStr = birthDateStr
-  if (cleanStr.includes('T')) {
-    cleanStr = cleanStr.split('T')[0]
-  }
-  const parts = cleanStr.split('-').map(Number)
-  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-    bYear = parts[0]
-    bMonth = parts[1] - 1 // 0-indexed month
-    bDay = parts[2]
-  } else {
-    const d = new Date(birthDateStr)
-    bYear = d.getFullYear()
-    bMonth = d.getMonth()
-    bDay = d.getDate()
-  }
-
-  const cYear = cutoffYear
-  const cMonth = 6 // July (0-indexed)
-  const cDay = 16 // 16 July
-
-  let years = cYear - bYear
-  let months = cMonth - bMonth
-  let days = cDay - bDay
-
-  if (days < 0) {
-    months -= 1
-    const daysInPrevMonth = new Date(cYear, cMonth, 0).getDate()
-    days += daysInPrevMonth
-  }
-  if (months < 0) {
-    years -= 1
-    months += 12
-  }
-
-  const totalMonths = years * 12 + months
-  // Syarat minimum usia: 6 tahun 5 bulan pertanggal 16 Juli 2027
-  const isValid = years > 6 || (years === 6 && months >= 5)
-
-  return { years, months, days, totalMonths, isValid }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,79 +28,26 @@ export async function POST(request: NextRequest) {
       registration_fee: 300000,
     }
 
-    if (!ppdbSettings.is_active) {
+    // Admin (sesi valid + hak kelola SPMB) boleh mendaftarkan walau portal publik ditutup;
+    // kuota tetap berlaku.
+    const session = body.by_admin ? await getSession() : null
+    const byAdmin = !!session && canManageSpmb(session.role)
+    if (body.by_admin && !byAdmin) {
+      return NextResponse.json({ error: 'Akses ditolak. Anda tidak memiliki izin untuk mendaftarkan siswa.' }, { status: 403 })
+    }
+
+    if (!byAdmin && !ppdbSettings.is_active) {
       return NextResponse.json({
         error: 'Pendaftaran SPMB Tahun Ajaran ' + ppdbSettings.academic_year + ' saat ini sedang ditutup.'
       }, { status: 403 })
     }
 
-    // 2. Extract input fields
-    const {
-      // Data Siswa
-      student_name,
-      nisn,
-      birth_place,
-      birth_date,
-      gender,
-      religion = 'Islam',
-      class_program = 'regular', // 'fullday' | 'regular'
-
-      // Data Orang Tua / Wali
-      parent_name,
-      parent_nik,
-      parent_occupation,
-      parent_religion = 'Islam',
-      parent_relation = 'Ayah Kandung', // 'Ayah Kandung' | 'Ibu Kandung' | 'Wali'
-      parent_phone,
-      parent_email,
-      home_address,
-
-      // Dokumen Pendukung
-      document_birth_certificate,
-      document_family_card,
-      document_parent_id,
-      document_report_card, // SK Tamat Belajar PAUD/TK/SD (Opsional)
-
-      // Declaration Checklist (WAJIB)
-      declaration_agreed,
-
-      // Pembayaran
-      payment_method = 'transfer_btn',
-      payment_proof_url
-    } = body
-
-    // 3. Validation
-    if (!student_name?.trim() || !birth_place?.trim() || !birth_date) {
-      return NextResponse.json({ error: 'Data calon siswa (Nama Lengkap, Tempat Lahir, Tanggal Lahir) wajib diisi lengkap.' }, { status: 400 })
+    // 2-4. Validasi input + usia (logika bersama dengan edit admin)
+    const parsed = parseRegistration(body)
+    if ('error' in parsed) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
-
-    if (!parent_name?.trim() || !parent_nik?.trim() || !parent_occupation?.trim() || !parent_phone?.trim() || !parent_email?.trim() || !home_address?.trim()) {
-      return NextResponse.json({ error: 'Data orang tua/wali (Nama, NIK, Pekerjaan, No WA, Email, Alamat) wajib diisi lengkap.' }, { status: 400 })
-    }
-
-    if (parent_nik.trim().length !== 16 || !/^\d{16}$/.test(parent_nik.trim())) {
-      return NextResponse.json({ error: 'NIK Orang Tua/Wali harus terdiri dari 16 digit angka.' }, { status: 400 })
-    }
-
-    if (!document_birth_certificate || !document_family_card || !document_parent_id) {
-      return NextResponse.json({ error: 'Dokumen wajib (Akta Kelahiran Anak, Kartu Keluarga, dan KTP Orang Tua/Wali) wajib diunggah.' }, { status: 400 })
-    }
-
-    if (!declaration_agreed) {
-      return NextResponse.json({ error: 'Anda wajib menyetujui Surat Pernyataan Calon Siswa & Wali Murid (Declaration Checklist) sebelum melanjutkan.' }, { status: 400 })
-    }
-
-    if (!payment_proof_url) {
-      return NextResponse.json({ error: 'Bukti transfer biaya pendaftaran ke rekening Bank BTN sekolah wajib diunggah.' }, { status: 400 })
-    }
-
-    // 4. Age validation (Minimum 6 years 5 months as of 16 July 2027)
-    const age = calculateAgeAsOfJuly16_2027(birth_date, 2027)
-    if (!age.isValid) {
-      return NextResponse.json({
-        error: `Usia calon siswa pada 16 Juli 2027 adalah ${age.years} tahun ${age.months} bulan. Syarat usia minimum pendaftaran adalah 6 tahun 5 bulan pertanggal 16 Juli 2027 (lahir maksimal 16 Februari 2021).`
-      }, { status: 400 })
-    }
+    const { isFullday, fields } = parsed
 
     // 5. Check Quota: Total Quota (150) & Class Quotas (Fullday 75, Regular 75)
     const { data: existingRegs, count: totalCount } = await supabase
@@ -160,11 +66,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const isFullday = String(class_program).toLowerCase() === 'fullday'
-    const fulldayCount = (existingRegs || []).filter((r: any) => 
-      (r.student_nickname && String(r.student_nickname).toLowerCase().includes('fullday')) ||
-      (r.special_needs && String(r.special_needs).toLowerCase().includes('fullday'))
-    ).length
+    const fulldayCount = (existingRegs || []).filter(isFulldayRow).length
     const regularCount = Math.max(0, totalRegistered - fulldayCount)
 
     if (isFullday) {
@@ -194,34 +96,9 @@ export async function POST(request: NextRequest) {
       academic_year: ppdbSettings.academic_year || '2027/2028',
       batch: 1, // Single period
       assigned_batch: 1,
-      student_name: student_name.trim(),
-      student_nickname: isFullday ? 'fullday' : 'regular',
-      birth_place: birth_place.trim(),
-      birth_date,
-      gender: gender || 'Laki-laki',
-      nisn: nisn ? nisn.trim() : null,
-      previous_school: religion ? `Agama: ${religion}` : 'Agama: Islam',
-      special_needs: isFullday ? 'Program Kelas Fullday (75 Siswa)' : 'Program Kelas Regular (75 Siswa)',
-      medical_history: `Hubungan: ${parent_relation} | Agama Ortu: ${parent_religion}`,
-      father_name: parent_name.trim(),
-      father_nik: parent_nik.trim(),
-      father_occupation: parent_occupation.trim(),
-      father_phone: parent_phone.trim(),
-      father_email: parent_email.trim(),
-      mother_name: parent_name.trim(),
-      mother_nik: parent_nik.trim(),
-      mother_occupation: parent_occupation.trim(),
-      mother_phone: parent_phone.trim(),
-      mother_email: parent_email.trim(),
-      home_address: home_address.trim(),
-      document_birth_certificate: document_birth_certificate || null,
-      document_family_card: document_family_card || null,
-      document_parent_id: document_parent_id || null,
-      document_report_card: document_report_card || null,
+      ...fields,
       documents_submitted_at: new Date().toISOString(),
-      payment_method: payment_method || 'transfer_btn',
       payment_amount: Number(ppdbSettings.registration_fee) || 300000,
-      payment_proof_url,
       payment_status: 'pending',
       status: 'pending_verification',
       parent_password_hash: tempPassword,
@@ -259,11 +136,11 @@ export async function POST(request: NextRequest) {
     // menggagalkan pendaftaran yang sudah tersimpan).
     try {
       await supabase.from('activity_logs').insert({
-        admin_id: null,
-        admin_name: 'SPMB Online',
+        admin_id: byAdmin ? session.id : null,
+        admin_name: byAdmin ? session.name : 'SPMB Online',
         action: 'CREATE',
         resource: 'spmb_registration',
-        description: `Pendaftaran SPMB baru ${regNumber} — ${insertPayload.student_name} (${isFullday ? 'Fullday' : 'Regular'}) via formulir online, status pending_verification.`
+        description: `Pendaftaran SPMB baru ${regNumber} — ${insertPayload.student_name} (${isFullday ? 'Fullday' : 'Regular'}) ${byAdmin ? 'via admin' : 'via formulir online'}, status pending_verification.`
       })
     } catch (logErr) {
       console.warn('[SPMB Register] Gagal menulis activity_logs:', logErr)

@@ -1,6 +1,6 @@
 'use client'
 
-// SPMB Admin Portal T.A 2027/2028 - Auto-compiled (Cache Invalidated)
+// SPMB Admin Portal T.A 2027/2028 - Modern Bento UI & Mobile-First Redesign
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Search,
@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   List,
   UserPlus,
+  Pencil,
   ExternalLink,
   Image as ImageIcon,
   X,
@@ -26,9 +27,17 @@ import {
   RotateCcw,
   Sparkles,
   School,
-  FileCheck
+  Users,
+  Check,
+  TrendingUp,
+  AlertCircle,
+  ArrowUpRight,
+  ShieldCheck,
+  MessageCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import PpdbRegistrationForm from '@/components/frontend/ppdb/PpdbRegistrationForm'
+import { registrationToForm, isFulldayRow } from '@/lib/spmb-registration'
 
 // Resilient RBAC check functions
 function checkCanAccessSpmb(role?: string | null): boolean {
@@ -51,7 +60,7 @@ type Applicant = {
   batch: number
   assigned_batch: number
   student_name: string
-  student_nickname?: string // 'fullday' | 'regular'
+  student_nickname?: string
   birth_place: string
   birth_date: string
   gender: string
@@ -59,9 +68,9 @@ type Applicant = {
   height?: number
   blood_type?: string
   nisn?: string
-  previous_school?: string // 'Agama: Islam'
-  special_needs?: string // 'Program Kelas Fullday' | 'Program Kelas Regular'
-  medical_history?: string // 'Hubungan: Ayah Kandung | Agama Ortu: Islam'
+  previous_school?: string
+  special_needs?: string
+  medical_history?: string
   father_name: string
   father_nik: string
   father_occupation: string
@@ -89,17 +98,26 @@ type Applicant = {
   created_at: string
 }
 
-// Skeleton Components
+// Modern Skeleton Loading Components
 function SkeletonStats() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 font-sans animate-pulse">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 font-sans animate-pulse">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-3 bg-slate-200 rounded-md w-20" />
-            <div className="h-7 bg-slate-200 rounded-lg w-12" />
+        <div
+          key={i}
+          className={`bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-2xs space-y-3.5 ${
+            i === 1 ? 'col-span-2 lg:col-span-1' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="h-3.5 bg-slate-200 rounded-md w-24" />
+            <div className="w-10 h-10 bg-slate-100 rounded-2xl" />
           </div>
-          <div className="w-11 h-11 bg-slate-100 rounded-2xl" />
+          <div className="space-y-1.5">
+            <div className="h-7 bg-slate-200 rounded-xl w-16" />
+            <div className="h-3 bg-slate-100 rounded-md w-28" />
+          </div>
+          <div className="h-2 bg-slate-100 rounded-full w-full" />
         </div>
       ))}
     </div>
@@ -109,7 +127,7 @@ function SkeletonStats() {
 function SkeletonRow() {
   return (
     <tr className="animate-pulse border-b border-slate-100">
-      <td className="py-4 pr-4 pl-5"><div className="h-5 bg-slate-100 rounded-xl w-24" /></td>
+      <td className="py-4 pr-4 pl-5"><div className="h-6 bg-slate-100 rounded-xl w-24" /></td>
       <td className="py-4 pr-4">
         <div className="h-4.5 bg-slate-100 rounded-lg w-36 mb-1.5" />
         <div className="h-3.5 bg-slate-100 rounded-lg w-28" />
@@ -119,9 +137,9 @@ function SkeletonRow() {
         <div className="h-4 bg-slate-100 rounded-lg w-28 mb-1" />
         <div className="h-3 bg-slate-100 rounded-lg w-20" />
       </td>
-      <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-xl w-24" /></td>
+      <td className="py-4 pr-4"><div className="h-7 bg-slate-100 rounded-xl w-24" /></td>
       <td className="py-4 pr-4"><div className="h-6 bg-slate-100 rounded-full w-28" /></td>
-      <td className="py-4 pr-5 text-right"><div className="h-8 bg-slate-100 rounded-xl w-16 ml-auto" /></td>
+      <td className="py-4 pr-5 text-right"><div className="h-8 bg-slate-100 rounded-xl w-20 ml-auto" /></td>
     </tr>
   )
 }
@@ -130,20 +148,20 @@ function SkeletonCard() {
   return (
     <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-2xs animate-pulse space-y-4">
       <div className="flex justify-between items-start">
-        <div className="h-5 bg-slate-100 rounded-xl w-24" />
-        <div className="h-5 bg-slate-100 rounded-full w-20" />
+        <div className="h-6 bg-slate-100 rounded-xl w-24" />
+        <div className="h-6 bg-slate-100 rounded-full w-24" />
       </div>
       <div className="space-y-2">
         <div className="h-5 bg-slate-100 rounded-lg w-40" />
         <div className="h-3.5 bg-slate-100 rounded-lg w-32" />
       </div>
-      <div className="bg-slate-50 rounded-2xl p-3 space-y-2">
+      <div className="bg-slate-50 rounded-2xl p-3.5 space-y-2">
         <div className="h-3.5 bg-slate-100 rounded w-full" />
         <div className="h-3.5 bg-slate-100 rounded w-3/4" />
       </div>
-      <div className="pt-3 border-t border-slate-100 flex justify-between">
-        <div className="h-4 bg-slate-100 rounded w-20" />
-        <div className="h-7 bg-slate-100 rounded-xl w-28" />
+      <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+        <div className="h-7 bg-slate-100 rounded-xl w-24" />
+        <div className="h-8 bg-slate-100 rounded-xl w-32" />
       </div>
     </div>
   )
@@ -174,6 +192,7 @@ export default function AdminSpmbPage() {
   // Modals
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [formModal, setFormModal] = useState<{ mode: 'admin-create' | 'admin-edit'; applicant?: Applicant } | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   // Action state in detail modal
@@ -184,19 +203,8 @@ export default function AdminSpmbPage() {
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsForm, setSettingsForm] = useState<any>({})
 
-  // Dynamic SPMB Subdomain URL
-  const [spmbUrl, setSpmbUrl] = useState('https://spmb.miattaqwa15.sch.id')
-
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      if (window.location.hostname.includes('localhost')) {
-        const port = window.location.port ? `:${window.location.port}` : ':3000'
-        setSpmbUrl(`http://spmb.localhost${port}`)
-      } else {
-        setSpmbUrl('https://spmb.miattaqwa15.sch.id')
-      }
-
-      // Instant Cache Hydration
       try {
         const cachedData = sessionStorage.getItem(CACHE_KEY_DATA)
         const cachedSettings = sessionStorage.getItem(CACHE_KEY_SETTINGS)
@@ -237,10 +245,13 @@ export default function AdminSpmbPage() {
         setApplicants(dataApps.data || [])
         setSummary(dataApps.summary || null)
         try {
-          sessionStorage.setItem(CACHE_KEY_DATA, JSON.stringify({
-            data: dataApps.data || [],
-            summary: dataApps.summary || null
-          }))
+          sessionStorage.setItem(
+            CACHE_KEY_DATA,
+            JSON.stringify({
+              data: dataApps.data || [],
+              summary: dataApps.summary || null
+            })
+          )
         } catch {
           // ignore
         }
@@ -273,7 +284,6 @@ export default function AdminSpmbPage() {
 
   // RBAC checks
   const userRole = currentUser?.role || null
-  const hasAccess = checkCanAccessSpmb(userRole)
   const canManage = checkCanManageSpmb(userRole)
 
   // Toggle Master Switch (Active/Inactive)
@@ -318,17 +328,11 @@ export default function AdminSpmbPage() {
 
   // Count Fullday vs Regular
   const fulldayCount = useMemo(() => {
-    return applicants.filter(a => 
-      (a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
-      (a.special_needs && a.special_needs.toLowerCase().includes('fullday'))
-    ).length
+    return applicants.filter(a => isFulldayRow(a)).length
   }, [applicants])
 
   const regularCount = useMemo(() => {
-    return applicants.filter(a => 
-      !((a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
-        (a.special_needs && a.special_needs.toLowerCase().includes('fullday')))
-    ).length
+    return applicants.filter(a => !isFulldayRow(a)).length
   }, [applicants])
 
   // Filtered applicants
@@ -336,15 +340,9 @@ export default function AdminSpmbPage() {
     let list = [...applicants]
 
     if (programFilter === 'fullday') {
-      list = list.filter(a => 
-        (a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
-        (a.special_needs && a.special_needs.toLowerCase().includes('fullday'))
-      )
+      list = list.filter(a => isFulldayRow(a))
     } else if (programFilter === 'regular') {
-      list = list.filter(a => 
-        !((a.student_nickname && a.student_nickname.toLowerCase().includes('fullday')) ||
-          (a.special_needs && a.special_needs.toLowerCase().includes('fullday')))
-      )
+      list = list.filter(a => !isFulldayRow(a))
     }
 
     if (statusFilter !== 'all') {
@@ -475,8 +473,6 @@ export default function AdminSpmbPage() {
 
     let csv = 'No. Registrasi,Nama Lengkap,Program Kelas,JK,Tempat Lahir,Tanggal Lahir,Status,Orang Tua/Wali,NIK,Pekerjaan,No WA,Email,Alamat,Nominal Bayar,Status Bayar,Tgl Daftar,Link Bukti Transfer,Link Akta Kelahiran,Link Kartu Keluarga,Link KTP Orang Tua,Link SK Tamat Belajar\n'
 
-    // Sel berisi formula HYPERLINK agar berkas (bukti TF & dokumen) bisa
-    // langsung diklik dan dilihat dari Excel/Sheets hasil ekspor.
     const linkCell = (url: any) => {
       const u = String(url || '').trim().replace(/"/g, '')
       if (!u) return '""'
@@ -485,7 +481,7 @@ export default function AdminSpmbPage() {
 
     filteredApplicants.forEach(row => {
       const clean = (val: any) => `"${String(val || '').replace(/"/g, '""')}"`
-      const isF = (row.student_nickname && row.student_nickname.toLowerCase().includes('fullday')) || (row.special_needs && row.special_needs.toLowerCase().includes('fullday'))
+      const isF = isFulldayRow(row)
       const programName = isF ? 'Kelas Fullday' : 'Kelas Regular'
 
       csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(programName)},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${clean(row.status)},${clean(row.father_name || row.mother_name)},${clean(row.father_nik || row.mother_nik)},${clean(row.father_occupation || row.mother_occupation)},${clean(row.father_phone || row.mother_phone)},${clean(row.father_email || row.mother_email)},${clean(row.home_address)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))},${linkCell(row.payment_proof_url)},${linkCell(row.document_birth_certificate)},${linkCell(row.document_family_card)},${linkCell(row.document_parent_id)},${linkCell(row.document_report_card)}\n`
@@ -526,174 +522,362 @@ export default function AdminSpmbPage() {
     }
   }
 
+  // Quota & Target Metrics
+  const totalTargetQuota = Number(settings?.batch_1_quota) || 150
+  const fulldayTargetQuota = 75
+  const regularTargetQuota = 75
+
+  const totalCount = summary?.total || applicants.length
+  const totalRemaining = Math.max(0, totalTargetQuota - totalCount)
+  const totalPercent = Math.min(100, Math.round((totalCount / totalTargetQuota) * 100))
+
+  const fulldayRemaining = Math.max(0, fulldayTargetQuota - fulldayCount)
+  const fulldayPercent = Math.min(100, Math.round((fulldayCount / fulldayTargetQuota) * 100))
+
+  const regularRemaining = Math.max(0, regularTargetQuota - regularCount)
+  const regularPercent = Math.min(100, Math.round((regularCount / regularTargetQuota) * 100))
+
+  const pendingCount = summary?.pending || applicants.filter(a => a.status === 'pending_verification').length
+  const approvedCount = summary?.approved || applicants.filter(a => a.status === 'approved').length
+
+  const hasActiveFilters = search.trim() !== '' || programFilter !== 'all' || statusFilter !== 'all' || sortOrder !== 'newest'
+
   return (
-    <div className="font-sans space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="font-sans space-y-6 max-w-7xl mx-auto pb-16 antialiased">
       
       {/* ════════════════════════════════════════════════════════════════════
           HEADER & MASTER CONTROLS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-5 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-              Sistem Penerimaan Murid Baru
-            </span>
-            {isRevalidating && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
-                <RefreshCw size={12} className="animate-spin text-blue-600" />
-                <span>Menyelaraskan data...</span>
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-7">
+        
+        {/* Top Header Row */}
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+          
+          {/* Left: Badges, Title, Subtitle */}
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/70">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                Sistem Penerimaan Murid Baru
               </span>
-            )}
+
+              <span className="inline-flex items-center px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                T.A {settings?.academic_year || '2027/2028'}
+              </span>
+
+              {isRevalidating && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-blue-600 font-medium">
+                  <RefreshCw size={12} className="animate-spin text-blue-600" />
+                  <span>Sinkronisasi data...</span>
+                </span>
+              )}
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-headline">
+                SPMB T.A {settings?.academic_year || '2027/2028'}
+              </h1>
+              <p className="font-sans text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                Kelola pendaftaran siswa baru, verifikasi bukti transfer, pemantauan alokasi kuota kelas, dan administrasi calon murid.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-headline mt-2">
-            SPMB T.A {settings?.academic_year || '2027/2028'}
-          </h1>
-          <p className="font-sans text-xs sm:text-sm text-slate-500 mt-0.5">
-            Kelola data pendaftaran siswa baru, verifikasi berkas transfer, dan seleksi program kelas.
-          </p>
+
+          {/* Right: Modern Compact Portal Switch */}
+          {canManage && (
+            <div className="flex items-center lg:self-start">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!settings?.is_active}
+                onClick={handleToggleActive}
+                className={`inline-flex items-center gap-3 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.99] ${
+                  settings?.is_active
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100/70'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+                title={settings?.is_active ? 'Klik untuk menutup portal pendaftaran publik' : 'Klik untuk membuka portal pendaftaran publik'}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${settings?.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <span>Pendaftaran {settings?.is_active ? 'Dibuka' : 'Ditutup'}</span>
+                </div>
+
+                <span className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ${
+                  settings?.is_active ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}>
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 mt-0.5 ml-0.5 ${
+                    settings?.is_active ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Action Controls Container (Mobile-first, Cleanly Structured) */}
-        <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+        {/* Action Buttons Toolbar Row */}
+        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           
-          {/* Row 1 on Mobile: Status Toggle + Refresh Icon */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {canManage && (
-              <div className="flex-1 sm:flex-initial flex items-center justify-between sm:justify-start gap-2.5 bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-2xl">
-                <span className="text-xs font-bold text-slate-700">Status Portal:</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleToggleActive}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      settings?.is_active ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                    title={settings?.is_active ? 'Klik untuk menutup pendaftaran' : 'Klik untuk membuka pendaftaran'}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        settings?.is_active ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                  <span className={`text-xs font-extrabold ${settings?.is_active ? 'text-emerald-700' : 'text-slate-500'}`}>
-                    {settings?.is_active ? 'Buka' : 'Tutup'}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Refresh Button (Simple Icon Only) */}
+          {/* Primary Action Button */}
+          {canManage ? (
             <button
-              onClick={() => fetchData(true)}
-              disabled={isRevalidating}
-              className="btn-tactile flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-700 w-10 h-10 rounded-2xl hover:bg-slate-100 transition shadow-2xs cursor-pointer shrink-0"
-              title="Muat Ulang Data"
-              aria-label="Refresh Data"
+              onClick={() => setFormModal({ mode: 'admin-create' })}
+              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-bold shadow-sm shadow-blue-600/20 hover:shadow transition-all cursor-pointer w-full sm:w-auto active:scale-[0.98]"
             >
-              <RefreshCw size={15} className={isRevalidating ? 'animate-spin text-blue-600' : ''} />
+              <UserPlus size={16} className="stroke-[2.5]" />
+              <span>Pendaftaran Baru</span>
             </button>
-          </div>
+          ) : <div />}
 
-          {/* Row 2 on Mobile: 2-Columns Grid -> Inlined on sm+ */}
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-            {/* Settings Modal Button */}
+          {/* Secondary Action Buttons */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {canManage && (
               <button
                 onClick={() => setShowSettingsModal(true)}
-                className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs sm:text-sm font-semibold transition cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.98]"
               >
-                <Settings2 size={15} />
+                <Settings2 size={16} className="text-slate-500" />
                 <span>Pengaturan</span>
               </button>
             )}
 
-            {/* Export CSV */}
             <button
               onClick={handleExportCsv}
-              className="btn-tactile flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 px-3.5 py-2.5 rounded-2xl hover:bg-slate-100 transition text-xs font-bold shadow-2xs cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 text-xs sm:text-sm font-semibold transition cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.98]"
             >
-              <Download size={15} />
+              <Download size={16} className="text-slate-500" />
               <span>Export CSV</span>
+            </button>
+
+            <button
+              onClick={() => fetchData(true)}
+              disabled={isRevalidating}
+              className="inline-flex items-center justify-center h-10 w-10 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer shrink-0 shadow-2xs hover:shadow-xs active:scale-[0.98] disabled:opacity-50"
+              title="Muat Ulang Data"
+              aria-label="Muat ulang data"
+            >
+              <RefreshCw size={16} className={isRevalidating ? 'animate-spin text-blue-600' : ''} />
             </button>
           </div>
 
-          {/* Public Link (Full-width on Mobile, inline on sm+) */}
-          <a
-            href={spmbUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-tactile flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl transition text-xs font-bold shadow-md shadow-blue-600/20 w-full sm:w-auto whitespace-nowrap"
-          >
-            <ExternalLink size={15} />
-            <span>Halaman Publik</span>
-          </a>
-
         </div>
+
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-          STATS BENTO CARDS
+          STATS BENTO CARDS & KUOTA MONITORING
          ════════════════════════════════════════════════════════════════════ */}
       {loading && !summary ? (
         <SkeletonStats />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 font-sans">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 font-sans">
           
-          {/* Total Pendaftar */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-blue-200 transition">
-            <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Total Pendaftar</span>
-              <h3 className="font-extrabold text-xl sm:text-3xl text-slate-900">{summary?.total || applicants.length}</h3>
+          {/* Card 1: Total Pendaftar (Hero Kuota - Span 2 on Mobile/Tablet) */}
+          <div className="col-span-2 lg:col-span-1 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col justify-between gap-3.5 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <Users size={19} />
+                </div>
+                <div>
+                  <span className="block text-xs font-extrabold text-slate-800 leading-tight">Total Pendaftar</span>
+                  <span className="block text-[10px] text-slate-400 font-medium">Gabungan Program</span>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                {totalPercent}%
+              </span>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-blue-50 text-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
-              <UserPlus size={18} />
-            </div>
-          </div>
 
-          {/* Kelas Fullday */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-indigo-200/80 shadow-2xs flex items-center justify-between hover:border-indigo-300 transition">
-            <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-indigo-500 uppercase tracking-wider block mb-0.5 sm:mb-1">Kelas Fullday</span>
-              <div className="flex items-baseline gap-1">
-                <h3 className="font-extrabold text-xl sm:text-3xl text-indigo-700">{fulldayCount}</h3>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-400">/ 30</span>
+            <div className="mt-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight tabular-nums">
+                  {totalCount}
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-slate-400">
+                  / {totalTargetQuota} Kuota
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                <span>Sisa Kuota:</span>
+                <span className="font-bold text-blue-700">{totalRemaining} Kursi</span>
               </div>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-indigo-50 text-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
-              <Sparkles size={18} />
+
+            {/* Modern Dual-Layer Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden" role="progressbar" aria-valuenow={totalCount} aria-valuemin={0} aria-valuemax={totalTargetQuota}>
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-700 ease-out"
+                  style={{ width: `${totalPercent}%` }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Kelas Regular */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-teal-200 transition">
-            <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Kelas Regular</span>
-              <h3 className="font-extrabold text-xl sm:text-3xl text-slate-800">{regularCount}</h3>
+          {/* Card 2: Kelas Fullday (Quota 75) */}
+          <div className="col-span-1 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-purple-300 transition-all duration-200 flex flex-col justify-between gap-3.5 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <Sparkles size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-xs font-extrabold text-slate-800 leading-tight truncate">Kelas Fullday</span>
+                  <span className="block text-[10px] text-purple-600 font-bold">Kuotasi 75</span>
+                </div>
+              </div>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-teal-50 text-teal-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
-              <School size={18} />
+
+            <div className="mt-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+                  {fulldayCount}
+                </span>
+                <span className="text-xs font-semibold text-slate-400">/ 75</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                <span>Sisa:</span>
+                <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 text-[10px]">
+                  {fulldayRemaining} Kursi
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden" role="progressbar" aria-valuenow={fulldayCount} aria-valuemin={0} aria-valuemax={75}>
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-700 ease-out"
+                  style={{ width: `${fulldayPercent}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-right font-bold text-purple-600">{fulldayPercent}% Terisi</div>
             </div>
           </div>
 
-          {/* Menunggu Verifikasi */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-amber-200 transition">
-            <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Verifikasi</span>
-              <h3 className="font-extrabold text-xl sm:text-3xl text-amber-600">{summary?.pending || 0}</h3>
+          {/* Card 3: Kelas Regular (Quota 75) */}
+          <div className="col-span-1 bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-teal-300 transition-all duration-200 flex flex-col justify-between gap-3.5 group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-teal-500/5 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <School size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-xs font-extrabold text-slate-800 leading-tight truncate">Kelas Regular</span>
+                  <span className="block text-[10px] text-teal-600 font-bold">Kuotasi 75</span>
+                </div>
+              </div>
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-50 text-amber-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
-              <Clock size={18} />
+
+            <div className="mt-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+                  {regularCount}
+                </span>
+                <span className="text-xs font-semibold text-slate-400">/ 75</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                <span>Sisa:</span>
+                <span className="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100 text-[10px]">
+                  {regularRemaining} Kursi
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden" role="progressbar" aria-valuenow={regularCount} aria-valuemin={0} aria-valuemax={75}>
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-600 transition-all duration-700 ease-out"
+                  style={{ width: `${regularPercent}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-right font-bold text-teal-600">{regularPercent}% Terisi</div>
             </div>
           </div>
 
-          {/* Lulus / Approved */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-2xs flex items-center justify-between hover:border-emerald-200 transition col-span-2 sm:col-span-2 lg:col-span-1">
-            <div>
-              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5 sm:mb-1">Approved / Diterima</span>
-              <h3 className="font-extrabold text-xl sm:text-3xl text-emerald-600">{summary?.approved || 0}</h3>
+          {/* Card 4: Menunggu Verifikasi (Action-Oriented Card) */}
+          <div
+            onClick={() => setStatusFilter(statusFilter === 'pending_verification' ? 'all' : 'pending_verification')}
+            className={`col-span-1 bg-white p-4 sm:p-5 rounded-3xl border shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-3.5 group cursor-pointer relative overflow-hidden ${
+              statusFilter === 'pending_verification'
+                ? 'border-amber-400 ring-2 ring-amber-400/20 bg-amber-50/20'
+                : 'border-slate-200/90 hover:border-amber-300'
+            }`}
+            title="Klik untuk filter calon siswa yang menunggu verifikasi"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                <Clock size={18} />
+              </div>
+              {pendingCount > 0 ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                  Perlu Dicek
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                  Tuntas
+                </span>
+              )}
             </div>
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-emerald-50 text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold">
-              <CheckCircle2 size={18} />
+
+            <div className="mt-1">
+              <span className="block text-xs font-extrabold text-slate-800 leading-tight">Menunggu Verifikasi</span>
+              <div className="flex items-baseline gap-1.5 mt-1">
+                <span className="text-2xl sm:text-3xl font-black text-amber-600 tracking-tight tabular-nums">
+                  {pendingCount}
+                </span>
+                <span className="text-xs font-semibold text-slate-400">Pendaftar</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Bukti transfer</span>
+              <span className="font-bold text-amber-700 flex items-center gap-0.5 group-hover:underline">
+                Filter <ArrowUpRight size={12} />
+              </span>
+            </div>
+          </div>
+
+          {/* Card 5: Diterima / Approved */}
+          <div
+            onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')}
+            className={`col-span-1 bg-white p-4 sm:p-5 rounded-3xl border shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-3.5 group cursor-pointer relative overflow-hidden ${
+              statusFilter === 'approved'
+                ? 'border-emerald-400 ring-2 ring-emerald-400/20 bg-emerald-50/20'
+                : 'border-slate-200/90 hover:border-emerald-300'
+            }`}
+            title="Klik untuk filter calon siswa yang sudah disetujui / diterima"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                <CheckCircle2 size={18} />
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                Resmi
+              </span>
+            </div>
+
+            <div className="mt-1">
+              <span className="block text-xs font-extrabold text-slate-800 leading-tight">Diterima / Lulus</span>
+              <div className="flex items-baseline gap-1.5 mt-1">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight tabular-nums">
+                  {approvedCount}
+                </span>
+                <span className="text-xs font-semibold text-slate-400">Siswa</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Status valid</span>
+              <span className="font-bold text-emerald-700 flex items-center gap-0.5 group-hover:underline">
+                Filter <ArrowUpRight size={12} />
+              </span>
             </div>
           </div>
 
@@ -701,88 +885,128 @@ export default function AdminSpmbPage() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          PROGRAM TABS & FILTERS
+          PROGRAM TABS & DATA FILTERS
          ════════════════════════════════════════════════════════════════════ */}
-      <div className="bg-white p-4 sm:p-7 rounded-3xl shadow-xs border border-slate-200/80 space-y-5 sm:space-y-6">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-xs border border-slate-200/90 space-y-4 sm:space-y-5">
         
-        {/* Program Selector Pills */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto max-w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {/* Top Filter Bar: Program Switcher Pills & View Mode */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+          
+          {/* Modern Segmented Control Pills */}
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto max-w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <button
               onClick={() => setProgramFilter('all')}
-              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                programFilter === 'all' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                programFilter === 'all'
+                  ? 'bg-white shadow-xs text-blue-700 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Semua ({applicants.length})
+              <span>Semua Program</span>
+              <span className={`text-[11px] px-2 py-0.2 rounded-full ${
+                programFilter === 'all' ? 'bg-blue-50 text-blue-700 font-black' : 'bg-slate-200/70 text-slate-600'
+              }`}>
+                {applicants.length}
+              </span>
             </button>
+
             <button
               onClick={() => setProgramFilter('fullday')}
-              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                programFilter === 'fullday' ? 'bg-white shadow-2xs text-indigo-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                programFilter === 'fullday'
+                  ? 'bg-white shadow-xs text-purple-700 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Fullday ({fulldayCount} / 30)
+              <Sparkles size={13} className={programFilter === 'fullday' ? 'text-purple-600' : 'text-slate-400'} />
+              <span>Fullday</span>
+              <span className={`text-[11px] px-2 py-0.2 rounded-full ${
+                programFilter === 'fullday' ? 'bg-purple-50 text-purple-700 font-black' : 'bg-slate-200/70 text-slate-600'
+              }`}>
+                {fulldayCount} / 75
+              </span>
             </button>
+
             <button
               onClick={() => setProgramFilter('regular')}
-              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                programFilter === 'regular' ? 'bg-white shadow-2xs text-blue-700 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                programFilter === 'regular'
+                  ? 'bg-white shadow-xs text-teal-700 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Regular ({regularCount})
+              <School size={13} className={programFilter === 'regular' ? 'text-teal-600' : 'text-slate-400'} />
+              <span>Regular</span>
+              <span className={`text-[11px] px-2 py-0.2 rounded-full ${
+                programFilter === 'regular' ? 'bg-teal-50 text-teal-700 font-black' : 'bg-slate-200/70 text-slate-600'
+              }`}>
+                {regularCount} / 75
+              </span>
             </button>
           </div>
 
-          {/* View Mode Toggle - Only shown on Desktop/Tablet, on mobile always card */}
-          <div className="hidden sm:flex items-center gap-2">
+          {/* View Mode Toggle (Tablet & Desktop) */}
+          <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-700'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-white shadow-xs text-blue-700 font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
               title="Tampilan Tabel"
             >
-              <List size={18} />
+              <List size={15} />
+              <span>Tabel</span>
             </button>
             <button
               onClick={() => setViewMode('card')}
-              className={`p-2 rounded-xl transition cursor-pointer ${viewMode === 'card' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-400 hover:text-slate-700'}`}
-              title="Tampilan Kartu"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                viewMode === 'card'
+                  ? 'bg-white shadow-xs text-blue-700 font-extrabold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Tampilan Grid Card"
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={15} />
+              <span>Grid</span>
             </button>
           </div>
         </div>
 
-        {/* Search & Status Filter */}
+        {/* Search & Dropdown Filter Row (Mobile First) */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 flex-wrap">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          {/* Search Box */}
+          <div className="relative flex-1 sm:min-w-[280px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
             <input
               type="text"
-              placeholder="Cari nama, no registrasi, kontak..."
+              placeholder="Cari nama calon siswa, no registrasi, orang tua..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200"
+                title="Hapus pencarian"
               >
                 <X size={14} />
               </button>
             )}
           </div>
 
+          {/* Status & Sorting Controls */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl text-xs sm:text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
             >
               <option value="all">Semua Status</option>
               <option value="pending_verification">Menunggu Verifikasi</option>
-              <option value="approved">Approved / Disetujui</option>
+              <option value="approved">Approved / Lulus</option>
               <option value="documents_submitted">Berkas Terunggah</option>
               <option value="rejected">Revisi / Ditolak</option>
             </select>
@@ -790,28 +1014,45 @@ export default function AdminSpmbPage() {
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as any)}
-              className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-50 border border-slate-200/90 rounded-2xl text-xs sm:text-sm font-bold text-slate-700 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition outline-none cursor-pointer"
             >
               <option value="newest">Pendaftar Terbaru</option>
               <option value="oldest">Pendaftar Terlama</option>
             </select>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2 sm:ml-auto w-full sm:w-auto">
+          {/* Results Count & Reset Filter */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 sm:ml-auto w-full sm:w-auto pt-1 sm:pt-0">
             <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-100 whitespace-nowrap">
               {filteredApplicants.length} Calon Siswa
             </span>
+
+            {hasActiveFilters && (
+              <button
+                onClick={() => {
+                  setSearch('')
+                  setProgramFilter('all')
+                  setStatusFilter('all')
+                  setSortOrder('newest')
+                }}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl hover:bg-slate-100 transition cursor-pointer"
+                title="Reset semua filter"
+              >
+                <RotateCcw size={12} />
+                <span>Reset</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* ════════════════════════════════════════════════════════════════════
-            LIST VIEW TABLE (Desktop only)
+            LIST VIEW TABLE (Tablet & Desktop only)
            ════════════════════════════════════════════════════════════════════ */}
         {viewMode === 'list' && (
-          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-100">
+          <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200/80 shadow-2xs">
             <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-slate-50/90 border-b border-slate-200/80 text-xs font-extrabold text-slate-500 uppercase tracking-wider">
                   <th className="py-4 pr-4 pl-5">No. Registrasi</th>
                   <th className="py-4 pr-4">Nama Calon Siswa</th>
                   <th className="py-4 pr-4">Program Kelas</th>
@@ -834,15 +1075,15 @@ export default function AdminSpmbPage() {
                   <tr>
                     <td colSpan={7} className="py-14 text-center text-slate-400 text-xs">
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <SlidersHorizontal size={24} className="text-slate-300" />
-                        <span className="font-semibold text-slate-600">Tidak ada pendaftar yang sesuai filter.</span>
-                        {(search || programFilter !== 'all' || statusFilter !== 'all') && (
+                        <SlidersHorizontal size={26} className="text-slate-300" />
+                        <span className="font-bold text-slate-700 text-sm">Tidak ada pendaftar yang sesuai filter.</span>
+                        {hasActiveFilters && (
                           <button
                             onClick={() => { setSearch(''); setProgramFilter('all'); setStatusFilter('all'); }}
                             className="text-xs text-blue-600 hover:underline mt-1 font-bold inline-flex items-center gap-1"
                           >
                             <RotateCcw size={12} />
-                            <span>Reset Filter</span>
+                            <span>Reset Filter Pencarian</span>
                           </button>
                         )}
                       </div>
@@ -850,57 +1091,72 @@ export default function AdminSpmbPage() {
                   </tr>
                 ) : (
                   paginatedApplicants.map((app) => {
-                    const isF = (app.student_nickname && app.student_nickname.toLowerCase().includes('fullday')) || (app.special_needs && app.special_needs.toLowerCase().includes('fullday'))
+                    const isF = isFulldayRow(app)
+                    const phoneClean = (app.father_phone || app.mother_phone || '').replace(/[^0-9]/g, '')
+                    const waLink = phoneClean.startsWith('0') ? `https://wa.me/62${phoneClean.slice(1)}` : `https://wa.me/${phoneClean}`
+
                     return (
-                      <tr key={app.id} className="hover:bg-blue-50/30 transition-colors group">
+                      <tr key={app.id} className="hover:bg-blue-50/35 transition-colors group">
                         
                         {/* Reg Number */}
                         <td className="py-4 pr-4 pl-5">
-                          <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                          <span className="font-mono text-xs font-black text-blue-700 bg-blue-50/90 px-2.5 py-1 rounded-xl border border-blue-200/80">
                             {app.registration_number}
                           </span>
                         </td>
 
                         {/* Student Name */}
                         <td className="py-4 pr-4">
-                          <div 
+                          <div
                             onClick={() => {
                               setSelectedApplicant(app)
                               setActionNotes(app.admin_notes || '')
                             }}
-                            className="font-sans font-bold text-[14px] text-slate-900 hover:text-blue-600 transition cursor-pointer"
+                            className="font-sans font-extrabold text-[14px] text-slate-900 hover:text-blue-600 transition cursor-pointer flex items-center gap-2"
                           >
-                            {app.student_name}
+                            <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
+                              {app.student_name.charAt(0).toUpperCase()}
+                            </span>
+                            <span>{app.student_name}</span>
                           </div>
-                          <div className="text-xs text-slate-400 mt-0.5">
-                            {app.birth_place}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'} ({app.gender})
+                          <div className="text-xs text-slate-400 mt-0.5 ml-9">
+                            {app.birth_place || '—'}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'} ({app.gender || '—'})
                           </div>
                         </td>
 
                         {/* Program Kelas */}
                         <td className="py-4 pr-4">
                           {isF ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              <Sparkles size={11} />
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                              <Sparkles size={11} className="text-purple-600" />
                               <span>Fullday</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                              <School size={11} />
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                              <School size={11} className="text-teal-600" />
                               <span>Regular</span>
                             </span>
                           )}
                         </td>
 
-                        {/* Parent */}
+                        {/* Parent & Contact */}
                         <td className="py-4 pr-4">
-                          <div className="font-sans text-xs sm:text-sm font-semibold text-slate-800">
+                          <div className="font-sans text-xs font-bold text-slate-800">
                             {app.father_name || app.mother_name || '—'}
                           </div>
-                          <div className="font-sans text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                            <Phone size={12} />
-                            <span>{app.father_phone || app.mother_phone || '—'}</span>
-                          </div>
+                          {(app.father_phone || app.mother_phone) ? (
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-sans text-xs text-emerald-700 hover:text-emerald-800 font-semibold inline-flex items-center gap-1 mt-0.5 hover:underline"
+                            >
+                              <Phone size={11} />
+                              <span>{app.father_phone || app.mother_phone}</span>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">Tidak ada nomor</span>
+                          )}
                         </td>
 
                         {/* Payment Proof */}
@@ -908,7 +1164,7 @@ export default function AdminSpmbPage() {
                           {app.payment_proof_url ? (
                             <button
                               onClick={() => setPreviewImage(app.payment_proof_url)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-100 transition cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200/80 transition cursor-pointer shadow-2xs hover:shadow-xs"
                             >
                               <ImageIcon size={13} />
                               <span>Lihat Struk</span>
@@ -923,19 +1179,28 @@ export default function AdminSpmbPage() {
                           <StatusBadge status={app.status} />
                         </td>
 
-                        {/* Action */}
+                        {/* Actions */}
                         <td className="py-4 pr-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
                                 setSelectedApplicant(app)
-                                setActionNotes(app.admin_notes || '')
+                                actionNotesHandler(app)
                               }}
-                              className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
+                              className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer shadow-2xs"
                               title="Detail & Verifikasi"
                             >
                               <Eye size={16} />
                             </button>
+                            {canManage && (
+                              <button
+                                onClick={() => setFormModal({ mode: 'admin-edit', applicant: app })}
+                                className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer"
+                                title="Edit Data"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                            )}
                             {canManage && (
                               <button
                                 onClick={() => handleDeleteApplicant(app.id, app.student_name)}
@@ -958,7 +1223,7 @@ export default function AdminSpmbPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            CARD VIEW (Always on Mobile, Grid on Desktop when card mode chosen)
+            CARD VIEW (Always on Mobile, Grid Mode on Tablet/Desktop)
            ════════════════════════════════════════════════════════════════════ */}
         <div className={`${viewMode === 'card' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' : 'sm:hidden space-y-3.5'}`}>
           {loading && applicants.length === 0 ? (
@@ -968,30 +1233,35 @@ export default function AdminSpmbPage() {
               <SkeletonCard />
             </>
           ) : paginatedApplicants.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-slate-400 text-xs bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-6">
-              <SlidersHorizontal size={24} className="text-slate-300 mx-auto mb-2" />
-              <span className="font-semibold text-slate-600 block">Tidak ada calon siswa yang sesuai filter.</span>
+            <div className="col-span-full py-12 text-center text-slate-400 text-xs bg-slate-50/50 rounded-3xl border border-dashed border-slate-200 p-6">
+              <SlidersHorizontal size={26} className="text-slate-300 mx-auto mb-2" />
+              <span className="font-bold text-slate-700 block text-sm">Tidak ada calon siswa yang sesuai filter.</span>
             </div>
           ) : (
             paginatedApplicants.map((app) => {
-              const isF = (app.student_nickname && app.student_nickname.toLowerCase().includes('fullday')) || (app.special_needs && app.special_needs.toLowerCase().includes('fullday'))
+              const isF = isFulldayRow(app)
               const phoneClean = (app.father_phone || app.mother_phone || '').replace(/[^0-9]/g, '')
               const waLink = phoneClean.startsWith('0') ? `https://wa.me/62${phoneClean.slice(1)}` : `https://wa.me/${phoneClean}`
 
               return (
                 <div
                   key={app.id}
-                  className="bg-white border border-slate-200/90 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xs hover:shadow-md transition-all flex flex-col justify-between gap-3.5 font-sans relative overflow-hidden"
+                  className="bg-white border border-slate-200/90 p-4 sm:p-5 rounded-3xl shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between gap-3.5 font-sans relative overflow-hidden group"
                 >
-                  {/* Top Bar: Reg number + Program + Status */}
+                  {/* Program Accent Top Border */}
+                  <div className={`absolute top-0 left-0 right-0 h-1 ${
+                    isF ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : 'bg-gradient-to-r from-teal-500 to-blue-500'
+                  }`} />
+
+                  {/* Top Bar: Reg number + Program Badge + Status */}
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-100">
+                        <span className="font-mono text-xs font-black text-blue-700 bg-blue-50/90 px-2.5 py-1 rounded-xl border border-blue-200/80">
                           {app.registration_number}
                         </span>
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          isF ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          isF ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-teal-50 text-teal-700 border border-teal-200'
                         }`}>
                           {isF ? <Sparkles size={11} /> : <School size={11} />}
                           <span>{isF ? 'Fullday' : 'Regular'}</span>
@@ -1001,54 +1271,62 @@ export default function AdminSpmbPage() {
                     </div>
 
                     {/* Student Identity */}
-                    <div>
-                      <h4 
-                        onClick={() => {
-                          setSelectedApplicant(app)
-                          setActionNotes(app.admin_notes || '')
-                        }}
-                        className="font-extrabold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer"
-                      >
-                        {app.student_name}
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                        <span>{app.birth_place || '—'}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'}</span>
-                        {app.gender && <span>• ({app.gender})</span>}
-                      </p>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 text-blue-700 font-extrabold text-sm flex items-center justify-center shrink-0 border border-blue-100">
+                        {app.student_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h4
+                          onClick={() => {
+                            setSelectedApplicant(app)
+                            actionNotesHandler(app)
+                          }}
+                          className="font-extrabold text-base text-slate-900 hover:text-blue-600 transition cursor-pointer truncate"
+                          title={app.student_name}
+                        >
+                          {app.student_name}
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-1">
+                          <span>{app.birth_place || '—'}, {app.birth_date ? new Date(app.birth_date).toLocaleDateString('id-ID') : '—'}</span>
+                          {app.gender && <span className="text-slate-400 font-bold">({app.gender})</span>}
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Compact Info Box */}
-                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-3 text-xs text-slate-600 space-y-2">
+                    {/* Compact Modern Info Box */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-3.5 text-xs text-slate-600 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-slate-400 font-medium">Orang Tua / Wali:</span>
-                        <span className="font-bold text-slate-800 truncate max-w-[55%]">{app.father_name || app.mother_name || '—'}</span>
+                        <span className="text-slate-400 font-medium shrink-0">Orang Tua / Wali:</span>
+                        <span className="font-bold text-slate-800 truncate text-right">
+                          {app.father_name || app.mother_name || '—'}
+                        </span>
                       </div>
 
                       {(app.father_phone || app.mother_phone) && (
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-slate-400 font-medium">No. WhatsApp:</span>
+                          <span className="text-slate-400 font-medium shrink-0">Kontak WA:</span>
                           <a
                             href={waLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline"
+                            className="font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1 transition"
                           >
-                            <Phone size={11} />
+                            <MessageCircle size={12} />
                             <span>{app.father_phone || app.mother_phone}</span>
                           </a>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
-                        <span className="text-slate-400 font-medium">Biaya Masuk:</span>
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60">
+                        <span className="text-slate-400 font-medium shrink-0">Biaya Masuk:</span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-extrabold text-slate-900">
                             Rp {(Number(app.payment_amount) || 300000).toLocaleString('id-ID')}
                           </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                            app.payment_status === 'verified' 
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : 'bg-amber-100 text-amber-700'
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            app.payment_status === 'verified'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
                           }`}>
                             {app.payment_status === 'verified' ? 'Lunas' : 'Menunggu'}
                           </span>
@@ -1058,11 +1336,11 @@ export default function AdminSpmbPage() {
                   </div>
 
                   {/* Card Footer Actions */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 gap-2">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
                     {app.payment_proof_url ? (
                       <button
                         onClick={() => setPreviewImage(app.payment_proof_url)}
-                        className="btn-tactile inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-100 transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200/80 transition cursor-pointer shadow-2xs hover:shadow-xs"
                       >
                         <ImageIcon size={13} />
                         <span>Lihat Struk</span>
@@ -1075,18 +1353,28 @@ export default function AdminSpmbPage() {
                       <button
                         onClick={() => {
                           setSelectedApplicant(app)
-                          setActionNotes(app.admin_notes || '')
+                          actionNotesHandler(app)
                         }}
-                        className="btn-tactile px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1"
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
                       >
                         <Eye size={13} />
-                        <span>Detail &amp; Verifikasi</span>
+                        <span>Detail</span>
                       </button>
 
                       {canManage && (
                         <button
+                          onClick={() => setFormModal({ mode: 'admin-edit', applicant: app })}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer"
+                          title="Edit Data"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
+
+                      {canManage && (
+                        <button
                           onClick={() => handleDeleteApplicant(app.id, app.student_name)}
-                          className="btn-tactile p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                           title="Hapus Data"
                         >
                           <Trash2 size={15} />
@@ -1118,7 +1406,7 @@ export default function AdminSpmbPage() {
               <select
                 value={itemsPerPage}
                 onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                className="ml-2 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer outline-none"
+                className="ml-2 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer outline-none"
               >
                 <option value={10}>10 / hal</option>
                 <option value={15}>15 / hal</option>
@@ -1184,21 +1472,25 @@ export default function AdminSpmbPage() {
           DETAIL & VERIFICATION MODAL
          ════════════════════════════════════════════════════════════════════ */}
       {selectedApplicant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 overflow-y-auto font-sans">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto font-sans">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-6 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 sm:p-7 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 bg-slate-50/80 shrink-0">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-xs font-black text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-100">
+                  <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200/80">
                     {selectedApplicant.registration_number}
                   </span>
-                  <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100">
-                    {selectedApplicant.special_needs || ((selectedApplicant.student_nickname === 'fullday') ? 'Kelas Fullday' : 'Kelas Regular')}
+                  <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-lg border ${
+                    isFulldayRow(selectedApplicant)
+                      ? 'text-purple-700 bg-purple-50 border-purple-200'
+                      : 'text-teal-700 bg-teal-50 border-teal-200'
+                  }`}>
+                    {selectedApplicant.special_needs || (isFulldayRow(selectedApplicant) ? 'Kelas Fullday' : 'Kelas Regular')}
                   </span>
                 </div>
-                <h3 className="font-extrabold text-xl text-slate-900">
+                <h3 className="font-black text-xl text-slate-900">
                   {selectedApplicant.student_name}
                 </h3>
               </div>
@@ -1211,13 +1503,13 @@ export default function AdminSpmbPage() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 sm:p-7 max-h-[72vh] overflow-y-auto space-y-6">
+            <div className="p-5 sm:p-7 overflow-y-auto space-y-6">
               
               {/* Status & Verification Action Bar */}
-              <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl space-y-4">
+              <div className="p-5 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 rounded-3xl space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <div>
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status Saat Ini:</span>
+                    <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Status Verifikasi:</span>
                     <div className="mt-1">
                       <StatusBadge status={selectedApplicant.status} />
                     </div>
@@ -1235,29 +1527,29 @@ export default function AdminSpmbPage() {
                       onChange={(e) => setActionNotes(e.target.value)}
                       placeholder="Contoh: Berkas lengkap dan pembayaran tervalidasi / Siap daftar ulang..."
                       rows={2}
-                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition"
                     />
                   </div>
                 )}
 
                 {/* Action Buttons */}
                 {canManage && (
-                  <div className="flex items-center gap-2.5 pt-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
                     <button
                       onClick={() => handleUpdateStatus('approved')}
                       disabled={processingAction}
-                      className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white py-3 rounded-2xl text-xs font-bold shadow-sm shadow-emerald-500/25 transition cursor-pointer disabled:opacity-50"
                     >
-                      <CheckCircle2 size={15} />
-                      <span>{processingAction ? 'Memproses & Kirim Email...' : 'Approve & Kirim Email Kelulusan'}</span>
+                      <CheckCircle2 size={16} />
+                      <span>{processingAction ? 'Memproses & Kirim Notifikasi...' : 'Approve & Kirim Notifikasi Kelulusan'}</span>
                     </button>
 
                     <button
                       onClick={() => handleUpdateStatus('rejected')}
                       disabled={processingAction}
-                      className="btn-tactile flex-1 flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+                      className="sm:w-auto px-5 flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 py-3 rounded-2xl text-xs font-bold transition cursor-pointer disabled:opacity-50"
                     >
-                      <XCircle size={15} />
+                      <XCircle size={16} />
                       <span>{processingAction ? 'Memproses...' : 'Tolak / Perlu Revisi'}</span>
                     </button>
                   </div>
@@ -1266,28 +1558,28 @@ export default function AdminSpmbPage() {
 
               {/* Data Calon Siswa */}
               <div className="space-y-3">
-                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
                   Data Calon Siswa
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
                   <div>
-                    <span className="text-slate-400 block">Tempat, Tanggal Lahir</span>
+                    <span className="text-slate-400 block text-xs">Tempat, Tanggal Lahir</span>
                     <span className="font-bold text-slate-800">{selectedApplicant.birth_place || '—'}, {selectedApplicant.birth_date ? new Date(selectedApplicant.birth_date).toLocaleDateString('id-ID') : '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Jenis Kelamin</span>
+                    <span className="text-slate-400 block text-xs">Jenis Kelamin</span>
                     <span className="font-bold text-slate-800">{selectedApplicant.gender || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">NISN</span>
+                    <span className="text-slate-400 block text-xs">NISN</span>
                     <span className="font-bold text-slate-800">{selectedApplicant.nisn || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Agama</span>
+                    <span className="text-slate-400 block text-xs">Agama</span>
                     <span className="font-bold text-slate-800">{selectedApplicant.previous_school?.replace('Agama: ', '') || 'Islam'}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-400 block">Program Pilihan</span>
+                    <span className="text-slate-400 block text-xs">Program Pilihan</span>
                     <span className="font-bold text-indigo-700">{selectedApplicant.special_needs || 'Kelas Regular'}</span>
                   </div>
                 </div>
@@ -1295,38 +1587,38 @@ export default function AdminSpmbPage() {
 
               {/* Data Orang Tua */}
               <div className="space-y-3">
-                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
                   Data Orang Tua / Wali
                 </h4>
-                <div className="bg-slate-50 p-4 rounded-2xl space-y-2 text-sm">
+                <div className="bg-slate-50/80 border border-slate-200/80 p-4 rounded-2xl space-y-2.5 text-xs sm:text-sm">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <span className="text-slate-400 block">Nama Lengkap Orang Tua / Wali:</span>
-                      <span className="font-bold text-slate-900 text-sm">{selectedApplicant.father_name || selectedApplicant.mother_name || '—'}</span>
+                      <span className="text-slate-400 block text-xs">Nama Lengkap Orang Tua / Wali:</span>
+                      <span className="font-bold text-slate-900">{selectedApplicant.father_name || selectedApplicant.mother_name || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">NIK:</span>
+                      <span className="text-slate-400 block text-xs">NIK:</span>
                       <span className="font-bold text-slate-900 font-mono">{selectedApplicant.father_nik || selectedApplicant.mother_nik || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Pekerjaan:</span>
+                      <span className="text-slate-400 block text-xs">Pekerjaan:</span>
                       <span className="font-bold text-slate-900">{selectedApplicant.father_occupation || selectedApplicant.mother_occupation || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">No. WhatsApp:</span>
+                      <span className="text-slate-400 block text-xs">No. WhatsApp:</span>
                       <span className="font-bold text-slate-900">{selectedApplicant.father_phone || selectedApplicant.mother_phone || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Email:</span>
+                      <span className="text-slate-400 block text-xs">Email:</span>
                       <span className="font-bold text-slate-900">{selectedApplicant.father_email || selectedApplicant.mother_email || '—'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block">Keterangan Tambahan:</span>
+                      <span className="text-slate-400 block text-xs">Keterangan Tambahan:</span>
                       <span className="font-bold text-slate-900">{selectedApplicant.medical_history || '—'}</span>
                     </div>
                   </div>
                   <div className="pt-2 border-t border-slate-200">
-                    <span className="text-slate-400 block">Alamat Lengkap:</span>
+                    <span className="text-slate-400 block text-xs">Alamat Lengkap:</span>
                     <span className="font-medium text-slate-800 leading-relaxed">{selectedApplicant.home_address || '—'}</span>
                   </div>
                 </div>
@@ -1334,14 +1626,14 @@ export default function AdminSpmbPage() {
 
               {/* Pembayaran & Bukti Struk */}
               <div className="space-y-3">
-                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
                   Pembayaran Biaya Pendaftaran (Bank BTN)
                 </h4>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm bg-slate-50 p-4 rounded-2xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm bg-slate-50/80 border border-slate-200/80 p-4 rounded-2xl">
                   <div>
                     <span className="text-slate-500">Nominal Transfer: </span>
-                    <span className="font-bold text-slate-900">Rp {(Number(selectedApplicant.payment_amount) || 300000).toLocaleString('id-ID')}</span>
-                    <span className="text-slate-400 block mt-0.5">Status Pembayaran: <strong>{selectedApplicant.payment_status === 'verified' ? '✓ Terverifikasi' : 'Menunggu Verifikasi'}</strong></span>
+                    <span className="font-black text-slate-900">Rp {(Number(selectedApplicant.payment_amount) || 300000).toLocaleString('id-ID')}</span>
+                    <span className="text-slate-400 block mt-0.5">Status Pembayaran: <strong className="text-slate-700">{selectedApplicant.payment_status === 'verified' ? '✓ Terverifikasi' : 'Menunggu Verifikasi'}</strong></span>
                   </div>
 
                   {selectedApplicant.payment_proof_url && (
@@ -1358,10 +1650,10 @@ export default function AdminSpmbPage() {
 
               {/* Dokumen Terunggah */}
               <div className="space-y-3">
-                <h4 className="text-md font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 pt-4">
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
                   Dokumen Persyaratan Pendaftaran
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <DocLink title="Akta Kelahiran" url={selectedApplicant.document_birth_certificate} onPreview={setPreviewImage} />
                   <DocLink title="Kartu Keluarga" url={selectedApplicant.document_family_card} onPreview={setPreviewImage} />
                   <DocLink title="KTP Orang Tua" url={selectedApplicant.document_parent_id} onPreview={setPreviewImage} />
@@ -1371,6 +1663,39 @@ export default function AdminSpmbPage() {
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          PENDAFTARAN BARU / EDIT FORM MODAL
+         ════════════════════════════════════════════════════════════════════ */}
+      {formModal && canManage && settings && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto font-sans">
+          <div className="relative bg-slate-50 rounded-3xl shadow-2xl w-full max-w-5xl mx-auto my-4 p-4 sm:p-8 border border-slate-200">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-extrabold text-lg text-slate-900">
+                {formModal.mode === 'admin-edit' ? `Edit Pendaftaran ${formModal.applicant?.registration_number}` : 'Pendaftaran Siswa Baru'}
+              </h3>
+              <button
+                onClick={() => setFormModal(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                title="Tutup"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <PpdbRegistrationForm
+              settings={settings}
+              mode={formModal.mode}
+              recordId={formModal.applicant?.id}
+              initial={formModal.applicant ? registrationToForm(formModal.applicant) : undefined}
+              onDone={() => {
+                setFormModal(null)
+                setSelectedApplicant(null)
+                fetchData(true)
+              }}
+            />
           </div>
         </div>
       )}
@@ -1395,7 +1720,6 @@ export default function AdminSpmbPage() {
             </div>
 
             <form onSubmit={handleSaveSettings} className="p-6 space-y-4">
-              {/* Status Switcher in Modal */}
               <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
                 <div>
                   <span className="block text-xs font-bold text-slate-800">Status Pendaftaran SPMB</span>
@@ -1480,7 +1804,7 @@ export default function AdminSpmbPage() {
                 <button
                   type="submit"
                   disabled={savingSettings}
-                  className="btn-tactile px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
                 >
                   {savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan'}
                 </button>
@@ -1492,7 +1816,7 @@ export default function AdminSpmbPage() {
 
       {/* Lightbox Image Preview */}
       {previewImage && (
-        <div 
+        <div
           onClick={() => setPreviewImage(null)}
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 cursor-pointer"
         >
@@ -1511,8 +1835,13 @@ export default function AdminSpmbPage() {
 
     </div>
   )
+
+  function actionNotesHandler(app: Applicant) {
+    setActionNotes(app.admin_notes || '')
+  }
 }
 
+// Subcomponents: StatusBadge & DocLink
 function StatusBadge({ status }: { status: string }) {
   if (status === 'approved') {
     return (
@@ -1557,7 +1886,7 @@ function DocLink({ title, url, onPreview }: { title: string; url?: string; onPre
   }
 
   return (
-    <div 
+    <div
       onClick={() => onPreview(url)}
       className="p-2.5 bg-blue-50/70 border border-blue-200 hover:border-blue-400 rounded-xl text-blue-900 cursor-pointer transition flex justify-between items-center"
     >

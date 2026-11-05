@@ -58,9 +58,14 @@ type SettingsData = {
 
 type PpdbRegistrationFormProps = {
   settings: SettingsData
+  // Dipakai admin: form yang sama dengan publik, tanpa gerbang "ditutup".
+  mode?: 'admin-create' | 'admin-edit'
+  initial?: Record<string, any>
+  recordId?: string
+  onDone?: () => void
 }
 
-export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormProps) {
+export default function PpdbRegistrationForm({ settings, mode, initial, recordId, onDone }: PpdbRegistrationFormProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,7 +88,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
   const [successData, setSuccessData] = useState<any | null>(null)
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Record<string, any>>({
     // 1. Data Siswa
     student_name: '',
     nisn: '',
@@ -114,7 +119,8 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
     // 5. Pembayaran
     payment_method: 'transfer_btn',
-    payment_proof_url: ''
+    payment_proof_url: '',
+    ...initial
   })
 
   // Live Age Calculation (Cutoff: 16 Juli 2027)
@@ -179,7 +185,10 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
   }
 
   // Date picker tanggal lahir (3 dropdown) — hasil gabungan disimpan ke formData.birth_date (YYYY-MM-DD)
-  const [birthParts, setBirthParts] = useState({ d: '', m: '', y: '' })
+  const [birthParts, setBirthParts] = useState(() => {
+    const [y, m, d] = String(initial?.birth_date || '').split('-')
+    return { d: d ? String(Number(d)) : '', m: m ? String(Number(m)) : '', y: y || '' }
+  })
   const handleBirthPart = (part: 'd' | 'm' | 'y', value: string) => {
     const next = { ...birthParts, [part]: value }
     setBirthParts(next)
@@ -262,11 +271,11 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     if (!formData.religion) return 'Agama calon siswa wajib diisi.'
     if (!formData.class_program) return 'Pilihan program kelas (Fullday / Regular) wajib dipilih.'
     
-    if (formData.class_program === 'fullday' && settings.stats?.fullday?.isFull) {
+    if (mode !== 'admin-edit' && formData.class_program === 'fullday' && settings.stats?.fullday?.isFull) {
       return 'Kuota Kelas Fullday (Maksimal 75 Siswa) telah terpenuhi. Silakan pilih Kelas Regular.'
     }
 
-    if (formData.class_program === 'regular' && settings.stats?.regular?.isFull) {
+    if (mode !== 'admin-edit' && formData.class_program === 'regular' && settings.stats?.regular?.isFull) {
       return 'Kuota Kelas Regular (Maksimal 75 Siswa) telah terpenuhi. Silakan pilih Kelas Fullday.'
     }
 
@@ -355,16 +364,22 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     const timer = setTimeout(() => controller.abort(), 60000)
 
     try {
-      const res = await fetch('/api/spmb/register', {
-        method: 'POST',
+      const isEdit = mode === 'admin-edit'
+      const res = await fetch(isEdit ? '/api/spmb/admin' : '/api/spmb/register', {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(isEdit ? { id: recordId, edit: formData } : { ...formData, by_admin: mode === 'admin-create' }),
         signal: controller.signal
       })
 
       const json = await res.json()
       if (!res.ok) {
         throw new Error(json.error || 'Gagal mengirimkan formulir pendaftaran')
+      }
+
+      if (mode === 'admin-edit') {
+        onDone?.()
+        return
       }
 
       setSuccessData({
@@ -385,7 +400,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     }
   }
 
-  const isClosed = !settings.is_active || settings.stats?.isTotalFull
+  const isClosed = !mode && (!settings.is_active || settings.stats?.isTotalFull)
   const fulldayIsFull = Boolean(settings.stats?.fullday?.isFull)
   const regularIsFull = Boolean(settings.stats?.regular?.isFull)
 
@@ -1204,7 +1219,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   </>
                 ) : (
                   <>
-                    <span>Kirim Pendaftaran SPMB 2027/2028</span>
+                    <span>{mode === 'admin-edit' ? 'Simpan Perubahan' : 'Kirim Pendaftaran SPMB 2027/2028'}</span>
                     <ArrowRight size={18} />
                   </>
                 )}
@@ -1260,7 +1275,8 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
           whatsappContact={settings.whatsapp_contact}
           onClose={() => {
             setSuccessData(null)
-            window.location.reload()
+            if (mode) onDone?.()
+            else window.location.reload()
           }}
         />
       )}
