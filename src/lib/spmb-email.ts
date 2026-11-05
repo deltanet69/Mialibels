@@ -75,7 +75,7 @@ export async function sendSpmbRegistrationEmail(params: {
   const parentName = reg.father_name || reg.mother_name || 'Bapak/Ibu Orang Tua'
   const waContact = settings?.whatsapp_contact || '+62 812-3456-7890'
 
-  const results: { parentEmailId?: string; adminEmailId?: string; waSent?: boolean; error?: string } = {}
+  const results: { parentEmailId?: string; adminEmailId?: string; waSent?: boolean; waError?: string; error?: string } = {}
 
   if (!resend) {
     results.error = 'RESEND_API_KEY not configured'
@@ -174,6 +174,7 @@ export async function sendSpmbRegistrationEmail(params: {
         html: parentHtml
       })
 
+      if ((sendRes as any)?.error) throw new Error((sendRes as any).error.message || 'Resend menolak pengiriman email')
       results.parentEmailId = sendRes.data?.id
       console.log(`[SPMB Email] Registration email successfully sent to ${recipientEmail} (ID: ${sendRes.data?.id})`)
     } catch (err: any) {
@@ -203,6 +204,7 @@ export async function sendSpmbRegistrationEmail(params: {
         </div>
       `
     })
+    if ((adminRes as any)?.error) throw new Error((adminRes as any).error.message || 'Resend menolak email admin')
     results.adminEmailId = adminRes.data?.id
   } catch (adminErr) {
     console.warn('[SPMB Email] Admin notification skipped/failed:', adminErr)
@@ -215,8 +217,9 @@ export async function sendSpmbRegistrationEmail(params: {
       const waText = `*BUKTI PENDAFTARAN SPMB ${academicYear}*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, pendaftaran calon siswa baru telah kami terima:\n\n• *No. Registrasi:* ${reg.registration_number}\n• *Nama Siswa:* ${reg.student_name}\n• *Program:* ${programLabel}\n• *Status:* Menunggu Verifikasi Berkas\n\nEmail bukti pendaftaran lengkap telah dikirimkan ke *${recipientEmail || 'email Anda'}*.\n\nCek status berkala: https://spmb.miattaqwa15.sch.id\n_Terima kasih atas kepercayaan Bapak/Ibu._`
       await sendWhatsAppMessage(phone, waText)
       results.waSent = true
-    } catch (waErr) {
-      // WA gateway is optional, non-blocking
+    } catch (waErr: any) {
+      // WA gateway is optional, non-blocking — email di atas sudah terkirim lebih dulu
+      results.waError = waErr?.message || 'WhatsApp gagal terkirim'
     }
   }
 
@@ -310,20 +313,31 @@ export async function sendSpmbApprovalEmail(params: {
       html: approvalHtml
     })
 
+    if ((sendRes as any)?.error) {
+      const msg = (sendRes as any).error.message || 'Resend menolak pengiriman email'
+      console.error(`[SPMB Email] Failed to send approval email to ${recipientEmail}:`, msg)
+      return { success: false, error: msg, waSent: false }
+    }
+
     console.log(`[SPMB Email] Approval email successfully sent to ${recipientEmail} (ID: ${sendRes.data?.id})`)
 
-    // Optional WA Notification
+    // Optional WA Notification — email SUDAH terkirim di atas; hasil WA hanya
+    // dicatat dan dilaporkan, tidak pernah membatalkan email.
     const phone = getParentPhone(reg)
+    let waSent = false
+    let waError: string | undefined
     if (phone) {
       try {
         const waText = `*SELAMAT! PENDAFTARAN SPMB DITERIMA*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, calon siswa atas nama:\n\n• *Nama Siswa:* ${reg.student_name}\n• *No. Registrasi:* ${reg.registration_number}\n• *Program:* ${programLabel}\n• *T.A:* ${academicYear}\n\n*DINYATAKAN DITERIMA* di ${SCHOOL_NAME}.\n\nSurat pengumuman kelulusan resmi telah dikirim ke email *${recipientEmail}*.\n\nCek status resmi: https://spmb.miattaqwa15.sch.id\n\nSelamat bergabung di madrasah kami!`
         await sendWhatsAppMessage(phone, waText)
-      } catch (waErr) {
-        // Non-blocking
+        waSent = true
+      } catch (waErr: any) {
+        waError = waErr?.message || 'WhatsApp gagal terkirim'
+        console.warn('[SPMB Email] Approval WA gagal (email tetap terkirim):', waError)
       }
     }
 
-    return { success: true, id: sendRes.data?.id }
+    return { success: true, id: sendRes.data?.id, waSent, waError }
   } catch (err: any) {
     console.error(`[SPMB Email] Failed to send approval email to ${recipientEmail}:`, err.message || err)
     return { success: false, error: err.message }
@@ -413,20 +427,31 @@ export async function sendSpmbRejectionEmail(params: {
       html: rejectionHtml
     })
 
+    if ((sendRes as any)?.error) {
+      const msg = (sendRes as any).error.message || 'Resend menolak pengiriman email'
+      console.error(`[SPMB Email] Failed to send rejection email to ${recipientEmail}:`, msg)
+      return { success: false, error: msg, waSent: false }
+    }
+
     console.log(`[SPMB Email] Rejection notice email successfully sent to ${recipientEmail} (ID: ${sendRes.data?.id})`)
 
-    // Optional WA Notification
+    // Optional WA Notification — email SUDAH terkirim di atas; hasil WA hanya
+    // dicatat dan dilaporkan, tidak pernah membatalkan email.
     const phone = getParentPhone(reg)
+    let waSent = false
+    let waError: string | undefined
     if (phone) {
       try {
         const waText = `*PEMBERITAHUAN SELEKSI SPMB ${academicYear}*\n*${SCHOOL_NAME}*\n\nYth. Bapak/Ibu Orang Tua dari *${reg.student_name}* (No. Reg: ${reg.registration_number}),\n\nTerima kasih atas partisipasi Anda dalam SPMB ${SCHOOL_NAME}. Mengingat keterbatasan kuota penerimaan siswa baru, kami menginformasikan bahwa ananda belum dapat diterima pada periode pendaftaran ini.\n\nSurat pemberitahuan resmi telah dikirim ke email *${recipientEmail}*.\n\nSemoga ananda sukses di tempat belajar terbaik. Terima kasih.`
         await sendWhatsAppMessage(phone, waText)
-      } catch (waErr) {
-        // Non-blocking
+        waSent = true
+      } catch (waErr: any) {
+        waError = waErr?.message || 'WhatsApp gagal terkirim'
+        console.warn('[SPMB Email] Rejection WA gagal (email tetap terkirim):', waError)
       }
     }
 
-    return { success: true, id: sendRes.data?.id }
+    return { success: true, id: sendRes.data?.id, waSent, waError }
   } catch (err: any) {
     console.error(`[SPMB Email] Failed to send rejection email to ${recipientEmail}:`, err.message || err)
     return { success: false, error: err.message }

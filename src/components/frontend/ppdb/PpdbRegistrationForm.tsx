@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import {
   User,
   Users,
@@ -68,6 +68,16 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
   // Upload States
   const [uploadingField, setUploadingField] = useState<string | null>(null)
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({})
+  const errorBoxRef = useRef<HTMLDivElement | null>(null)
+
+  // Tampilkan error di kotak notifikasi + gulir layar ke kotak itu agar terlihat
+  const tampilkanError = (msg: string) => {
+    setError(msg)
+    setTimeout(() => {
+      errorBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+  }
 
   // Success modal state
   const [successData, setSuccessData] = useState<any | null>(null)
@@ -181,12 +191,25 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
   }
 
   // Handle generic file upload for documents & payment proof
+  // Tahan macet: ada timeout 90 detik, input direset agar file yang sama bisa
+  // dipilih ulang setelah gagal, dan error tampil di bawah field terkait.
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string, folder = 'ppdb/documents') => {
     const file = e.target.files?.[0]
+    // Reset nilai input: tanpa ini, memilih file yang sama setelah percobaan
+    // gagal tidak memicu onChange lagi di browser (form terasa macet).
+    e.target.value = ''
     if (!file) return
 
     setUploadingField(fieldName)
     setError(null)
+    setUploadErrors(prev => {
+      const next = { ...prev }
+      delete next[fieldName]
+      return next
+    })
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 90000)
 
     try {
       const data = new FormData()
@@ -195,19 +218,34 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
       const res = await fetch('/api/spmb/upload', {
         method: 'POST',
-        body: data
+        body: data,
+        signal: controller.signal
       })
 
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Gagal mengunggah berkas')
+      if (!json.url) throw new Error('Server tidak mengembalikan alamat berkas. Silakan coba lagi.')
 
       setFormData(prev => ({ ...prev, [fieldName]: json.url }))
     } catch (err: any) {
-      setError(err.message)
+      const pesan = err?.name === 'AbortError'
+        ? 'Unggahan melewati batas waktu 90 detik. Periksa koneksi internet Anda, lalu pilih file ini sekali lagi.'
+        : (err?.message || 'Gagal mengunggah berkas. Silakan coba lagi.')
+      setUploadErrors(prev => ({ ...prev, [fieldName]: pesan }))
     } finally {
+      clearTimeout(timer)
       setUploadingField(null)
     }
   }
+
+  // Blok error kecil yang tampil tepat di bawah input upload terkait
+  const renderUploadError = (fieldName: string) =>
+    uploadErrors[fieldName] ? (
+      <div className="flex items-start gap-1.5 text-xs text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
+        <AlertCircle size={13} className="shrink-0 mt-0.5" />
+        <span>{uploadErrors[fieldName]} Pilih file sekali lagi untuk mengulang.</span>
+      </div>
+    ) : null
 
   const handleCopyBank = () => {
     navigator.clipboard.writeText(settings.bank_account_number || '2820-15-0010-3158')
@@ -272,21 +310,21 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     if (currentStep === 1) {
       const err = validateStep1()
       if (err) {
-        setError(err)
+        tampilkanError(err)
         return
       }
       setCurrentStep(2)
     } else if (currentStep === 2) {
       const err = validateStep2()
       if (err) {
-        setError(err)
+        tampilkanError(err)
         return
       }
       setCurrentStep(3)
     } else if (currentStep === 3) {
       const err = validateStep3()
       if (err) {
-        setError(err)
+        tampilkanError(err)
         return
       }
       setCurrentStep(4)
@@ -307,17 +345,21 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
     setError(null)
 
     if (!formData.payment_proof_url) {
-      setError('Bukti transfer pembayaran biaya pendaftaran wajib diunggah.')
+      tampilkanError('Bukti transfer pembayaran biaya pendaftaran wajib diunggah.')
       return
     }
 
     setLoading(true)
 
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 60000)
+
     try {
       const res = await fetch('/api/spmb/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
+        signal: controller.signal
       })
 
       const json = await res.json()
@@ -332,8 +374,13 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
         temporaryPassword: json.temporaryPassword
       })
     } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat memproses pendaftaran.')
+      if (err?.name === 'AbortError') {
+        tampilkanError('Pengiriman melewati batas waktu 60 detik. Periksa koneksi internet Anda, lalu tekan tombol kirim sekali lagi. Data yang sudah Anda isi tidak hilang.')
+      } else {
+        tampilkanError(err.message || 'Terjadi kesalahan saat memproses pendaftaran.')
+      }
     } finally {
+      clearTimeout(timer)
       setLoading(false)
     }
   }
@@ -411,7 +458,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
 
       {/* ── ERROR NOTIFICATION BOX ── */}
       {error && (
-        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-3 animate-in fade-in duration-200">
+        <div ref={errorBoxRef} className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start gap-3 animate-in fade-in duration-200">
           <AlertCircle size={18} className="text-rose-600 shrink-0 mt-0.5" />
           <div className="leading-relaxed">{error}</div>
         </div>
@@ -895,6 +942,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     <Loader2 size={13} className="animate-spin" /> Mengunggah Akta...
                   </div>
                 )}
+                {renderUploadError('document_birth_certificate')}
               </div>
 
               {/* 2. Kartu Keluarga */}
@@ -920,6 +968,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     <Loader2 size={13} className="animate-spin" /> Mengunggah KK...
                   </div>
                 )}
+                {renderUploadError('document_family_card')}
               </div>
 
               {/* 3. KTP Orang Tua / Wali */}
@@ -945,6 +994,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     <Loader2 size={13} className="animate-spin" /> Mengunggah KTP...
                   </div>
                 )}
+                {renderUploadError('document_parent_id')}
               </div>
 
               {/* 4. SK Tamat Belajar (Opsional) */}
@@ -970,6 +1020,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                     <Loader2 size={13} className="animate-spin" /> Mengunggah SK Tamat Belajar...
                   </div>
                 )}
+                {renderUploadError('document_report_card')}
               </div>
 
             </div>
@@ -1111,6 +1162,7 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   <Loader2 size={15} className="animate-spin" /> Mengunggah bukti pembayaran...
                 </div>
               )}
+              {renderUploadError('payment_proof_url')}
 
               {formData.payment_proof_url && (
                 <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-bold">

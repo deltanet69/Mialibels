@@ -127,24 +127,41 @@ export async function PUT(request: NextRequest) {
     }
 
     // Send status notification emails (Approval or Rejection)
+    // Email selalu dikirim lebih dulu; WhatsApp bersifat best-effort —
+    // kegagalan WA (nomor salah / sesi terputus) tidak menggagalkan email.
+    // Hasil kedua jalur dilaporkan ke admin lewat field `notification`.
+    let notification: any = undefined
     if (status === 'approved' || status === 'documents_verified') {
       try {
-        await sendSpmbApprovalEmail({ registration: updated })
-      } catch (mailErr) {
+        const r: any = await sendSpmbApprovalEmail({ registration: updated })
+        notification = {
+          email: r?.success ? 'terkirim' : 'gagal',
+          whatsapp: r?.waSent ? 'terkirim' : 'gagal',
+          detail: r?.waError || r?.error || null
+        }
+      } catch (mailErr: any) {
         console.error('[SPMB Admin] Failed to send approval email:', mailErr)
+        notification = { email: 'gagal', whatsapp: 'gagal', detail: mailErr?.message || 'Gagal mengirim notifikasi' }
       }
     } else if (status === 'rejected') {
       try {
-        await sendSpmbRejectionEmail({ registration: updated, adminNotes: admin_notes })
-      } catch (mailErr) {
+        const r: any = await sendSpmbRejectionEmail({ registration: updated, adminNotes: admin_notes })
+        notification = {
+          email: r?.success ? 'terkirim' : 'gagal',
+          whatsapp: r?.waSent ? 'terkirim' : 'gagal',
+          detail: r?.waError || r?.error || null
+        }
+      } catch (mailErr: any) {
         console.error('[SPMB Admin] Failed to send rejection email:', mailErr)
+        notification = { email: 'gagal', whatsapp: 'gagal', detail: mailErr?.message || 'Gagal mengirim notifikasi' }
       }
     }
 
     return NextResponse.json({
       success: true,
       message: 'Status pendaftar berhasil diperbarui.',
-      data: updated
+      data: updated,
+      notification
     })
   } catch (error: any) {
     console.error('Admin PPDB Update Error:', error)

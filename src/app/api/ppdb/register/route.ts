@@ -182,8 +182,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Generate Unique Registration Number: MI2027xxx (e.g. MI2027001)
-    const sequence = totalRegistered + 1
-    const regNumber = `MI2027${String(sequence).padStart(3, '0')}`
+    let sequence = totalRegistered + 1
+    let regNumber = `MI2027${String(sequence).padStart(3, '0')}`
 
     // 7. Temporary password
     const tempPassword = `MIA${Math.floor(100000 + Math.random() * 900000)}`
@@ -229,15 +229,44 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    const { data: newReg, error: insertError } = await supabase
-      .from('ppdb_registrations')
-      .insert(insertPayload)
-      .select()
-      .single()
+    // Simpan pendaftaran. Bila nomor registrasi tabrakan dengan pendaftaran
+    // lain yang masuk di detik yang sama (unique violation), naikkan nomor
+    // urut dan coba lagi — jangan sampai pendaftaran orang tua gagal total.
+    let newReg: any = null
+    let insertError: any = null
+    for (let attempt = 0; attempt < 5; attempt++) {
+      insertPayload.registration_number = regNumber
+      const res = await supabase
+        .from('ppdb_registrations')
+        .insert(insertPayload)
+        .select()
+        .single()
+      newReg = res.data
+      insertError = res.error
+      if (!insertError) break
+      const isDuplicate = insertError.code === '23505' || /duplicate|unique/i.test(insertError.message || '')
+      if (!isDuplicate) break
+      sequence += 1
+      regNumber = `MI2027${String(sequence).padStart(3, '0')}`
+    }
 
     if (insertError) {
       console.error('Error inserting SPMB registration:', insertError)
       return NextResponse.json({ error: 'Gagal menyimpan pendaftaran: ' + insertError.message }, { status: 500 })
+    }
+
+    // Catat ke log aktivitas admin (non-blocking: kegagalan log tidak boleh
+    // menggagalkan pendaftaran yang sudah tersimpan).
+    try {
+      await supabase.from('activity_logs').insert({
+        admin_id: null,
+        admin_name: 'SPMB Online',
+        action: 'CREATE',
+        resource: 'spmb_registration',
+        description: `Pendaftaran SPMB baru ${regNumber} — ${insertPayload.student_name} (${isFullday ? 'Fullday' : 'Regular'}) via formulir online, status pending_verification.`
+      })
+    } catch (logErr) {
+      console.warn('[SPMB Register] Gagal menulis activity_logs:', logErr)
     }
 
     // 9. Send Resend Confirmation Email to Parent & Notify Admin

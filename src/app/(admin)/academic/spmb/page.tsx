@@ -420,6 +420,15 @@ export default function AdminSpmbPage() {
         setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? json.data : a))
         setSelectedApplicant(json.data)
         fetchData(false)
+        if (json.notification) {
+          const n = json.notification
+          alert(
+            'Status berhasil diperbarui.\n\n' +
+            'Email ke orang tua: ' + n.email + '\n' +
+            'WhatsApp ke orang tua: ' + n.whatsapp +
+            (n.detail ? '\nKeterangan: ' + n.detail : '')
+          )
+        }
       } else {
         setApplicants(prev => prev.map(a => a.id === selectedApplicant.id ? prevApplicant : a))
         setSelectedApplicant(prevApplicant)
@@ -464,14 +473,22 @@ export default function AdminSpmbPage() {
       return
     }
 
-    let csv = 'No. Registrasi,Nama Lengkap,Program Kelas,JK,Tempat Lahir,Tanggal Lahir,Status,Orang Tua/Wali,NIK,Pekerjaan,No WA,Email,Alamat,Nominal Bayar,Status Bayar,Tgl Daftar\n'
+    let csv = 'No. Registrasi,Nama Lengkap,Program Kelas,JK,Tempat Lahir,Tanggal Lahir,Status,Orang Tua/Wali,NIK,Pekerjaan,No WA,Email,Alamat,Nominal Bayar,Status Bayar,Tgl Daftar,Link Bukti Transfer,Link Akta Kelahiran,Link Kartu Keluarga,Link KTP Orang Tua,Link SK Tamat Belajar\n'
+
+    // Sel berisi formula HYPERLINK agar berkas (bukti TF & dokumen) bisa
+    // langsung diklik dan dilihat dari Excel/Sheets hasil ekspor.
+    const linkCell = (url: any) => {
+      const u = String(url || '').trim().replace(/"/g, '')
+      if (!u) return '""'
+      return `"=HYPERLINK(""${u}"",""Lihat Berkas"")"`
+    }
 
     filteredApplicants.forEach(row => {
       const clean = (val: any) => `"${String(val || '').replace(/"/g, '""')}"`
       const isF = (row.student_nickname && row.student_nickname.toLowerCase().includes('fullday')) || (row.special_needs && row.special_needs.toLowerCase().includes('fullday'))
       const programName = isF ? 'Kelas Fullday' : 'Kelas Regular'
 
-      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(programName)},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${clean(row.status)},${clean(row.father_name || row.mother_name)},${clean(row.father_nik || row.mother_nik)},${clean(row.father_occupation || row.mother_occupation)},${clean(row.father_phone || row.mother_phone)},${clean(row.father_email || row.mother_email)},${clean(row.home_address)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))}\n`
+      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(programName)},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${clean(row.status)},${clean(row.father_name || row.mother_name)},${clean(row.father_nik || row.mother_nik)},${clean(row.father_occupation || row.mother_occupation)},${clean(row.father_phone || row.mother_phone)},${clean(row.father_email || row.mother_email)},${clean(row.home_address)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))},${linkCell(row.payment_proof_url)},${linkCell(row.document_birth_certificate)},${linkCell(row.document_family_card)},${linkCell(row.document_parent_id)},${linkCell(row.document_report_card)}\n`
     })
 
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
