@@ -1153,7 +1153,6 @@ export default function PpdbRegistrationForm({ settings }: PpdbRegistrationFormP
                   accept="image/*,application/pdf"
                   onChange={(e) => handleFileUpload(e, 'payment_proof_url', 'ppdb/payments')}
                   className="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
-                  required
                 />
               </div>
 

@@ -44,11 +44,15 @@ async function compressToWebP(input: Buffer): Promise<{ buffer: Buffer; contentT
     return { buffer: outputBuffer, contentType: 'image/webp' }
   } catch (err) {
     console.warn('PPDB Sharp WebP compression fallback:', err)
-    const basicWebp = await sharp(input, { failOn: 'none' })
-      .rotate()
-      .webp({ quality: 75 })
-      .toBuffer()
-    return { buffer: basicWebp, contentType: 'image/webp' }
+    try {
+      const basicWebp = await sharp(input, { failOn: 'none' })
+        .rotate()
+        .webp({ quality: 75 })
+        .toBuffer()
+      return { buffer: basicWebp, contentType: 'image/webp' }
+    } catch (fallbackErr) {
+      throw new Error('UNSUPPORTED_IMAGE_FORMAT')
+    }
   }
 }
 
@@ -82,7 +86,15 @@ export async function POST(request: NextRequest) {
     let extension: string
 
     if (isImage) {
-      const compressed = await compressToWebP(inputBuffer)
+      let compressed
+      try {
+        compressed = await compressToWebP(inputBuffer)
+      } catch (compressErr: any) {
+        if (compressErr?.message === 'UNSUPPORTED_IMAGE_FORMAT') {
+          return NextResponse.json({ error: 'Format gambar tidak dapat dibaca server (kemungkinan foto HEIC dari iPhone). Silakan unggah ulang sebagai JPG atau PNG.' }, { status: 400 })
+        }
+        throw compressErr
+      }
       finalBuffer = compressed.buffer
       contentType = compressed.contentType
       extension = 'webp'
