@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSupabase } from '@/lib/supabase'
 import { getSession } from '@/lib/session'
+import { getOpenAtMs, applyAutoOpen } from '@/lib/spmb-settings'
 import { canAccessSpmb, canManageSpmb } from '@/lib/rbac'
 
 export const dynamic = 'force-dynamic'
@@ -24,7 +25,8 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data: settings })
+    const current = await applyAutoOpen(supabase, settings)
+    return NextResponse.json({ success: true, data: { ...current, open_at: new Date(getOpenAtMs(current.open_at)).toISOString() } })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -51,7 +53,8 @@ export async function PUT(request: NextRequest) {
       bank_account_number,
       bank_account_holder,
       whatsapp_contact,
-      qris_image_url
+      qris_image_url,
+      open_at
     } = body
 
     const updatePayload: any = {
@@ -69,6 +72,12 @@ export async function PUT(request: NextRequest) {
     if (bank_account_number !== undefined) updatePayload.bank_account_number = bank_account_number
     if (bank_account_holder !== undefined) updatePayload.bank_account_holder = bank_account_holder
     if (whatsapp_contact !== undefined) updatePayload.whatsapp_contact = whatsapp_contact
+    if (open_at !== undefined) {
+      if (open_at !== null && Number.isNaN(Date.parse(open_at))) {
+        return NextResponse.json({ error: 'Format waktu pembukaan tidak valid.' }, { status: 400 })
+      }
+      updatePayload.open_at = open_at === null ? null : new Date(open_at).toISOString()
+    }
     if (qris_image_url !== undefined) updatePayload.qris_image_url = qris_image_url
 
     const { data: updated, error } = await supabase
@@ -85,7 +94,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Pengaturan SPMB berhasil disimpan.',
-      data: updated
+      data: { ...updated, open_at: new Date(getOpenAtMs(updated.open_at)).toISOString() }
     })
   } catch (error: any) {
     console.error('Admin PPDB Settings Error:', error)

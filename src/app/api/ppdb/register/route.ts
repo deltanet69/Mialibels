@@ -4,6 +4,7 @@ import { getAdminSupabase } from '@/lib/supabase'
 import { sendSpmbRegistrationEmail } from '@/lib/spmb-email'
 import { getSession } from '@/lib/session'
 import { canManageSpmb } from '@/lib/rbac'
+import { getOpenAtMs, applyAutoOpen } from '@/lib/spmb-settings'
 import { parseRegistration, isFulldayRow } from '@/lib/spmb-registration'
 
 export const runtime = 'nodejs'
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
       .eq('id', 'current')
       .single()
 
-    const ppdbSettings = settings || {
+    const ppdbSettings = (settings && (await applyAutoOpen(supabase, settings))) || {
       academic_year: '2027/2028',
       is_active: false,
       active_batch: 1,
@@ -42,6 +43,10 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
+    if (!byAdmin && Date.now() < getOpenAtMs(ppdbSettings.open_at)) {
+      return NextResponse.json({ error: 'Pendaftaran SPMB belum dibuka. Silakan kembali pada waktu pembukaan.' }, { status: 403 })
+    }
+
     // 2-4. Validasi input + usia (logika bersama dengan edit admin)
     const parsed = parseRegistration(body)
     if ('error' in parsed) {
@@ -52,10 +57,13 @@ export async function POST(request: NextRequest) {
     // 5. Check Quota: Total Quota (150) & Class Quotas (Fullday 75, Regular 75)
     const { data: existingRegs, count: totalCount } = await supabase
       .from('ppdb_registrations')
-      .select('student_nickname, special_needs', { count: 'exact' })
+      .select('student_nickname, special_needs, status', { count: 'exact' })
       .eq('academic_year', ppdbSettings.academic_year)
 
-    const totalRegistered = totalCount || 0
+    // totalCount (termasuk yang ditolak) tetap dipakai untuk nomor urut agar tidak bentrok;
+    // kuota hanya menghitung yang tidak ditolak.
+    const activeRegs = (existingRegs || []).filter((r: any) => r.status !== 'rejected')
+    const totalRegistered = activeRegs.length
     const totalQuota = Number(ppdbSettings.batch_1_quota) || 150
     const fulldayQuota = 75
     const regularQuota = 75
@@ -66,7 +74,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const fulldayCount = (existingRegs || []).filter(isFulldayRow).length
+    const fulldayCount = activeRegs.filter(isFulldayRow).length
     const regularCount = Math.max(0, totalRegistered - fulldayCount)
 
     if (isFullday) {
@@ -84,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Generate Unique Registration Number: MI2027xxx (e.g. MI2027001)
-    let sequence = totalRegistered + 1
+    let sequence = (totalCount || 0) + 1
     let regNumber = `MI2027${String(sequence).padStart(3, '0')}`
 
     // 7. Temporary password

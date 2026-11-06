@@ -36,6 +36,7 @@ import {
   MessageCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import AdminLaunchTimeButton from '@/components/frontend/ppdb/AdminLaunchTimeButton'
 import PpdbRegistrationForm from '@/components/frontend/ppdb/PpdbRegistrationForm'
 import { registrationToForm, isFulldayRow } from '@/lib/spmb-registration'
 
@@ -503,7 +504,8 @@ export default function AdminSpmbPage() {
       const res = await fetch('/api/spmb/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settingsForm)
+        // open_at diubah lewat tombol "Waktu Pembukaan", bukan form ini
+        body: JSON.stringify((({ open_at, ...rest }) => rest)(settingsForm))
       })
       const json = await res.json()
       if (json.success) {
@@ -1698,6 +1700,13 @@ export default function AdminSpmbPage() {
             />
           </div>
         </div>
+      )}
+
+      {canManage && (
+        <AdminLaunchTimeButton
+          openAt={settings?.open_at}
+          onSaved={(d) => { setSettings(d); setSettingsForm(d); sessionStorage.setItem(CACHE_KEY_SETTINGS, JSON.stringify(d)) }}
+        />
       )}
 
       {/* ════════════════════════════════════════════════════════════════════

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useReducer, useCallback } from 'react'
 import {
   CheckCircle2,
   ShieldCheck,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import PpdbRegistrationForm from './PpdbRegistrationForm'
 import PpdbStatusChecker from './PpdbStatusChecker'
+import PpdbLaunchPopup from './PpdbLaunchPopup'
 
 type PpdbClientPageProps = {
   initialSettings?: any
@@ -130,12 +131,27 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
 
   const formRef = useRef<HTMLDivElement>(null)
 
+  // Jam acuan = jam server (selisih dihitung saat settings diambil), bukan jam perangkat pengunjung.
+  const offsetRef = useRef<number | null>(null)
+  const [, rerender] = useReducer((x: number) => x + 1, 0)
+  // Preview popup: ?preview=countdown[&t=detik] atau ?preview=closed
+  const [preview, setPreview] = useState<{ mode: 'countdown' | 'closed'; target: number } | null>(null)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const m = q.get('preview')
+    if (m === 'countdown' || m === 'closed') {
+      const t = Number(q.get('t'))
+      setPreview({ mode: m, target: Date.now() + (t > 0 ? t : 5400) * 1000 })
+    }
+  }, [])
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/spmb/settings?_t=' + Date.now(), { cache: 'no-store' })
         const json = await res.json()
         if (json.success && json.data) {
+          offsetRef.current = Number(json.data.server_now) - Date.now() || 0
           setSettings(json.data)
           // Jika pendaftaran ditutup, otomatis pindah ke tab status agar tidak melihat form error
           if (!json.data.is_active || json.data.stats?.isTotalFull) {
@@ -144,6 +160,7 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         }
       } catch (err) {
         console.error('Error fetching SPMB settings:', err)
+        if (offsetRef.current === null) offsetRef.current = 0
       } finally {
         setLoading(false)
       }
@@ -152,8 +169,8 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     fetchSettings()
   }, [])
 
-  // Default fallback jika data belum siap — default is_active: false demi keamanan
-  const currentSettings = settings || {
+  // Default fallback jika data belum siap — tanpa open_at = tetap tertutup demi keamanan
+  const baseSettings = settings || {
     academic_year: '2027/2028',
     is_active: false,
     batch_1_quota: 150,
@@ -164,8 +181,48 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     whatsapp_contact: '628567858268'
   }
 
+  const initialNow: number = Number(initialSettings?.server_now) || 0
+  const getNow = useCallback(() => (offsetRef.current === null ? initialNow : Date.now() + offsetRef.current), [initialNow])
+  const realOpenAt = baseSettings.open_at ? Date.parse(baseSettings.open_at) : 0
+  const beforeOpen = getNow() < realOpenAt
+  const currentSettings = baseSettings
   const isTotalFull = Boolean(currentSettings.stats?.isTotalFull)
-  const isRegistrationOpen = Boolean(currentSettings.is_active && !isTotalFull)
+  const popupMode: 'countdown' | 'closed' | null = preview ? preview.mode : beforeOpen ? 'countdown' : isTotalFull ? 'closed' : null
+  const [dismissed, setDismissed] = useState(false)
+  const showPopup = !!popupMode && !(popupMode === 'countdown' && dismissed)
+  const isRegistrationOpen = Boolean(currentSettings.is_active && !isTotalFull && !beforeOpen)
+
+  // Saat waktu buka tiba tanpa reload: ambil ulang settings (server menyalakan SPMB otomatis), lalu buka tab formulir.
+  const onElapsed = useCallback(async () => {
+    try {
+      const res = await fetch('/api/spmb/settings?_t=' + Date.now(), { cache: 'no-store' })
+      const json = await res.json()
+      if (json.success && json.data) {
+        offsetRef.current = Number(json.data.server_now) - Date.now() || 0
+        setSettings(json.data)
+        if (json.data.is_active && !json.data.stats?.isTotalFull) setActiveTab('register')
+      }
+    } catch (err) {
+      console.error('Error refreshing SPMB settings:', err)
+    }
+    rerender()
+  }, [])
+
+  // Tab yang tertidur / timer ditahan browser: cek ulang saat tab aktif kembali.
+  useEffect(() => {
+    if (!beforeOpen) return
+    const check = () => { if (document.visibilityState === 'visible' && getNow() >= realOpenAt) onElapsed() }
+    document.addEventListener('visibilitychange', check)
+    window.addEventListener('focus', check)
+    return () => { document.removeEventListener('visibilitychange', check); window.removeEventListener('focus', check) }
+  }, [beforeOpen, realOpenAt, getNow, onElapsed])
+
+  // Popup sudah ditutup pengunjung: tetap buka formulir tepat saat waktunya tiba.
+  useEffect(() => {
+    if (!dismissed || !beforeOpen) return
+    const id = setTimeout(onElapsed, Math.max(0, realOpenAt - getNow()) + 50)
+    return () => clearTimeout(id)
+  }, [dismissed, beforeOpen, realOpenAt, getNow, onElapsed])
 
   const scrollToForm = (tab: 'register' | 'status' = 'register') => {
     setActiveTab(tab)
@@ -184,7 +241,23 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
   const h2Bar = <span className="h-[21px] w-[5px] flex-none rounded-full bg-amber-500" />
 
   return (
-    <div className="font-sans min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white pb-20 relative">
+    <>
+    {showPopup && popupMode && (
+      <PpdbLaunchPopup
+        mode={popupMode}
+        year={currentSettings.academic_year}
+        openAtMs={preview?.mode === 'countdown' ? preview.target : realOpenAt}
+        initialNow={preview ? Date.now() : initialNow}
+        getNow={preview ? Date.now : getNow}
+        onElapsed={onElapsed}
+        onClose={popupMode === 'countdown' ? () => setDismissed(true) : undefined}
+        totalQuota={Number(currentSettings.stats?.totalQuota) || 150}
+        fulldayQuota={fd?.quota ?? 75}
+        regularQuota={rg?.quota ?? 75}
+        docs={BERKAS_UPLOAD.filter((b) => b.req).map((b) => b.t.replace(' Terbaru', ''))}
+      />
+    )}
+    <div inert={showPopup ? true : undefined} className="font-sans min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-blue-600 selection:text-white pb-20 relative">
 
       {/* ════════════════════════════════════════════════════════════════════
           NAVBAR — overlay transparan di atas hero
@@ -571,5 +644,6 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
       </section>
 
     </div>
+    </>
   )
 }
