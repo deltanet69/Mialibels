@@ -80,8 +80,7 @@ function brevoMissingMsg(): string {
     const path = require('path')
     const f = path.join(process.cwd(), '.env')
     if (fs.existsSync(f)) {
-      dotenv = 'ada, berisi: ' + fs.readFileSync(f, 'utf8').split(/?
-/).map((l: string) => l.split('=')[0].trim()).filter((k: string) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k)).join(', ')
+      dotenv = 'ada, berisi: ' + fs.readFileSync(f, 'utf8').split(String.fromCharCode(10)).map((l: string) => l.split('=')[0].trim()).filter((k: string) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k)).join(', ')
     }
   } catch {}
   return `BREVO_API_KEY not configured. cwd=${process.cwd()}; file .env: ${dotenv}; semua nama env (${names.length}): ${names.filter((n) => !/^(npm_|PATH|PWD|HOME|LANG|LS_|SHLVL|_$)/i.test(n)).join(', ')}`
