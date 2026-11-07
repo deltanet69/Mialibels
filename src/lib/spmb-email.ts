@@ -1,9 +1,13 @@
-import { Resend } from 'resend'
 import { sendWhatsAppMessage } from '@/lib/openwa'
 
-// Resilient API Key Resolution (loaded from process.env on server/local)
-const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-const SENDER_EMAIL = process.env.RESEND_FROM_EMAIL || 'Panitia SPMB MI Attaqwa 15 <spmb@miattaqwa15.sch.id>'
+// Brevo API configuration (loaded from process.env on server/local)
+const SENDER_RAW = process.env.BREVO_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'Panitia SPMB MI Attaqwa 15 <spmb@miattaqwa15.sch.id>'
+function parseSender(raw: string): { name: string; email: string } {
+  const m = raw.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/)
+  if (m) return { name: m[1] || 'Panitia SPMB MI Attaqwa 15', email: m[2] }
+  return { name: process.env.BREVO_FROM_NAME || 'Panitia SPMB MI Attaqwa 15', email: raw.trim() }
+}
+const SENDER = parseSender(SENDER_RAW)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@miattaqwa15.sch.id'
 const SCHOOL_NAME = 'MI Attaqwa 15 Babelan'
 const SCHOOL_LOCATION = 'Babelan Kota, Kab. Bekasi'
@@ -47,15 +51,48 @@ export function getParentPhone(reg: any): string | null {
 }
 
 /**
- * Helper to get active Resend instance
+ * Brevo helpers - pengiriman email transactional lewat REST API Brevo.
+ * Bentuk hasil disamakan dengan pola lama ({ data, error }) supaya
+ * seluruh pemanggil tidak perlu diubah.
  */
-function getResendClient(): Resend | null {
-  const key = process.env.RESEND_API_KEY || ''
+function isBrevoConfigured(): boolean {
+  return Boolean(process.env.BREVO_API_KEY)
+}
+
+async function sendViaBrevo(params: {
+  to: string
+  subject: string
+  html: string
+  replyTo?: string
+}): Promise<{ data: { id: string } | null; error: { message: string } | null }> {
+  const key = process.env.BREVO_API_KEY || ''
   if (!key) {
-    console.warn('[SPMB Email] RESEND_API_KEY is not defined in environment')
-    return null
+    return { data: null, error: { message: 'BREVO_API_KEY not configured' } }
   }
-  return new Resend(key)
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': key,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        sender: SENDER,
+        to: [{ email: params.to }],
+        ...(params.replyTo ? { replyTo: { email: params.replyTo } } : {}),
+        subject: params.subject,
+        htmlContent: params.html
+      })
+    })
+    const body: any = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      return { data: null, error: { message: body?.message || `Brevo HTTP ${res.status}` } }
+    }
+    return { data: { id: body?.messageId || '' }, error: null }
+  } catch (err: any) {
+    return { data: null, error: { message: err?.message || 'Brevo request failed' } }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -66,7 +103,6 @@ export async function sendSpmbRegistrationEmail(params: {
   settings?: any
 }) {
   const { registration: reg, settings } = params
-  const resend = getResendClient()
   const recipientEmail = getParentEmail(reg)
   const academicYear = reg.academic_year || settings?.academic_year || '2027/2028'
   const isFullday = (reg.student_nickname && String(reg.student_nickname).toLowerCase().includes('fullday')) ||
@@ -77,9 +113,9 @@ export async function sendSpmbRegistrationEmail(params: {
 
   const results: { parentEmailId?: string; adminEmailId?: string; waSent?: boolean; waError?: string; error?: string } = {}
 
-  if (!resend) {
-    results.error = 'RESEND_API_KEY not configured'
-    console.warn('[SPMB Email] RESEND_API_KEY not configured, skipping email delivery')
+  if (!isBrevoConfigured()) {
+    results.error = 'BREVO_API_KEY not configured'
+    console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping email delivery')
     return results
   }
 
@@ -166,15 +202,14 @@ export async function sendSpmbRegistrationEmail(params: {
         </div>
       `
 
-      const sendRes = await resend.emails.send({
-        from: SENDER_EMAIL,
+      const sendRes = await sendViaBrevo({
         to: recipientEmail,
         replyTo: 'admin@miattaqwa15.sch.id',
         subject: `[SPMB ${academicYear}] Pendaftaran Berhasil - ${reg.registration_number} (${reg.student_name})`,
         html: parentHtml
       })
 
-      if ((sendRes as any)?.error) throw new Error((sendRes as any).error.message || 'Resend menolak pengiriman email')
+      if ((sendRes as any)?.error) throw new Error((sendRes as any).error.message || 'Brevo menolak pengiriman email')
       results.parentEmailId = sendRes.data?.id
       console.log(`[SPMB Email] Registration email successfully sent to ${recipientEmail} (ID: ${sendRes.data?.id})`)
     } catch (err: any) {
@@ -185,8 +220,7 @@ export async function sendSpmbRegistrationEmail(params: {
 
   // 2. Notify School Admin
   try {
-    const adminRes = await resend.emails.send({
-      from: SENDER_EMAIL,
+    const adminRes = await sendViaBrevo({
       to: ADMIN_EMAIL,
       replyTo: recipientEmail || 'admin@miattaqwa15.sch.id',
       subject: `[Pendaftar SPMB Baru] ${reg.registration_number} - ${reg.student_name} (${programLabel})`,
@@ -204,7 +238,7 @@ export async function sendSpmbRegistrationEmail(params: {
         </div>
       `
     })
-    if ((adminRes as any)?.error) throw new Error((adminRes as any).error.message || 'Resend menolak email admin')
+    if ((adminRes as any)?.error) throw new Error((adminRes as any).error.message || 'Brevo menolak email admin')
     results.adminEmailId = adminRes.data?.id
   } catch (adminErr) {
     console.warn('[SPMB Email] Admin notification skipped/failed:', adminErr)
@@ -234,7 +268,6 @@ export async function sendSpmbApprovalEmail(params: {
   settings?: any
 }) {
   const { registration: reg, settings } = params
-  const resend = getResendClient()
   const recipientEmail = getParentEmail(reg)
   const academicYear = reg.academic_year || settings?.academic_year || '2027/2028'
   const isFullday = (reg.student_nickname && String(reg.student_nickname).toLowerCase().includes('fullday')) ||
@@ -243,9 +276,9 @@ export async function sendSpmbApprovalEmail(params: {
   const parentName = reg.father_name || reg.mother_name || 'Bapak/Ibu Orang Tua'
   const waContact = settings?.whatsapp_contact || '+62 812-3456-7890'
 
-  if (!resend) {
-    console.warn('[SPMB Email] RESEND_API_KEY not configured, skipping approval email')
-    return { success: false, error: 'RESEND_API_KEY not configured' }
+  if (!isBrevoConfigured()) {
+    console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping approval email')
+    return { success: false, error: 'BREVO_API_KEY not configured' }
   }
 
   if (!recipientEmail) {
@@ -305,8 +338,7 @@ export async function sendSpmbApprovalEmail(params: {
       </div>
     `
 
-    const sendRes = await resend.emails.send({
-      from: SENDER_EMAIL,
+    const sendRes = await sendViaBrevo({
       to: recipientEmail,
       replyTo: 'admin@miattaqwa15.sch.id',
       subject: `[DITERIMA] Status Pendaftaran SPMB MI Attaqwa 15 - ${reg.student_name} (${reg.registration_number})`,
@@ -314,7 +346,7 @@ export async function sendSpmbApprovalEmail(params: {
     })
 
     if ((sendRes as any)?.error) {
-      const msg = (sendRes as any).error.message || 'Resend menolak pengiriman email'
+      const msg = (sendRes as any).error.message || 'Brevo menolak pengiriman email'
       console.error(`[SPMB Email] Failed to send approval email to ${recipientEmail}:`, msg)
       return { success: false, error: msg, waSent: false }
     }
@@ -353,15 +385,14 @@ export async function sendSpmbRejectionEmail(params: {
   settings?: any
 }) {
   const { registration: reg, adminNotes, settings } = params
-  const resend = getResendClient()
   const recipientEmail = getParentEmail(reg)
   const academicYear = reg.academic_year || settings?.academic_year || '2027/2028'
   const parentName = reg.father_name || reg.mother_name || 'Bapak/Ibu Orang Tua'
   const waContact = settings?.whatsapp_contact || '+62 812-3456-7890'
 
-  if (!resend) {
-    console.warn('[SPMB Email] RESEND_API_KEY not configured, skipping rejection email')
-    return { success: false, error: 'RESEND_API_KEY not configured' }
+  if (!isBrevoConfigured()) {
+    console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping rejection email')
+    return { success: false, error: 'BREVO_API_KEY not configured' }
   }
 
   if (!recipientEmail) {
@@ -419,8 +450,7 @@ export async function sendSpmbRejectionEmail(params: {
       </div>
     `
 
-    const sendRes = await resend.emails.send({
-      from: SENDER_EMAIL,
+    const sendRes = await sendViaBrevo({
       to: recipientEmail,
       replyTo: 'admin@miattaqwa15.sch.id',
       subject: `[SPMB ${academicYear}] Pemberitahuan Hasil Seleksi - ${reg.student_name} (${reg.registration_number})`,
@@ -428,7 +458,7 @@ export async function sendSpmbRejectionEmail(params: {
     })
 
     if ((sendRes as any)?.error) {
-      const msg = (sendRes as any).error.message || 'Resend menolak pengiriman email'
+      const msg = (sendRes as any).error.message || 'Brevo menolak pengiriman email'
       console.error(`[SPMB Email] Failed to send rejection email to ${recipientEmail}:`, msg)
       return { success: false, error: msg, waSent: false }
     }
