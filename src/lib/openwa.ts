@@ -75,21 +75,38 @@ export async function sendWhatsAppMessage(phone: string, text: string) {
     text: text
   };
 
+  const send = (id: string) => fetch(`${OPENWA_URL}/api/sessions/${id}/messages/send-text`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Api-Key': OPENWA_API_KEY
+    },
+    body: JSON.stringify(payload)
+  })
+
   try {
-    const res = await fetch(`${OPENWA_URL}/api/sessions/${sessionId}/messages/send-text`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': OPENWA_API_KEY
-      },
-      body: JSON.stringify(payload)
-    });
-    
+    let res = await send(sessionId)
+
+    // Session dari env bisa basi (hosting menyimpan env lama): coba session lain yang sedang 'ready'.
+    if (res.status === 400) {
+      const errorText = await res.text()
+      if (!/not active/i.test(errorText)) throw new Error(`OpenWA API Error: ${res.status} ${errorText}`)
+      const list = await fetch(`${OPENWA_URL}/api/sessions`, { headers: { 'X-Api-Key': OPENWA_API_KEY } })
+      const data = list.ok ? await list.json() : null
+      const sessions: Array<{ id: string; name: string; status: string }> = data?.value || data || []
+      const ready = sessions.filter((x) => x.status === 'ready' && x.id !== sessionId)
+      const alt = ready.find((x) => x.name === OPENWA_SESSION_NAME) || ready[0]
+      if (!alt) {
+        throw new Error(`OpenWA: session ${sessionId} tidak aktif dan tidak ada session lain yang 'ready' (${sessions.map((x) => `${x.name}=${x.status}`).join(', ') || 'daftar session kosong'}). Scan QR di dashboard OpenWA.`)
+      }
+      res = await send(alt.id)
+    }
+
     if (!res.ok) {
       const errorText = await res.text();
       throw new Error(`OpenWA API Error: ${res.status} ${errorText}`);
     }
-    
+
     return await res.json();
   } catch (error) {
     console.error('Failed to send WA message:', error);
