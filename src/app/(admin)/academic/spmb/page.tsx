@@ -867,7 +867,7 @@ export default function AdminSpmbPage() {
             </div>
 
             <div className="mt-1">
-              <span className="block text-xs font-extrabold text-slate-800 leading-tight">Diterima</span>
+              <span className="block text-xs font-extrabold text-slate-800 leading-tight">SPMB Diterima</span>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight tabular-nums">
                   {approvedCount}
