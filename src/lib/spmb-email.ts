@@ -55,8 +55,25 @@ export function getParentPhone(reg: any): string | null {
  * Bentuk hasil disamakan dengan pola lama ({ data, error }) supaya
  * seluruh pemanggil tidak perlu diubah.
  */
+// Toleran terhadap salah ketik di panel hosting: spasi/BOM pada nama variabel, tanda kutip atau spasi pada nilai.
+function getBrevoKey(): string {
+  for (const k of Object.keys(process.env)) {
+    if (k.replace(/^﻿/, '').trim().toUpperCase() === 'BREVO_API_KEY') {
+      const v = (process.env[k] || '').trim().replace(/^["']|["']$/g, '').trim()
+      if (v) return v
+    }
+  }
+  return ''
+}
+
 function isBrevoConfigured(): boolean {
-  return Boolean(process.env.BREVO_API_KEY)
+  return Boolean(getBrevoKey())
+}
+
+// Hanya nama variabel (tanpa nilai) agar penyebab env hilang terlihat langsung di alert admin.
+function brevoMissingMsg(): string {
+  const seen = Object.keys(process.env).filter((k) => /brevo|resend|mail|smtp/i.test(k))
+  return `BREVO_API_KEY not configured (variabel terkait yang terbaca server: ${seen.length ? seen.map((k) => JSON.stringify(k)).join(', ') : 'tidak ada'}; total env: ${Object.keys(process.env).length})`
 }
 
 async function sendViaBrevo(params: {
@@ -65,9 +82,9 @@ async function sendViaBrevo(params: {
   html: string
   replyTo?: string
 }): Promise<{ data: { id: string } | null; error: { message: string } | null }> {
-  const key = process.env.BREVO_API_KEY || ''
+  const key = getBrevoKey()
   if (!key) {
-    return { data: null, error: { message: 'BREVO_API_KEY not configured' } }
+    return { data: null, error: { message: brevoMissingMsg() } }
   }
   try {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -114,7 +131,7 @@ export async function sendSpmbRegistrationEmail(params: {
   const results: { parentEmailId?: string; adminEmailId?: string; waSent?: boolean; waError?: string; error?: string } = {}
 
   if (!isBrevoConfigured()) {
-    results.error = 'BREVO_API_KEY not configured'
+    results.error = brevoMissingMsg()
     console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping email delivery')
     return results
   }
@@ -278,7 +295,7 @@ export async function sendSpmbApprovalEmail(params: {
 
   if (!isBrevoConfigured()) {
     console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping approval email')
-    return { success: false, error: 'BREVO_API_KEY not configured' }
+    return { success: false, error: brevoMissingMsg() }
   }
 
   if (!recipientEmail) {
@@ -392,7 +409,7 @@ export async function sendSpmbRejectionEmail(params: {
 
   if (!isBrevoConfigured()) {
     console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping rejection email')
-    return { success: false, error: 'BREVO_API_KEY not configured' }
+    return { success: false, error: brevoMissingMsg() }
   }
 
   if (!recipientEmail) {
