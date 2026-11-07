@@ -58,10 +58,11 @@ export function getParentPhone(reg: any): string | null {
 // Toleran terhadap salah ketik di panel hosting: spasi/BOM pada nama variabel, tanda kutip atau spasi pada nilai.
 function getBrevoKey(): string {
   for (const k of Object.keys(process.env)) {
-    if (k.replace(/^﻿/, '').trim().toUpperCase() === 'BREVO_API_KEY') {
-      const v = (process.env[k] || '').trim().replace(/^["']|["']$/g, '').trim()
-      if (v) return v
-    }
+    const name = k.replace(/^﻿/, '').trim().toUpperCase()
+    if (name !== 'BREVO_API_KEY' && name !== 'RESEND_API_KEY') continue
+    const v = (process.env[k] || '').trim().replace(/^["']|["']$/g, '').trim()
+    // Kunci Brevo selalu berawalan "xkeysib-"; RESEND_API_KEY hanya dipakai bila isinya kunci Brevo (jalan pintas bila variabel baru tidak terbaca hosting).
+    if (v && (name === 'BREVO_API_KEY' || v.startsWith('xkeysib-'))) return v
   }
   return ''
 }
@@ -73,7 +74,7 @@ function isBrevoConfigured(): boolean {
 // Hanya nama variabel (tanpa nilai) agar penyebab env hilang terlihat langsung di alert admin.
 function brevoMissingMsg(): string {
   const seen = Object.keys(process.env).filter((k) => /brevo|resend|mail|smtp/i.test(k))
-  return `BREVO_API_KEY not configured (variabel terkait yang terbaca server: ${seen.length ? seen.map((k) => JSON.stringify(k)).join(', ') : 'tidak ada'}; total env: ${Object.keys(process.env).length})`
+  return `BREVO_API_KEY not configured (variabel terkait yang terbaca server: ${seen.length ? seen.map((k) => `${JSON.stringify(k)} diawali "${(process.env[k] || '').trim().slice(0, 3)}" panjang ${(process.env[k] || '').length}`).join(', ') : 'tidak ada'}; total env: ${Object.keys(process.env).length})`
 }
 
 async function sendViaBrevo(params: {
