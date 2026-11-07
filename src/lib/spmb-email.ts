@@ -71,10 +71,20 @@ function isBrevoConfigured(): boolean {
   return Boolean(getBrevoKey())
 }
 
-// Hanya nama variabel (tanpa nilai) agar penyebab env hilang terlihat langsung di alert admin.
+// Diagnosa env di server: hanya NAMA variabel (tanpa nilai) supaya penyebab env tidak terbaca terlihat di alert admin.
 function brevoMissingMsg(): string {
-  const seen = Object.keys(process.env).filter((k) => /brevo|resend|mail|smtp/i.test(k))
-  return `BREVO_API_KEY not configured (variabel terkait yang terbaca server: ${seen.length ? seen.map((k) => `${JSON.stringify(k)} diawali "${(process.env[k] || '').trim().slice(0, 3)}" panjang ${(process.env[k] || '').length}`).join(', ') : 'tidak ada'}; total env: ${Object.keys(process.env).length})`
+  const names = Object.keys(process.env).sort()
+  let dotenv = 'tidak ada'
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const f = path.join(process.cwd(), '.env')
+    if (fs.existsSync(f)) {
+      dotenv = 'ada, berisi: ' + fs.readFileSync(f, 'utf8').split(/?
+/).map((l: string) => l.split('=')[0].trim()).filter((k: string) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k)).join(', ')
+    }
+  } catch {}
+  return `BREVO_API_KEY not configured. cwd=${process.cwd()}; file .env: ${dotenv}; semua nama env (${names.length}): ${names.filter((n) => !/^(npm_|PATH|PWD|HOME|LANG|LS_|SHLVL|_$)/i.test(n)).join(', ')}`
 }
 
 async function sendViaBrevo(params: {
