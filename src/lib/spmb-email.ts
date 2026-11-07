@@ -1,4 +1,5 @@
 import { sendWhatsAppMessage } from '@/lib/openwa'
+import { getAdminSupabase } from '@/lib/supabase'
 
 // Brevo API configuration (loaded from process.env on server/local)
 const SENDER_RAW = process.env.BREVO_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'Panitia SPMB MI Attaqwa 15 <spmb@miattaqwa15.sch.id>'
@@ -56,19 +57,31 @@ export function getParentPhone(reg: any): string | null {
  * seluruh pemanggil tidak perlu diubah.
  */
 // Toleran terhadap salah ketik di panel hosting: spasi/BOM pada nama variabel, tanda kutip atau spasi pada nilai.
-function getBrevoKey(): string {
+function getEnvBrevoKey(): string {
   for (const k of Object.keys(process.env)) {
     const name = k.replace(/^﻿/, '').trim().toUpperCase()
     if (name !== 'BREVO_API_KEY' && name !== 'RESEND_API_KEY') continue
     const v = (process.env[k] || '').trim().replace(/^["']|["']$/g, '').trim()
-    // Kunci Brevo selalu berawalan "xkeysib-"; RESEND_API_KEY hanya dipakai bila isinya kunci Brevo (jalan pintas bila variabel baru tidak terbaca hosting).
+    // Kunci Brevo selalu berawalan "xkeysib-"; RESEND_API_KEY hanya dipakai bila isinya kunci Brevo.
     if (v && (name === 'BREVO_API_KEY' || v.startsWith('xkeysib-'))) return v
   }
   return ''
 }
 
-function isBrevoConfigured(): boolean {
-  return Boolean(getBrevoKey())
+// Urutan: env server, lalu tabel app_secrets (service role saja) bila hosting tidak meneruskan env baru.
+async function getBrevoKey(): Promise<string> {
+  const fromEnv = getEnvBrevoKey()
+  if (fromEnv) return fromEnv
+  try {
+    const { data } = await (getAdminSupabase() as any).from('app_secrets').select('value').eq('key', 'BREVO_API_KEY').maybeSingle()
+    return String(data?.value || '').trim()
+  } catch {
+    return ''
+  }
+}
+
+async function isBrevoConfigured(): Promise<boolean> {
+  return Boolean(await getBrevoKey())
 }
 
 // Diagnosa env di server: hanya NAMA variabel (tanpa nilai) supaya penyebab env tidak terbaca terlihat di alert admin.
@@ -92,7 +105,7 @@ async function sendViaBrevo(params: {
   html: string
   replyTo?: string
 }): Promise<{ data: { id: string } | null; error: { message: string } | null }> {
-  const key = getBrevoKey()
+  const key = await getBrevoKey()
   if (!key) {
     return { data: null, error: { message: brevoMissingMsg() } }
   }
@@ -140,7 +153,7 @@ export async function sendSpmbRegistrationEmail(params: {
 
   const results: { parentEmailId?: string; adminEmailId?: string; waSent?: boolean; waError?: string; error?: string } = {}
 
-  if (!isBrevoConfigured()) {
+  if (!(await isBrevoConfigured())) {
     results.error = brevoMissingMsg()
     console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping email delivery')
     return results
@@ -303,7 +316,7 @@ export async function sendSpmbApprovalEmail(params: {
   const parentName = reg.father_name || reg.mother_name || 'Bapak/Ibu Orang Tua'
   const waContact = settings?.whatsapp_contact || '+62 812-3456-7890'
 
-  if (!isBrevoConfigured()) {
+  if (!(await isBrevoConfigured())) {
     console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping approval email')
     return { success: false, error: brevoMissingMsg() }
   }
@@ -417,7 +430,7 @@ export async function sendSpmbRejectionEmail(params: {
   const parentName = reg.father_name || reg.mother_name || 'Bapak/Ibu Orang Tua'
   const waContact = settings?.whatsapp_contact || '+62 812-3456-7890'
 
-  if (!isBrevoConfigured()) {
+  if (!(await isBrevoConfigured())) {
     console.warn('[SPMB Email] BREVO_API_KEY not configured, skipping rejection email')
     return { success: false, error: brevoMissingMsg() }
   }
