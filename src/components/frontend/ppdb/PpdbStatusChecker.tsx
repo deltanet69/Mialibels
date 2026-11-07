@@ -266,7 +266,7 @@ export default function PpdbStatusChecker({ whatsappContact = '628567858268' }: 
               />
               <TimelineStep
                 step={3}
-                title="Lulus &amp; Berkas"
+                title="Diterima &amp; Berkas"
                 isCompleted={selectedReg.status === 'documents_submitted'}
                 isActive={selectedReg.status === 'approved'}
               />
@@ -299,7 +299,7 @@ export default function PpdbStatusChecker({ whatsappContact = '628567858268' }: 
                   Lengkapi Berkas Calon Siswa
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Pendaftaran telah <strong>Disetujui</strong>. Silakan unggah dokumen persyaratan dalam format foto/PDF.
+                  Status pendaftaran: <strong>Diterima</strong>. Silakan unggah dokumen persyaratan dalam format foto/PDF.
                 </p>
               </div>
 
@@ -394,7 +394,7 @@ export default function PpdbStatusChecker({ whatsappContact = '628567858268' }: 
           {/* Contact WA Help Footer */}
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <span className="text-xs text-slate-500">
-              Ada pertanyaan seputar hasil verifikasi atau kelulusan?
+              Ada pertanyaan seputar hasil verifikasi atau status penerimaan?
             </span>
             <a
               href={`https://wa.me/${waNum}?text=Halo%20Panitia%20SPMB,%20saya%20ingin%20konfirmasi%20pendaftaran%20${selectedReg.registration_number}%20a.n%20${encodeURIComponent(selectedReg.student_name)}`}
@@ -419,7 +419,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
         <CheckCircle2 size={13} />
-        <span>Disetujui</span>
+        <span>Diterima</span>
       </span>
     )
   }

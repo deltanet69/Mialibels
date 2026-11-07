@@ -167,6 +167,9 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
     }
 
     fetchSettings()
+    // Kuota & status buka/tutup diperbarui otomatis tanpa reload.
+    const poll = setInterval(fetchSettings, 20000)
+    return () => clearInterval(poll)
   }, [])
 
   // Default fallback jika data belum siap — tanpa open_at = tetap tertutup demi keamanan
@@ -189,7 +192,17 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
   const isTotalFull = Boolean(currentSettings.stats?.isTotalFull)
   const popupMode: 'countdown' | 'closed' | null = preview ? preview.mode : beforeOpen ? 'countdown' : isTotalFull ? 'closed' : null
   const [dismissed, setDismissed] = useState(false)
-  const showPopup = !!popupMode && !(popupMode === 'countdown' && dismissed)
+  const closableAt = baseSettings.closable_at ? Date.parse(baseSettings.closable_at) : 0
+  const closedLocked = popupMode === 'closed' && getNow() < closableAt
+  const canClose = popupMode === 'countdown' || (popupMode === 'closed' && !closedLocked)
+  const showPopup = !!popupMode && !(canClose && dismissed)
+
+  // Popup kuota terpenuhi terkunci sampai closable_at; render ulang tepat saat itu agar tombol tutup muncul.
+  useEffect(() => {
+    if (!closedLocked) return
+    const id = setTimeout(rerender, Math.max(0, closableAt - getNow()) + 50)
+    return () => clearTimeout(id)
+  }, [closedLocked, closableAt, getNow])
   const isRegistrationOpen = Boolean(currentSettings.is_active && !isTotalFull && !beforeOpen)
 
   // Saat waktu buka tiba tanpa reload: ambil ulang settings (server menyalakan SPMB otomatis), lalu buka tab formulir.
@@ -250,7 +263,8 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
         initialNow={preview ? Date.now() : initialNow}
         getNow={preview ? Date.now : getNow}
         onElapsed={onElapsed}
-        onClose={popupMode === 'countdown' ? () => setDismissed(true) : undefined}
+        onClose={canClose ? () => setDismissed(true) : undefined}
+        closeNote={closedLocked ? `Cek status pendaftaran dapat dilakukan pada ${new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(closableAt)}, pukul ${new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' }).format(closableAt)}` : undefined}
         totalQuota={Number(currentSettings.stats?.totalQuota) || 150}
         fulldayQuota={fd?.quota ?? 75}
         regularQuota={rg?.quota ?? 75}
@@ -429,12 +443,12 @@ export default function PpdbClientPage({ initialSettings }: PpdbClientPageProps)
                 {/* Strip kuota — angka = pendaftar Approved (online + manual), sesuai aturan panitia */}
                 <div className="max-w-5xl mx-auto mb-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
                   <p className="text-[13px] font-bold text-slate-700">
-                    Kuota Fullday <b className="text-slate-900">{fd?.approved ?? 0}/{fd?.quota ?? 75}</b>
+                    Kuota Fullday <b className="text-slate-900">{fd?.total ?? 0}/{fd?.quota ?? 75}</b>
                     <span className="mx-2 text-slate-300">|</span>
-                    Kuota Reguler <b className="text-slate-900">{rg?.approved ?? 0}/{rg?.quota ?? 75}</b>
+                    Kuota Reguler <b className="text-slate-900">{rg?.total ?? 0}/{rg?.quota ?? 75}</b>
                   </p>
                   <p className="mt-1 text-xs font-medium text-slate-500">
-                    Kuota terisi dari pendaftaran yang sudah disetujui panitia — online dan manual di kantor. Berubah setiap ada persetujuan atau penolakan.
+                    Kuota terisi dari seluruh pendaftar aktif — online dan manual di kantor. Berubah setiap ada pendaftaran baru atau penolakan.
                   </p>
                 </div>
                 <PpdbRegistrationForm settings={currentSettings} />

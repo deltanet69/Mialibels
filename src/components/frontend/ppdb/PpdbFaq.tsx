@@ -17,7 +17,7 @@ const FAQS = [
     a: 'Biaya formulir pendaftaran dan tes observasi adalah sebesar Rp 300.000. Pembayaran dapat ditransfer ke rekening resmi Bank BTN : 2820-15-0010-3158 (a.n MI ATTAQWA 15 BABELAN) atau melalui QRIS resmi, kemudian unggah bukti struk transfer di formulir online.'
   },
   {
-    q: 'Bagaimana cara mengetahui status kelulusan & verifikasi?',
+    q: 'Bagaimana cara mengetahui status penerimaan & verifikasi?',
     a: 'Anda dapat mengecek status pendaftaran secara realtime melalui menu "Cek Status & Berkas" atau di dalam Parent Portal. Sistem juga otomatis mengirimkan email konfirmasi pendaftaran oleh panitia resmi SMPB tahun ajaran 2027/2028.'
   },
   {

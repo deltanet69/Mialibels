@@ -12,6 +12,7 @@ type Props = {
   getNow: () => number
   onElapsed: () => void
   onClose?: () => void
+  closeNote?: string
   totalQuota: number
   fulldayQuota: number
   regularQuota: number
@@ -78,6 +79,7 @@ export default function PpdbLaunchPopup({
   getNow,
   onElapsed,
   onClose,
+  closeNote,
   totalQuota,
   fulldayQuota,
   regularQuota,
@@ -260,6 +262,7 @@ export default function PpdbLaunchPopup({
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                   Pendaftaran ditutup karena seluruh kuota telah terpenuhi. Jika ada berkas calon siswa yang tidak memenuhi syarat verifikasi atau mengundurkan diri, kuota akan dibuka kembali secara otomatis.
                 </p>
+                {closeNote && <p className="text-sm font-semibold text-slate-800">{closeNote}</p>}
               </div>
 
             </div>

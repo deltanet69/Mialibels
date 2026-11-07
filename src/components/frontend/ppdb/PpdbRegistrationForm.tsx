@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import {
   User,
   Users,
@@ -403,6 +403,14 @@ export default function PpdbRegistrationForm({ settings, mode, initial, recordId
   const isClosed = !mode && (!settings.is_active || settings.stats?.isTotalFull)
   const fulldayIsFull = Boolean(settings.stats?.fullday?.isFull)
   const regularIsFull = Boolean(settings.stats?.regular?.isFull)
+
+  // Program terpilih yang kuotanya penuh dipindah ke program lain yang masih ada kursi.
+  useEffect(() => {
+    if (mode === 'admin-edit') return
+    const p = formData.class_program
+    if (p === 'regular' && regularIsFull && !fulldayIsFull) setFormData((f) => ({ ...f, class_program: 'fullday' }))
+    if (p === 'fullday' && fulldayIsFull && !regularIsFull) setFormData((f) => ({ ...f, class_program: 'regular' }))
+  }, [mode, regularIsFull, fulldayIsFull, formData.class_program])
 
   if (isClosed) {
     return (
@@ -886,7 +894,7 @@ export default function PpdbRegistrationForm({ settings, mode, initial, recordId
               <div className="sm:col-span-2 p-3.5 bg-blue-50/80 border border-blue-200/70 rounded-2xl flex items-start gap-2.5 text-xs text-blue-900">
                 <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
-                  <strong>Penting:</strong> Segala pemberitahuan tanda terima registrasi, informasi kelulusan berkas, dan email approval penerimaan resmi akan dikirimkan langsung ke alamat email ini.
+                  <strong>Penting:</strong> Segala pemberitahuan tanda terima registrasi, hasil verifikasi berkas, dan email approval penerimaan resmi akan dikirimkan langsung ke alamat email ini.
                 </p>
               </div>
 

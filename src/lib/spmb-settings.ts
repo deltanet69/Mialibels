@@ -6,6 +6,9 @@ const QUOTA_LIVE_AT_MS = Date.parse('2026-11-07T08:00:00+07:00')
 // Waktu buka form default bila admin belum menyetel ppdb_settings.open_at.
 export const DEFAULT_OPEN_AT = '2026-11-07T08:00:00+07:00'
 
+// Popup kuota terpenuhi baru boleh ditutup mulai waktu ini (setelah itu pengunjung bisa cek status).
+export const CLOSED_POPUP_CLOSABLE_AT = '2026-11-07T09:30:00+07:00'
+
 export function getOpenAtMs(openAt?: string | null) {
   const t = Date.parse(openAt || DEFAULT_OPEN_AT)
   return Number.isNaN(t) ? Date.parse(DEFAULT_OPEN_AT) : t
@@ -93,6 +96,7 @@ export async function getSpmbSettings() {
     return {
       ...currentSettings,
       open_at: new Date(getOpenAtMs(currentSettings.open_at)).toISOString(),
+      closable_at: CLOSED_POPUP_CLOSABLE_AT,
       server_now: Date.now(),
       stats: {
         total: totalCount,
@@ -130,6 +134,7 @@ export async function getSpmbSettings() {
       bank_account_holder: 'MI ATTAQWA 15 BABELAN',
       whatsapp_contact: '628567858268',
       open_at: new Date(getOpenAtMs()).toISOString(),
+      closable_at: CLOSED_POPUP_CLOSABLE_AT,
       server_now: Date.now(),
       stats: {
         total: 0,

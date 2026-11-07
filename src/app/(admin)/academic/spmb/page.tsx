@@ -329,11 +329,11 @@ export default function AdminSpmbPage() {
 
   // Count Fullday vs Regular
   const fulldayCount = useMemo(() => {
-    return applicants.filter(a => isFulldayRow(a)).length
+    return applicants.filter(a => a.status !== 'rejected' && isFulldayRow(a)).length
   }, [applicants])
 
   const regularCount = useMemo(() => {
-    return applicants.filter(a => !isFulldayRow(a)).length
+    return applicants.filter(a => a.status !== 'rejected' && !isFulldayRow(a)).length
   }, [applicants])
 
   // Filtered applicants
@@ -529,7 +529,8 @@ export default function AdminSpmbPage() {
   const fulldayTargetQuota = 75
   const regularTargetQuota = 75
 
-  const totalCount = summary?.total || applicants.length
+  // Pendaftar yang ditolak melepas kuota, sama seperti halaman publik.
+  const totalCount = Math.max(0, (summary?.total || applicants.length) - (summary?.rejected || 0))
   const totalRemaining = Math.max(0, totalTargetQuota - totalCount)
   const totalPercent = Math.min(100, Math.round((totalCount / totalTargetQuota) * 100))
 
@@ -866,7 +867,7 @@ export default function AdminSpmbPage() {
             </div>
 
             <div className="mt-1">
-              <span className="block text-xs font-extrabold text-slate-800 leading-tight">Diterima / Lulus</span>
+              <span className="block text-xs font-extrabold text-slate-800 leading-tight">Diterima</span>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight tabular-nums">
                   {approvedCount}
@@ -1008,7 +1009,7 @@ export default function AdminSpmbPage() {
             >
               <option value="all">Semua Status</option>
               <option value="pending_verification">Menunggu Verifikasi</option>
-              <option value="approved">Approved / Lulus</option>
+              <option value="approved">Approved / Diterima</option>
               <option value="documents_submitted">Berkas Terunggah</option>
               <option value="rejected">Revisi / Ditolak</option>
             </select>
@@ -1543,7 +1544,7 @@ export default function AdminSpmbPage() {
                       className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white py-3 rounded-2xl text-xs font-bold shadow-sm shadow-emerald-500/25 transition cursor-pointer disabled:opacity-50"
                     >
                       <CheckCircle2 size={16} />
-                      <span>{processingAction ? 'Memproses & Kirim Notifikasi...' : 'Approve & Kirim Notifikasi Kelulusan'}</span>
+                      <span>{processingAction ? 'Memproses & Kirim Notifikasi...' : 'Approve & Kirim Notifikasi Diterima'}</span>
                     </button>
 
                     <button

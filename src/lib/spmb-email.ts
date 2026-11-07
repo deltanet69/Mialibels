@@ -227,7 +227,7 @@ export async function sendSpmbRegistrationEmail(params: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. APPROVAL EMAIL (PENGUMUMAN KELULUSAN / DITERIMA)
+// 2. APPROVAL EMAIL (STATUS DITERIMA)
 // ═══════════════════════════════════════════════════════════════════════════
 export async function sendSpmbApprovalEmail(params: {
   registration: any
@@ -257,7 +257,7 @@ export async function sendSpmbApprovalEmail(params: {
     const approvalHtml = `
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; color: #1e293b;">
         <div style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); padding: 36px 30px; text-align: center;">
-          <span style="display: inline-block; background-color: #d1fae5; color: #065f46; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">PENGUMUMAN KELULUSAN SPMB</span>
+          <span style="display: inline-block; background-color: #d1fae5; color: #065f46; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">STATUS: DITERIMA</span>
           <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Selamat! Pendaftaran Diterima</h1>
           <p style="color: #a7f3d0; margin: 8px 0 0 0; font-size: 14px;">${SCHOOL_NAME} ${SCHOOL_LOCATION}</p>
         </div>
@@ -309,7 +309,7 @@ export async function sendSpmbApprovalEmail(params: {
       from: SENDER_EMAIL,
       to: recipientEmail,
       replyTo: 'admin@miattaqwa15.sch.id',
-      subject: `[DITERIMA] Pengumuman Kelulusan SPMB MI Attaqwa 15 - ${reg.student_name} (${reg.registration_number})`,
+      subject: `[DITERIMA] Status Pendaftaran SPMB MI Attaqwa 15 - ${reg.student_name} (${reg.registration_number})`,
       html: approvalHtml
     })
 
@@ -328,7 +328,7 @@ export async function sendSpmbApprovalEmail(params: {
     let waError: string | undefined
     if (phone) {
       try {
-        const waText = `*SELAMAT! PENDAFTARAN SPMB DITERIMA*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, calon siswa atas nama:\n\n• *Nama Siswa:* ${reg.student_name}\n• *No. Registrasi:* ${reg.registration_number}\n• *Program:* ${programLabel}\n• *T.A:* ${academicYear}\n\n*DINYATAKAN DITERIMA* di ${SCHOOL_NAME}.\n\nSurat pengumuman kelulusan resmi telah dikirim ke email *${recipientEmail}*.\n\nCek status resmi: https://spmb.miattaqwa15.sch.id\n\nSelamat bergabung di madrasah kami!`
+        const waText = `*SELAMAT! PENDAFTARAN SPMB DITERIMA*\n*${SCHOOL_NAME}*\n\nAlhamdulillah, calon siswa atas nama:\n\n• *Nama Siswa:* ${reg.student_name}\n• *No. Registrasi:* ${reg.registration_number}\n• *Program:* ${programLabel}\n• *T.A:* ${academicYear}\n\n*DINYATAKAN DITERIMA* di ${SCHOOL_NAME}.\n\nSurat pemberitahuan penerimaan resmi telah dikirim ke email *${recipientEmail}*.\n\nCek status resmi: https://spmb.miattaqwa15.sch.id\n\nSelamat bergabung di madrasah kami!`
         await sendWhatsAppMessage(phone, waText)
         waSent = true
       } catch (waErr: any) {

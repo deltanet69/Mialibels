@@ -480,9 +480,9 @@
     "semantic_hash": ""
   },
   "src/app/(admin)/academic/spmb/page.tsx": {
-    "mtime": 1793990697.8895564,
-    "seen": 1793990799.5441728,
-    "ast_hash": "baa2d84ccbb667f8509618ea5da50172",
+    "mtime": 1794017245.6332717,
+    "seen": 1794017272.7738674,
+    "ast_hash": "c5298b29ddd9c88eb5a29ad224f14159",
     "semantic_hash": ""
   },
   "src/app/(admin)/attendance/page.tsx": {
@@ -1104,9 +1104,9 @@
     "semantic_hash": ""
   },
   "src/app/api/ppdb/admin/settings/route.ts": {
-    "mtime": 1793990679.3243208,
-    "seen": 1793990799.5776367,
-    "ast_hash": "a314a8990444d907ee0db384dc62cfae",
+    "mtime": 1793990993.797989,
+    "seen": 1794016944.0340686,
+    "ast_hash": "59b636917ebc038b9aa928ba414932f1",
     "semantic_hash": ""
   },
   "src/app/api/ppdb/documents/route.ts": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "src/app/api/ppdb/register/route.ts": {
-    "mtime": 1793990679.31934,
-    "seen": 1793990799.5776367,
-    "ast_hash": "ae830b74b8b5c7d7901a259bb5d65118",
+    "mtime": 1793990993.797989,
+    "seen": 1794016944.0340686,
+    "ast_hash": "68135633e89753ea694d0debdc935f8f",
     "semantic_hash": ""
   },
   "src/app/api/ppdb/settings/route.ts": {
@@ -1656,9 +1656,9 @@
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbClientPage.tsx": {
-    "mtime": 1793990679.31934,
-    "seen": 1793990799.6081553,
-    "ast_hash": "5eeac5a75e3b7ff0127a64fd1fbb2c27",
+    "mtime": 1794016876.30328,
+    "seen": 1794016944.067706,
+    "ast_hash": "79d5345bfacf09f159fe8dfa14fdd426",
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbFacilitiesFlow.tsx": {
@@ -1668,9 +1668,9 @@
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbFaq.tsx": {
-    "mtime": 1791821307.406131,
-    "seen": 1793987350.9189146,
-    "ast_hash": "9b571a9e97016c13a365700b270d3eb9",
+    "mtime": 1794017245.619425,
+    "seen": 1794017272.82581,
+    "ast_hash": "0fef2a5dfa81a1542832dc783e6d559d",
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbHero.tsx": {
@@ -1680,9 +1680,9 @@
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbRegistrationForm.tsx": {
-    "mtime": 1793863467.614704,
-    "seen": 1793987350.9189146,
-    "ast_hash": "459af490ac91737936cc464498f3dc03",
+    "mtime": 1794017245.6282105,
+    "seen": 1794017272.82581,
+    "ast_hash": "d8bad4a735d43ea1db48f35c1f9be3eb",
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbRequirements.tsx": {
@@ -1698,9 +1698,9 @@
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbStatusChecker.tsx": {
-    "mtime": 1793605897.37269,
-    "seen": 1793987350.9189146,
-    "ast_hash": "17a65e4c31f5a01e3948668413fc77dc",
+    "mtime": 1794017245.619425,
+    "seen": 1794017272.82581,
+    "ast_hash": "9226fee91bda38f003c077ee21d57472",
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbSuccessModal.tsx": {
@@ -2196,9 +2196,9 @@
     "semantic_hash": ""
   },
   "src/lib/spmb-email.ts": {
-    "mtime": 1793854294.6929617,
-    "seen": 1793987350.9189146,
-    "ast_hash": "461c7614bc81670cf8af6545d21a8289",
+    "mtime": 1794017245.619425,
+    "seen": 1794017272.8457992,
+    "ast_hash": "32faaf5b202ea4847d2b1f947cac606d",
     "semantic_hash": ""
   },
   "src/lib/spmb-registration.ts": {
@@ -2208,9 +2208,9 @@
     "semantic_hash": ""
   },
   "src/lib/spmb-settings.ts": {
-    "mtime": 1793990775.1953895,
-    "seen": 1793990799.631089,
-    "ast_hash": "e52bb5c3f64c45411618ac26c7a96c50",
+    "mtime": 1794016876.2966185,
+    "seen": 1794016944.0844865,
+    "ast_hash": "716eda7212037aa3ef12d1bcde4ae2e4",
     "semantic_hash": ""
   },
   "src/lib/supabase.ts": {
@@ -3192,9 +3192,9 @@
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbLaunchPopup.tsx": {
-    "mtime": 1793990518.7827213,
-    "seen": 1793990799.6081553,
-    "ast_hash": "d8b9c3055b565105877dd16a45694719",
+    "mtime": 1794016876.2966185,
+    "seen": 1794016944.067706,
+    "ast_hash": "591d30eec96dcfd2c4c7ce1c8fd54959",
     "semantic_hash": ""
   },
   "package-lock.json": {
