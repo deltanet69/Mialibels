@@ -3,6 +3,10 @@
 import React, { useState, useRef } from 'react';
 import { Download, AlertCircle, Loader2, Printer, X, CheckCircle2, Eye, Lock } from 'lucide-react';
 import { getDirectImageUrl } from '@/lib/imageUtils';
+import {
+  evaluateExamCardRequirements,
+  EXAM_CARD_RELEASE_DATE,
+} from '@/lib/examCardRules';
 
 interface Student {
   id: string;
@@ -55,12 +59,6 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
     setMounted(true);
   }, []);
 
-  const isFeeExempt = (waiverType?: string | null) => {
-    if (!waiverType) return false;
-    const val = String(waiverType).toLowerCase().trim();
-    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
-  };
-  
   const fetchFullData = async () => {
     const targetId = studentId || initialStudent?.id;
     
@@ -94,19 +92,6 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
       generalData
     };
   };
-
-  const isSppSeptemberLunas = (sppList: SPPInvoice[]) => {
-    const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
-    const unpaidTargetMonth = sppList.find(inv => {
-      const isTarget = targetMonths.includes(String(inv.month));
-      const isPaid = inv.status === 'PAID';
-      return isTarget && !isPaid;
-    });
-    return !unpaidTargetMonth;
-  };
-  
-  const getGeneralPaidAmount = (generalList: any[], key: string) => 
-    generalList.flatMap(inv => inv.items || []).filter((item: any) => item.name?.toLowerCase().includes(key.toLowerCase())).reduce((sum, item) => sum + (Number(item.paid_amount) || 0), 0);
 
   const printCardDirectly = (dataUrl: string, studentName: string, type: 'siswa' | 'ujian') => {
     const isUjian = type === 'ujian';
@@ -235,47 +220,31 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
 
     try {
       if (type === 'ujian' && process.env.NODE_ENV === 'production') {
-        const releaseDate = new Date('2026-09-08T00:00:00+07:00');
-        if (new Date() < releaseDate) {
-          alert('Kartu Ujian baru dapat diunduh mulai tanggal 8 September 2026.');
+        if (new Date() < EXAM_CARD_RELEASE_DATE) {
+          alert('Kartu Ujian baru dapat diunduh mulai tanggal 16 November 2026.');
           setGeneratingUjian(false);
           return;
         }
       }
 
       const { studentData, sppData, generalData } = await fetchFullData();
-      
-      if (type === 'ujian') {
-        const className = studentData.class || '';
-        const isFullday = className.match(/A$/i);
-        const isClass6 = className.startsWith('6');
-        const waiverType = studentData.fee_waiver_type || initialStudent?.fee_waiver_type || (initialStudent as any)?.feeWaiverType;
-        const exemptInfaqAndBuku = isFeeExempt(waiverType);
-        
-        let errorMsg = '';
-        
-        if (!exemptInfaqAndBuku && !isSppSeptemberLunas(sppData)) {
-          errorMsg = 'Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP s/d bulan September sudah dilunasi.';
-        } else {
-          const paidBuku = getGeneralPaidAmount(generalData, 'buku');
-          const paidUlangan = getGeneralPaidAmount(generalData, 'ulangan');
-          const paidAkhirTahun = getGeneralPaidAmount(generalData, 'akhir tahun');
-          
-          const minBuku = isFullday ? 700000 : 300000;
-          const minUlangan = 110000;
-          const minAkhirTahun = 600000;
-          
-          if (!exemptInfaqAndBuku && paidBuku < minBuku) {
-            errorMsg = `Uang Buku/LKS minimal Rp.${minBuku.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidBuku.toLocaleString('id-ID')}).`;
-          } else if (paidUlangan < minUlangan) {
-            errorMsg = `Uang Ulangan Umum minimal Rp.${minUlangan.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidUlangan.toLocaleString('id-ID')}).`;
-          } else if (isClass6 && paidAkhirTahun < minAkhirTahun) {
-            errorMsg = `Uang Kegiatan Akhir Tahun minimal Rp.${minAkhirTahun.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidAkhirTahun.toLocaleString('id-ID')}).`;
-          }
-        }
 
-        if (errorMsg) {
-          alert(errorMsg);
+      if (type === 'ujian') {
+        // Rules ASAS Ganjil 2026/2027 (Surat 249/MI.A15/SK/X/2026) — lihat
+        // src/lib/examCardRules.ts. Template kartu = desain ASAS kiriman
+        // sekolah (Nov 2026), lihat blok canvas 'ujian' di bawah.
+        const evaluation = evaluateExamCardRequirements({
+          className: studentData.class || studentData.className || '',
+          feeWaiverType:
+            studentData.fee_waiver_type ||
+            initialStudent?.fee_waiver_type ||
+            (initialStudent as any)?.feeWaiverType,
+          sppInvoices: sppData,
+          generalInvoices: generalData,
+        });
+
+        if (!evaluation.isEligible) {
+          alert(evaluation.issues[0]);
           setGeneratingUjian(false);
           return;
         }
@@ -402,7 +371,9 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
           ctx.textBaseline = 'top';
         }
       } else {
-        // Kartu Peserta Ujian / Asesmen Kokurikuler (2834 x 2362 px - Exact 12cm x 10cm @ 600 DPI)
+        // Kartu Peserta ASAS (2834 x 2362 px - Exact 12cm x 10cm @ 600 DPI)
+        // Template baru Nov 2026: latar terang, label hitam tercetak di
+        // template (public/kartuujian.png), nilai ditulis HITAM setelah ':'.
         canvas.width = 2834;
         canvas.height = 2362;
 
@@ -410,39 +381,50 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         ctx.textBaseline = 'top';
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#000000';
 
-        // Coordinates aligned with the blue box labels in public/kartuujian.png
-        // 1. Nama Siswa :
-        // 2. Kelas       :
-        // 3. Ruang       :
-        const startX = 580;
-        const startY = 442;
-        const spacing = 74;
+        // Coordinates measured from the new template (colon at x≈1003):
+        // 1. No. Ujian   :  y≈961 (center)
+        // 2. Nama Siswa  :  y≈1105
+        // 3. Kelas       :  y≈1249
+        // 4. Ruang       :  y≈1394
+        const startX = 1090;
+        const startY = 885;
+        const spacing = 144;
 
         const rawClass = studentData.class || studentData.className || '-';
         const cleanClass = rawClass.replace(/^kelas\s+/i, '');
         const ruangVal = studentData.exam_room || (rawClass !== '-' 
           ? (rawClass.toLowerCase().includes('ruang') ? rawClass : `Ruang ${cleanClass}`)
           : '-');
+        // No. Ujian = NIS siswa (student_number) — dikonfirmasi user
+        // 9 Nov 2026. Fallback: NISN, lalu nomor ujian khusus bila ada.
+        const noUjianVal =
+          studentData.student_number ||
+          studentData.studentNumber ||
+          studentData.nisn ||
+          studentData.exam_number ||
+          studentData.no_ujian ||
+          '-';
 
         const values = [
+          String(noUjianVal),
           (studentData.name || '-').toUpperCase(),
           rawClass,
           ruangVal,
         ];
 
-        // Draw values in crisp bold white text with automatic font scaling for long names
+        // Draw values in crisp bold black text with automatic font scaling for long names
         values.forEach((value, i) => {
           const y = startY + (i * spacing);
-          let fontSize = 48;
+          let fontSize = 82;
           ctx.font = `bold ${fontSize}px "Inter", "Segoe UI", Arial, sans-serif`;
-          const maxValWidth = 880;
-          while (ctx.measureText(value).width > maxValWidth && fontSize > 24) {
+          const maxValWidth = 1450;
+          while (ctx.measureText(value).width > maxValWidth && fontSize > 36) {
             fontSize -= 2;
             ctx.font = `bold ${fontSize}px "Inter", "Segoe UI", Arial, sans-serif`;
           }
-          ctx.fillText(value, startX, y + (48 - fontSize) / 2);
+          ctx.fillText(value, startX, y + (82 - fontSize) / 2);
         });
       }
 
@@ -467,13 +449,28 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
   };
 
   const initialWaiver = initialStudent?.fee_waiver_type || (initialStudent as any)?.feeWaiverType;
-  const initialExempt = isFeeExempt(initialWaiver);
-  const isSppBlocked = !initialExempt && initialSpp && initialSpp.length > 0 && !isSppSeptemberLunas(initialSpp);
+  // Blokir cepat hanya dari data SPP yang lengkap di props (Infaq s/d Desember
+  // + tunggakan lama). Pemeriksaan penuh (Buku/LKS, Ulangan, Akhir Tahun)
+  // dilakukan drawCard setelah fetch data lengkap dari /api/students/[id].
+  const initialEval =
+    initialSpp && initialSpp.length > 0
+      ? evaluateExamCardRequirements({
+          className: initialStudent?.class || '',
+          feeWaiverType: initialWaiver,
+          sppInvoices: initialSpp,
+          generalInvoices: initialGeneral,
+        })
+      : null;
+  const isSppBlocked = !!initialEval && (!initialEval.infaqOk || !initialEval.tunggakanOk);
 
   const handleUjianClick = async () => {
     // If we only have studentId but no sppInvoices, we let drawCard handle the fetching and alerting.
     if (isSppBlocked) {
-      alert('Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP sampai dengan bulan September sudah dilunasi.');
+      alert(
+        !initialEval!.tunggakanOk
+          ? 'Kartu Ujian tidak dapat diunduh. Masih ada tunggakan tahun sebelumnya yang belum lunas.'
+          : 'Kartu Ujian tidak dapat diunduh. Pastikan tagihan Infaq/SPP s/d bulan Desember 2026 sudah dilunasi.'
+      );
       return;
     }
     drawCard('ujian');
@@ -565,7 +562,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
                 ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm' 
             }`}
-            title={isSppBlocked ? "SPP sampai September belum lunas" : ""}
+            title={isSppBlocked ? "Infaq/SPP s/d Desember 2026 atau tunggakan lama belum lunas" : ""}
           >
             {generatingUjian ? <Loader2 size={18} className="animate-spin shrink-0" /> : (isSppBlocked ? <AlertCircle size={18} className="shrink-0" /> : <Printer size={18} className="shrink-0" />)}
             Cetak Kartu Ujian
