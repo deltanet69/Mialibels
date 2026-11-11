@@ -60,15 +60,15 @@ export async function getSpmbSettings() {
 
     const { data: registrations, error: regError } = await supabase
       .from('ppdb_registrations')
-      .select('student_nickname, special_needs, status')
+      .select('student_nickname, special_needs, status, is_internal')
       .eq('academic_year', currentSettings.academic_year)
 
     if (regError) {
       console.error('Error counting SPMB registrations in db:', regError)
     }
 
-    // Pendaftar yang ditolak melepas kuotanya.
-    const allRegs = Date.now() < QUOTA_LIVE_AT_MS ? [] : (registrations || []).filter((r: any) => r.status !== 'rejected')
+    // Pendaftar yang ditolak melepas kuotanya; data tambahan (is_internal) di luar kuota.
+    const allRegs = Date.now() < QUOTA_LIVE_AT_MS ? [] : (registrations || []).filter((r: any) => r.status !== 'rejected' && !r.is_internal)
     const totalCount = allRegs.length
 
     // Fullday program count (75 siswa)

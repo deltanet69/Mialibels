@@ -62,10 +62,12 @@ type PpdbRegistrationFormProps = {
   mode?: 'admin-create' | 'admin-edit'
   initial?: Record<string, any>
   recordId?: string
+  // Data tambahan (dispensasi keluarga internal): di luar kuota SPMB online.
+  internal?: boolean
   onDone?: () => void
 }
 
-export default function PpdbRegistrationForm({ settings, mode, initial, recordId, onDone }: PpdbRegistrationFormProps) {
+export default function PpdbRegistrationForm({ settings, mode, initial, recordId, internal, onDone }: PpdbRegistrationFormProps) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -271,11 +273,11 @@ export default function PpdbRegistrationForm({ settings, mode, initial, recordId
     if (!formData.religion) return 'Agama calon siswa wajib diisi.'
     if (!formData.class_program) return 'Pilihan program kelas (Fullday / Regular) wajib dipilih.'
     
-    if (mode !== 'admin-edit' && formData.class_program === 'fullday' && settings.stats?.fullday?.isFull) {
+    if (mode !== 'admin-edit' && formData.class_program === 'fullday' && fulldayIsFull) {
       return 'Kuota Kelas Fullday (Maksimal 75 Siswa) telah terpenuhi. Silakan pilih Kelas Regular.'
     }
 
-    if (mode !== 'admin-edit' && formData.class_program === 'regular' && settings.stats?.regular?.isFull) {
+    if (mode !== 'admin-edit' && formData.class_program === 'regular' && regularIsFull) {
       return 'Kuota Kelas Regular (Maksimal 75 Siswa) telah terpenuhi. Silakan pilih Kelas Fullday.'
     }
 
@@ -368,7 +370,7 @@ export default function PpdbRegistrationForm({ settings, mode, initial, recordId
       const res = await fetch(isEdit ? '/api/spmb/admin' : '/api/spmb/register', {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isEdit ? { id: recordId, edit: formData } : { ...formData, by_admin: mode === 'admin-create' }),
+        body: JSON.stringify(isEdit ? { id: recordId, edit: formData } : { ...formData, by_admin: mode === 'admin-create', is_internal: !!internal }),
         signal: controller.signal
       })
 
@@ -401,8 +403,8 @@ export default function PpdbRegistrationForm({ settings, mode, initial, recordId
   }
 
   const isClosed = !mode && (!settings.is_active || settings.stats?.isTotalFull)
-  const fulldayIsFull = Boolean(settings.stats?.fullday?.isFull)
-  const regularIsFull = Boolean(settings.stats?.regular?.isFull)
+  const fulldayIsFull = !internal && Boolean(settings.stats?.fullday?.isFull)
+  const regularIsFull = !internal && Boolean(settings.stats?.regular?.isFull)
 
   // Program terpilih yang kuotanya penuh dipindah ke program lain yang masih ada kursi.
   useEffect(() => {

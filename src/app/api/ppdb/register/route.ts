@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
     if (body.by_admin && !byAdmin) {
       return NextResponse.json({ error: 'Akses ditolak. Anda tidak memiliki izin untuk mendaftarkan siswa.' }, { status: 403 })
     }
+    // Data tambahan (dispensasi keluarga internal): hanya lewat admin, di luar kuota SPMB online.
+    const isInternal = byAdmin && body.is_internal === true
 
     if (!byAdmin && !ppdbSettings.is_active) {
       return NextResponse.json({
@@ -57,18 +59,18 @@ export async function POST(request: NextRequest) {
     // 5. Check Quota: Total Quota (150) & Class Quotas (Fullday 75, Regular 75)
     const { data: existingRegs, count: totalCount } = await supabase
       .from('ppdb_registrations')
-      .select('student_nickname, special_needs, status', { count: 'exact' })
+      .select('student_nickname, special_needs, status, is_internal', { count: 'exact' })
       .eq('academic_year', ppdbSettings.academic_year)
 
-    // totalCount (termasuk yang ditolak) tetap dipakai untuk nomor urut agar tidak bentrok;
-    // kuota hanya menghitung yang tidak ditolak.
-    const activeRegs = (existingRegs || []).filter((r: any) => r.status !== 'rejected')
+    // totalCount (termasuk yang ditolak & data tambahan) tetap dipakai untuk nomor urut agar tidak bentrok;
+    // kuota hanya menghitung pendaftar online yang tidak ditolak.
+    const activeRegs = (existingRegs || []).filter((r: any) => r.status !== 'rejected' && !r.is_internal)
     const totalRegistered = activeRegs.length
     const totalQuota = Number(ppdbSettings.batch_1_quota) || 150
     const fulldayQuota = 75
     const regularQuota = 75
 
-    if (totalRegistered >= totalQuota) {
+    if (!isInternal && totalRegistered >= totalQuota) {
       return NextResponse.json({
         error: `Pendaftaran SPMB Tahun Ajaran ${ppdbSettings.academic_year} telah ditutup karena kuota penerimaan (${totalQuota} siswa) telah terpenuhi.`
       }, { status: 400 })
@@ -77,7 +79,9 @@ export async function POST(request: NextRequest) {
     const fulldayCount = activeRegs.filter(isFulldayRow).length
     const regularCount = Math.max(0, totalRegistered - fulldayCount)
 
-    if (isFullday) {
+    if (isInternal) {
+      // di luar kuota
+    } else if (isFullday) {
       if (fulldayCount >= fulldayQuota) {
         return NextResponse.json({
           error: `Kuota Program Kelas Fullday (Maksimal ${fulldayQuota} Siswa) telah terpenuhi. Silakan pilih Program Kelas Regular.`
@@ -109,6 +113,7 @@ export async function POST(request: NextRequest) {
       payment_amount: Number(ppdbSettings.registration_fee) || 300000,
       payment_status: 'pending',
       status: 'pending_verification',
+      is_internal: isInternal,
       parent_password_hash: tempPassword,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -148,7 +153,7 @@ export async function POST(request: NextRequest) {
         admin_name: byAdmin ? session.name : 'SPMB Online',
         action: 'CREATE',
         resource: 'spmb_registration',
-        description: `Pendaftaran SPMB baru ${regNumber} — ${insertPayload.student_name} (${isFullday ? 'Fullday' : 'Regular'}) ${byAdmin ? 'via admin' : 'via formulir online'}, status pending_verification.`
+        description: `Pendaftaran SPMB baru ${regNumber} — ${insertPayload.student_name} (${isFullday ? 'Fullday' : 'Regular'})${isInternal ? ' [data tambahan/dispensasi]' : ''} ${byAdmin ? 'via admin' : 'via formulir online'}, status pending_verification.`
       })
     } catch (logErr) {
       console.warn('[SPMB Register] Gagal menulis activity_logs:', logErr)

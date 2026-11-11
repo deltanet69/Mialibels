@@ -480,9 +480,9 @@
     "semantic_hash": ""
   },
   "src/app/(admin)/academic/spmb/page.tsx": {
-    "mtime": 1794017245.6332717,
-    "seen": 1794017272.7738674,
-    "ast_hash": "c5298b29ddd9c88eb5a29ad224f14159",
+    "mtime": 1794370766.5774407,
+    "seen": 1794370792.4428518,
+    "ast_hash": "8febc9ad9c4daf099b8d6bcf3e631fe1",
     "semantic_hash": ""
   },
   "src/app/(admin)/attendance/page.tsx": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "src/app/api/ppdb/admin/route.ts": {
-    "mtime": 1793863403.768617,
-    "seen": 1793987350.9189146,
-    "ast_hash": "d7ed2118cd150ce5e8a9514472c99d2f",
+    "mtime": 1794370715.4810286,
+    "seen": 1794370792.4701493,
+    "ast_hash": "b4b963866bb434456590e0646b87b5c8",
     "semantic_hash": ""
   },
   "src/app/api/ppdb/admin/settings/route.ts": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "src/app/api/ppdb/register/route.ts": {
-    "mtime": 1793990993.797989,
-    "seen": 1794016944.0340686,
-    "ast_hash": "68135633e89753ea694d0debdc935f8f",
+    "mtime": 1794370700.989266,
+    "seen": 1794370792.4701493,
+    "ast_hash": "8e4e213afbf0a9900ba577d33e3aa341",
     "semantic_hash": ""
   },
   "src/app/api/ppdb/settings/route.ts": {
@@ -1680,9 +1680,9 @@
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbRegistrationForm.tsx": {
-    "mtime": 1794017245.6282105,
-    "seen": 1794017272.82581,
-    "ast_hash": "d8bad4a735d43ea1db48f35c1f9be3eb",
+    "mtime": 1794370733.8754997,
+    "seen": 1794370792.504174,
+    "ast_hash": "99e301a84e97a6bb026293d3a2b1f28d",
     "semantic_hash": ""
   },
   "src/components/frontend/ppdb/PpdbRequirements.tsx": {
@@ -2076,9 +2076,9 @@
     "semantic_hash": ""
   },
   "src/components/portal/students/CardDownloader.tsx": {
-    "mtime": 1789528979.1795428,
-    "seen": 1793987350.9189146,
-    "ast_hash": "f5b85dcc29b1df61ebe3da5ebcc2d244",
+    "mtime": 1794178907.8364615,
+    "seen": 1794370792.5236065,
+    "ast_hash": "c40d2ccffda25b501661d9cbae7f10fa",
     "semantic_hash": ""
   },
   "src/components/portal/students/CsvImport.tsx": {
@@ -2160,9 +2160,9 @@
     "semantic_hash": ""
   },
   "src/lib/openwa.ts": {
-    "mtime": 1785458945.4881928,
-    "seen": 1793987350.9189146,
-    "ast_hash": "e53f8fb3cdc9e60abcd690be31f8c44e",
+    "mtime": 1794035317.0848172,
+    "seen": 1794370792.5275905,
+    "ast_hash": "e90993817dd4b2f5084459c30d8b2253",
     "semantic_hash": ""
   },
   "src/lib/push.ts": {
@@ -2196,9 +2196,9 @@
     "semantic_hash": ""
   },
   "src/lib/spmb-email.ts": {
-    "mtime": 1794017245.619425,
-    "seen": 1794017272.8457992,
-    "ast_hash": "32faaf5b202ea4847d2b1f947cac606d",
+    "mtime": 1794034922.6694362,
+    "seen": 1794370792.5285897,
+    "ast_hash": "d8bb830231c1a8faf270cc91944d0b32",
     "semantic_hash": ""
   },
   "src/lib/spmb-registration.ts": {
@@ -2208,9 +2208,9 @@
     "semantic_hash": ""
   },
   "src/lib/spmb-settings.ts": {
-    "mtime": 1794016876.2966185,
-    "seen": 1794016944.0844865,
-    "ast_hash": "716eda7212037aa3ef12d1bcde4ae2e4",
+    "mtime": 1794370702.6493497,
+    "seen": 1794370792.5285897,
+    "ast_hash": "33a75e32a3f875306644d465c7e8dc62",
     "semantic_hash": ""
   },
   "src/lib/supabase.ts": {
@@ -2964,9 +2964,9 @@
     "semantic_hash": ""
   },
   "public/kartuujian.png": {
-    "mtime": 1788241730.386786,
-    "seen": 1793987350.9189146,
-    "ast_hash": "a3875221fd93357c7ca763149d358b0b",
+    "mtime": 1794178934.8224928,
+    "seen": 1794370792.5629427,
+    "ast_hash": "540944e224ee5c71bc5c7fe920c6b8df",
     "semantic_hash": ""
   },
   "public/logomi.png": {
@@ -3195,6 +3195,18 @@
     "mtime": 1794016876.2966185,
     "seen": 1794016944.067706,
     "ast_hash": "591d30eec96dcfd2c4c7ce1c8fd54959",
+    "semantic_hash": ""
+  },
+  "CardDownloader.tsx": {
+    "mtime": 1794178907.8364615,
+    "seen": 1794370792.4378526,
+    "ast_hash": "c40d2ccffda25b501661d9cbae7f10fa",
+    "semantic_hash": ""
+  },
+  "src/lib/examCardRules.ts": {
+    "mtime": 1794179126.4324248,
+    "seen": 1794370792.526596,
+    "ast_hash": "d2bdcc414363e340ffb72154cc9939d8",
     "semantic_hash": ""
   },
   "package-lock.json": {

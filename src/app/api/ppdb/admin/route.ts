@@ -53,18 +53,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Gagal mengambil data pendaftar: ' + error.message }, { status: 500 })
     }
 
-    // Summary counters
+    // Summary counters: hanya SPMB online (kuota); data tambahan dihitung terpisah.
     const all = applicants || []
+    const online = all.filter((a: any) => !a.is_internal)
     const summary = {
-      total: all.length,
-      pending: all.filter((a: any) => a.status === 'pending_verification').length,
-      approved: all.filter((a: any) => a.status === 'approved' || a.status === 'documents_submitted' || a.status === 'documents_verified').length,
-      rejected: all.filter((a: any) => a.status === 'rejected').length,
-      documents_submitted: all.filter((a: any) => a.status === 'documents_submitted').length,
-      batch1: all.filter((a: any) => a.batch === 1).length,
-      batch2: all.filter((a: any) => a.batch === 2).length,
-      batch3: all.filter((a: any) => a.batch === 3).length,
-      totalPaymentAmount: all.filter((a: any) => a.payment_status === 'verified').reduce((acc: number, curr: any) => acc + (Number(curr.payment_amount) || 0), 0)
+      internal: all.length - online.length,
+      total: online.length,
+      pending: online.filter((a: any) => a.status === 'pending_verification').length,
+      approved: online.filter((a: any) => a.status === 'approved' || a.status === 'documents_submitted' || a.status === 'documents_verified').length,
+      rejected: online.filter((a: any) => a.status === 'rejected').length,
+      documents_submitted: online.filter((a: any) => a.status === 'documents_submitted').length,
+      batch1: online.filter((a: any) => a.batch === 1).length,
+      batch2: online.filter((a: any) => a.batch === 2).length,
+      batch3: online.filter((a: any) => a.batch === 3).length,
+      totalPaymentAmount: online.filter((a: any) => a.payment_status === 'verified').reduce((acc: number, curr: any) => acc + (Number(curr.payment_amount) || 0), 0)
     }
 
     return NextResponse.json({
@@ -116,14 +118,14 @@ export async function PUT(request: NextRequest) {
       if ('error' in parsed) {
         return NextResponse.json({ error: parsed.error }, { status: 400 })
       }
-      const { data: current } = await supabase.from('ppdb_registrations').select('id, academic_year, student_nickname, special_needs').eq('id', id).single()
+      const { data: current } = await supabase.from('ppdb_registrations').select('id, academic_year, student_nickname, special_needs, is_internal').eq('id', id).single()
       if (!current) {
         return NextResponse.json({ error: 'Data pendaftar tidak ditemukan.' }, { status: 404 })
       }
-      // Pindah program kelas: kuota program tujuan (75) tidak boleh terlampaui.
-      if (parsed.isFullday !== isFulldayRow(current)) {
-        const { data: regs } = await supabase.from('ppdb_registrations').select('id, student_nickname, special_needs').eq('academic_year', current.academic_year)
-        const inTarget = (regs || []).filter((r: any) => r.id !== id && isFulldayRow(r) === parsed.isFullday).length
+      // Pindah program kelas: kuota program tujuan (75) tidak boleh terlampaui (data tambahan di luar kuota).
+      if (!current.is_internal && parsed.isFullday !== isFulldayRow(current)) {
+        const { data: regs } = await supabase.from('ppdb_registrations').select('id, student_nickname, special_needs, is_internal').eq('academic_year', current.academic_year)
+        const inTarget = (regs || []).filter((r: any) => r.id !== id && !r.is_internal && isFulldayRow(r) === parsed.isFullday).length
         if (inTarget >= 75) {
           return NextResponse.json({ error: `Kuota Program Kelas ${parsed.isFullday ? 'Fullday' : 'Regular'} (Maksimal 75 Siswa) telah terpenuhi.` }, { status: 400 })
         }

@@ -96,6 +96,7 @@ type Applicant = {
   document_immunization?: string
   document_report_card?: string
   documents_submitted_at?: string
+  is_internal?: boolean
   created_at: string
 }
 
@@ -182,6 +183,8 @@ export default function AdminSpmbPage() {
   // Filters & Search
   const [search, setSearch] = useState('')
   const [programFilter, setProgramFilter] = useState<'all' | 'fullday' | 'regular'>('all')
+  // Jalur: SPMB online (kuota 150) vs data tambahan dispensasi keluarga internal (di luar kuota)
+  const [sourceFilter, setSourceFilter] = useState<'online' | 'internal' | 'all'>('online')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list')
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
@@ -193,7 +196,7 @@ export default function AdminSpmbPage() {
   // Modals
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
-  const [formModal, setFormModal] = useState<{ mode: 'admin-create' | 'admin-edit'; applicant?: Applicant } | null>(null)
+  const [formModal, setFormModal] = useState<{ mode: 'admin-create' | 'admin-edit'; applicant?: Applicant; internal?: boolean } | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   // Action state in detail modal
@@ -329,16 +332,22 @@ export default function AdminSpmbPage() {
 
   // Count Fullday vs Regular
   const fulldayCount = useMemo(() => {
-    return applicants.filter(a => a.status !== 'rejected' && isFulldayRow(a)).length
+    return applicants.filter(a => !a.is_internal && a.status !== 'rejected' && isFulldayRow(a)).length
   }, [applicants])
 
   const regularCount = useMemo(() => {
-    return applicants.filter(a => a.status !== 'rejected' && !isFulldayRow(a)).length
+    return applicants.filter(a => !a.is_internal && a.status !== 'rejected' && !isFulldayRow(a)).length
   }, [applicants])
 
   // Filtered applicants
+  const sourceApplicants = useMemo(() => {
+    if (sourceFilter === 'all') return applicants
+    return applicants.filter(a => !!a.is_internal === (sourceFilter === 'internal'))
+  }, [applicants, sourceFilter])
+  const internalCount = applicants.length - applicants.filter(a => !a.is_internal).length
+
   const filteredApplicants = useMemo(() => {
-    let list = [...applicants]
+    let list = [...sourceApplicants]
 
     if (programFilter === 'fullday') {
       list = list.filter(a => isFulldayRow(a))
@@ -370,12 +379,12 @@ export default function AdminSpmbPage() {
     }
 
     return list
-  }, [applicants, programFilter, statusFilter, search, sortOrder])
+  }, [sourceApplicants, programFilter, statusFilter, search, sortOrder])
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, programFilter, statusFilter, sortOrder])
+  }, [search, programFilter, statusFilter, sortOrder, sourceFilter])
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / itemsPerPage))
@@ -472,7 +481,7 @@ export default function AdminSpmbPage() {
       return
     }
 
-    let csv = 'No. Registrasi,Nama Lengkap,Program Kelas,JK,Tempat Lahir,Tanggal Lahir,Status,Orang Tua/Wali,NIK,Pekerjaan,No WA,Email,Alamat,Nominal Bayar,Status Bayar,Tgl Daftar,Link Bukti Transfer,Link Akta Kelahiran,Link Kartu Keluarga,Link KTP Orang Tua,Link SK Tamat Belajar\n'
+    let csv = 'No. Registrasi,Jalur,Nama Lengkap,Program Kelas,JK,Tempat Lahir,Tanggal Lahir,Status,Orang Tua/Wali,NIK,Pekerjaan,No WA,Email,Alamat,Nominal Bayar,Status Bayar,Tgl Daftar,Link Bukti Transfer,Link Akta Kelahiran,Link Kartu Keluarga,Link KTP Orang Tua,Link SK Tamat Belajar\n'
 
     const linkCell = (url: any) => {
       const u = String(url || '').trim().replace(/"/g, '')
@@ -485,13 +494,13 @@ export default function AdminSpmbPage() {
       const isF = isFulldayRow(row)
       const programName = isF ? 'Kelas Fullday' : 'Kelas Regular'
 
-      csv += `${clean(row.registration_number)},${clean(row.student_name)},${clean(programName)},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${clean(row.status)},${clean(row.father_name || row.mother_name)},${clean(row.father_nik || row.mother_nik)},${clean(row.father_occupation || row.mother_occupation)},${clean(row.father_phone || row.mother_phone)},${clean(row.father_email || row.mother_email)},${clean(row.home_address)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))},${linkCell(row.payment_proof_url)},${linkCell(row.document_birth_certificate)},${linkCell(row.document_family_card)},${linkCell(row.document_parent_id)},${linkCell(row.document_report_card)}\n`
+      csv += `${clean(row.registration_number)},${clean(row.is_internal ? 'Data Tambahan (Dispensasi)' : 'SPMB Online')},${clean(row.student_name)},${clean(programName)},${clean(row.gender)},${clean(row.birth_place)},${clean(row.birth_date)},${clean(row.status)},${clean(row.father_name || row.mother_name)},${clean(row.father_nik || row.mother_nik)},${clean(row.father_occupation || row.mother_occupation)},${clean(row.father_phone || row.mother_phone)},${clean(row.father_email || row.mother_email)},${clean(row.home_address)},${row.payment_amount || 0},${clean(row.payment_status)},${clean(new Date(row.created_at).toLocaleString('id-ID'))},${linkCell(row.payment_proof_url)},${linkCell(row.document_birth_certificate)},${linkCell(row.document_family_card)},${linkCell(row.document_parent_id)},${linkCell(row.document_report_card)}\n`
     })
 
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `SPMB_Pendaftar_${programFilter === 'all' ? 'Semua_Program' : programFilter}_${new Date().toISOString().split('T')[0]}.csv`
+    link.download = `SPMB_${{ online: 'Online', internal: 'DataTambahan', all: 'Gabungan' }[sourceFilter]}_${programFilter === 'all' ? 'Semua_Program' : programFilter}_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
   }
 
@@ -530,7 +539,7 @@ export default function AdminSpmbPage() {
   const regularTargetQuota = 75
 
   // Pendaftar yang ditolak melepas kuota, sama seperti halaman publik.
-  const totalCount = Math.max(0, (summary?.total || applicants.length) - (summary?.rejected || 0))
+  const totalCount = Math.max(0, (summary?.total ?? applicants.filter(a => !a.is_internal).length) - (summary?.rejected || 0))
   const totalRemaining = Math.max(0, totalTargetQuota - totalCount)
   const totalPercent = Math.min(100, Math.round((totalCount / totalTargetQuota) * 100))
 
@@ -631,6 +640,16 @@ export default function AdminSpmbPage() {
               <span>Pendaftaran Baru</span>
             </button>
           ) : <div />}
+          {canManage && (
+            <button
+              onClick={() => setFormModal({ mode: 'admin-create', internal: true })}
+              className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs sm:text-sm font-bold transition cursor-pointer w-full sm:w-auto active:scale-[0.98]"
+              title="Siswa tambahan dispensasi keluarga internal, tidak mengurangi kuota SPMB online"
+            >
+              <UserPlus size={16} />
+              <span>Data Tambahan (Dispensasi)</span>
+            </button>
+          )}
 
           {/* Secondary Action Buttons */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -892,6 +911,28 @@ export default function AdminSpmbPage() {
          ════════════════════════════════════════════════════════════════════ */}
       <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-xs border border-slate-200/90 space-y-4 sm:space-y-5">
         
+        {/* Jalur data: SPMB online (kuota) dipisah dari data tambahan dispensasi */}
+        <div role="tablist" aria-label="Jalur data" className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {([
+            ['online', 'SPMB Online', applicants.length - internalCount],
+            ['internal', 'Data Tambahan (Dispensasi)', internalCount],
+            ['all', 'Gabungan', applicants.length]
+          ] as const).map(([key, label, count]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={sourceFilter === key}
+              onClick={() => setSourceFilter(key)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                sourceFilter === key ? 'bg-white shadow-xs text-slate-900 font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>{label}</span>
+              <span className="text-[11px] px-2 rounded-full bg-slate-200/70 text-slate-700">{count}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Top Filter Bar: Program Switcher Pills & View Mode */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
           
@@ -909,7 +950,7 @@ export default function AdminSpmbPage() {
               <span className={`text-[11px] px-2 py-0.2 rounded-full ${
                 programFilter === 'all' ? 'bg-blue-50 text-blue-700 font-black' : 'bg-slate-200/70 text-slate-600'
               }`}>
-                {applicants.length}
+                {sourceApplicants.length}
               </span>
             </button>
 
@@ -926,7 +967,7 @@ export default function AdminSpmbPage() {
               <span className={`text-[11px] px-2 py-0.2 rounded-full ${
                 programFilter === 'fullday' ? 'bg-purple-50 text-purple-700 font-black' : 'bg-slate-200/70 text-slate-600'
               }`}>
-                {fulldayCount} / 75
+                {sourceFilter === 'online' ? `${fulldayCount} / 75` : sourceApplicants.filter(a => isFulldayRow(a)).length}
               </span>
             </button>
 
@@ -943,7 +984,7 @@ export default function AdminSpmbPage() {
               <span className={`text-[11px] px-2 py-0.2 rounded-full ${
                 programFilter === 'regular' ? 'bg-teal-50 text-teal-700 font-black' : 'bg-slate-200/70 text-slate-600'
               }`}>
-                {regularCount} / 75
+                {sourceFilter === 'online' ? `${regularCount} / 75` : sourceApplicants.filter(a => !isFulldayRow(a)).length}
               </span>
             </button>
           </div>
@@ -1106,6 +1147,7 @@ export default function AdminSpmbPage() {
                           <span className="font-mono text-xs font-black text-blue-700 bg-blue-50/90 px-2.5 py-1 rounded-xl border border-blue-200/80">
                             {app.registration_number}
                           </span>
+                          {app.is_internal && <span className="ml-1.5 inline-flex px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">Dispensasi</span>}
                         </td>
 
                         {/* Student Name */}
@@ -1197,7 +1239,7 @@ export default function AdminSpmbPage() {
                             </button>
                             {canManage && (
                               <button
-                                onClick={() => setFormModal({ mode: 'admin-edit', applicant: app })}
+                                onClick={() => setFormModal({ mode: 'admin-edit', applicant: app, internal: !!app.is_internal })}
                                 className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer"
                                 title="Edit Data"
                               >
@@ -1263,6 +1305,7 @@ export default function AdminSpmbPage() {
                         <span className="font-mono text-xs font-black text-blue-700 bg-blue-50/90 px-2.5 py-1 rounded-xl border border-blue-200/80">
                           {app.registration_number}
                         </span>
+                        {app.is_internal && <span className="ml-1.5 inline-flex px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">Dispensasi</span>}
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                           isF ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-teal-50 text-teal-700 border border-teal-200'
                         }`}>
@@ -1366,7 +1409,7 @@ export default function AdminSpmbPage() {
 
                       {canManage && (
                         <button
-                          onClick={() => setFormModal({ mode: 'admin-edit', applicant: app })}
+                          onClick={() => setFormModal({ mode: 'admin-edit', applicant: app, internal: !!app.is_internal })}
                           className="p-2 text-amber-600 hover:bg-amber-50 rounded-xl transition cursor-pointer"
                           title="Edit Data"
                         >
@@ -1485,6 +1528,7 @@ export default function AdminSpmbPage() {
                   <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200/80">
                     {selectedApplicant.registration_number}
                   </span>
+                  {selectedApplicant.is_internal && <span className="ml-1.5 inline-flex px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">Dispensasi</span>}
                   <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-lg border ${
                     isFulldayRow(selectedApplicant)
                       ? 'text-purple-700 bg-purple-50 border-purple-200'
@@ -1678,7 +1722,7 @@ export default function AdminSpmbPage() {
           <div className="relative bg-slate-50 rounded-3xl shadow-2xl w-full max-w-5xl mx-auto my-4 p-4 sm:p-8 border border-slate-200">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-extrabold text-lg text-slate-900">
-                {formModal.mode === 'admin-edit' ? `Edit Pendaftaran ${formModal.applicant?.registration_number}` : 'Pendaftaran Siswa Baru'}
+                {formModal.mode === 'admin-edit' ? `Edit Pendaftaran ${formModal.applicant?.registration_number}` : formModal.internal ? 'Data Tambahan Siswa Baru (Dispensasi, di luar kuota)' : 'Pendaftaran Siswa Baru'}
               </h3>
               <button
                 onClick={() => setFormModal(null)}
@@ -1691,6 +1735,7 @@ export default function AdminSpmbPage() {
             <PpdbRegistrationForm
               settings={settings}
               mode={formModal.mode}
+              internal={formModal.internal}
               recordId={formModal.applicant?.id}
               initial={formModal.applicant ? registrationToForm(formModal.applicant) : undefined}
               onDone={() => {

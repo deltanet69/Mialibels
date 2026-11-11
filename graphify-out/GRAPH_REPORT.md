@@ -1,24 +1,24 @@
-# Graph Report - mi15  (2026-11-07)
+# Graph Report - mi15  (2026-11-11)
 
 ## Corpus Check
-- 447 files · ~470,895 words
+- 449 files · ~474,920 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 115 file(s) not represented in the graph (top: .ttf 54, .csv 53, (none) 3)
+- Unclassified: 116 file(s) not represented in the graph (top: .ttf 54, .csv 53, (none) 3)
 
 ## Summary
-- 3747 nodes · 6486 edges · 217 communities (180 shown, 37 thin omitted)
+- 3769 nodes · 6535 edges · 220 communities (174 shown, 46 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 141 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `988a4c49`
+- Built from commit: `827a5734`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - getAdminSupabase
 - supabase.ts
-- ShadcnInstaller
+- TestShadcnInstaller
 - scripts/core.py
 - getSession
 - next
@@ -29,7 +29,7 @@
 - slide_search_core.py
 - Tailwind CSS Utility Reference
 - PpdbClientPage.tsx
-- ParentProfileMobile.tsx
+- ShadcnInstaller
 - design_system.py
 - Brand Guidelines v1.0
 - dependencies
@@ -54,15 +54,15 @@
 - TestSearchDomains
 - Asset Approval Checklist
 - Logo AI Prompt Engineering
-- students/page.tsx
+- ParentProfileMobile.tsx
 - Color Palette Management
 - CIP Deliverable Guide
 - States and Variants
 - UI Styling Skill
-- client.ts
+- spmb-email.ts
 - Workflow
 - TestThresholdGate
-- attendanceRules.ts
+- [class]/page.tsx
 - (admin)/dashboard/page.tsx
 - NewsPageClient.tsx
 - ParentClassroomMobile.tsx
@@ -84,7 +84,6 @@
 - fetch-background.py
 - color
 - ManageTab.tsx
-- ppdb/admin/route.ts
 - compilerOptions
 - 3. Logo Usage
 - Brand Consistency Checklist
@@ -92,7 +91,6 @@
 - Color Semantics
 - UI/UX Pro Max - Design Intelligence
 - a
-- AbsenKelas1ClientPage.tsx
 - middleware.ts
 - ParentInformasiMobile.tsx
 - workbox-c2c0676f.js
@@ -101,6 +99,7 @@
 - Design Principles
 - Design Principles
 - fontSize
+- TailwindConfigGenerator
 - CIP Design Reference
 - Icon Design Reference
 - Copywriting Formulas
@@ -119,13 +118,11 @@
 - Tailwind Integration
 - radius
 - Layout Patterns
-- TailwindConfigGenerator
 - pg
 - TestWebStackFreshness
 - r
 - Z
 - v
-- AbsensiSiswaAcademicClient.tsx
 - dashboard/layout.tsx
 - dashboard/types.ts
 - update.md
@@ -162,12 +159,11 @@
 - duration
 - Slide Strategies
 - ppdb/settings/route.ts
-- design_system.py
+- subprocess
 - ppdb/admin/settings/route.ts
 - AnimatedNavIcons.tsx
-- TestMetricMath
+- test_native_desktop_stack_freshness.py
 - BM25
-- [class]/page.tsx
 - classroom/[slug]/page.tsx
 - banners/page.tsx
 - ModulForm.tsx
@@ -179,14 +175,17 @@
 - jadwal-mengajar/page.tsx
 - Slides Reference
 - HTML Slide Template
+- PpdbStatusChecker.tsx
 - HTML Slide Template
+- shadcn_add.py
 - scripts
 - s
 - y
 - logs/page.tsx
 - Slides
+- PpdbRequirements.tsx
 - gsap
-- modul-pembelajaran/page.tsx
+- resend
 - (admin)/profile/page.tsx
 - app/layout.tsx
 - $type
@@ -201,7 +200,6 @@
 - xl
 - none
 - @supabase/ssr
-- infaq-summary/page.tsx
 - 16
 - 1
 - 3
@@ -225,9 +223,9 @@
 
 ## God Nodes (most connected - your core abstractions)
 1. `next` - 191 edges
-2. `react` - 167 edges
-3. `lucide-react` - 125 edges
-4. `getAdminSupabase()` - 114 edges
+2. `react` - 168 edges
+3. `lucide-react` - 126 edges
+4. `getAdminSupabase()` - 116 edges
 5. `getSession()` - 85 edges
 6. `TailwindConfigGenerator` - 58 edges
 7. `getJwtSecretKey()` - 52 edges
@@ -236,61 +234,57 @@
 10. `TestTailwindConfigGenerator` - 35 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `CardDownloader()` --calls--> `evaluateExamCardRequirements()`  [EXTRACTED]
+  CardDownloader.tsx → src/lib/examCardRules.ts
+- `CardDownloader()` --calls--> `getDirectImageUrl()`  [EXTRACTED]
+  CardDownloader.tsx → src/lib/imageUtils.ts
 - `PpdbRegistrationForm()` --calls--> `PpdbSuccessModal()`  [EXTRACTED]
   src/components/frontend/ppdb/PpdbRegistrationForm.tsx → src/components/frontend/ppdb/PpdbSuccessModal.tsx
 - `TestGeneratedConfigIsValidJs` --uses--> `TailwindConfigGenerator`  [INFERRED]
   .agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py → .agents/skills/ui-styling/scripts/tailwind_config_gen.py
 - `TestTailwindConfigGenerator` --uses--> `TailwindConfigGenerator`  [INFERRED]
   .agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py → .agents/skills/ui-styling/scripts/tailwind_config_gen.py
-- `TestEndToEndCoherence` --uses--> `DesignSystemGenerator`  [INFERRED]
-  .agents/skills/ui-ux-pro-max/scripts/tests/test_design_system_mode.py → .agents/skills/ui-ux-pro-max/scripts/design_system.py
-- `getParentSession()` --calls--> `getJwtSecretKey()`  [EXTRACTED]
-  src/lib/session.ts → src/lib/jwt.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (217 total, 37 thin omitted)
+## Communities (220 total, 46 thin omitted)
 
 ### Community 0 - "getAdminSupabase"
-Cohesion: 0.07
-Nodes (52): bcryptjs, jose, POST(), GET(), POST(), POST(), DELETE(), GET() (+44 more)
+Cohesion: 0.08
+Nodes (47): bcryptjs, jose, POST(), GET(), POST(), POST(), DELETE(), GET() (+39 more)
 
 ### Community 1 - "supabase.ts"
 Cohesion: 0.05
 Nodes (30): POST(), GET(), POST(), GET(), getActiveStaffs(), POST(), StaffCacheItem, GET() (+22 more)
-
-### Community 2 - "ShadcnInstaller"
-Cohesion: 0.05
-Nodes (3): main(), ShadcnInstaller, TestShadcnInstaller
 
 ### Community 3 - "scripts/core.py"
 Cohesion: 0.06
 Nodes (31): BM25, _contains_phrase(), detect_domain(), _domain_keywords(), _exact_match_diagnostic(), _exact_row_identity(), _exact_stack_identifier(), _file_signature() (+23 more)
 
 ### Community 4 - "getSession"
-Cohesion: 0.06
-Nodes (40): UsersPage(), GET(), MONTHS, POST(), DELETE(), PUT(), supabase, DELETE() (+32 more)
+Cohesion: 0.07
+Nodes (37): GET(), MONTHS, POST(), DELETE(), PUT(), supabase, DELETE(), GET() (+29 more)
 
 ### Community 5 - "next"
 Cohesion: 0.04
-Nodes (23): next, metadata, metadata, dynamic, GET(), runtime, POST(), dynamic (+15 more)
+Nodes (23): next, metadata, metadata, dynamic, GET(), runtime, supabase, POST() (+15 more)
 
 ### Community 6 - "validate_data.py"
-Cohesion: 0.07
-Nodes (43): read_rows(), TestAccessibilityGuidance, TestChartsTypographyAndIcons, TestCurrentReactGuidance, TestSemanticColors, _catalog_date(), _check_app_interface_contract(), _check_catalog_contract() (+35 more)
+Cohesion: 0.06
+Nodes (43): read_rows(), TestAccessibilityGuidance, TestChartsTypographyAndIcons, TestCurrentReactGuidance, TestSemanticColors, TestGeneratedCatalogContract, _catalog_date(), _check_app_interface_contract() (+35 more)
 
 ### Community 7 - "gray"
 Cohesion: 0.05
 Nodes (53): $type, $value, $type, $value, $type, $value, $type, $value (+45 more)
 
 ### Community 8 - "react"
-Cohesion: 0.07
-Nodes (7): react, GeneralInvoice, STATUS_CONFIG, ParentLoginPage(), ParentLoginDesktop(), ParentLoginMobile(), ParentLoginProps
+Cohesion: 0.08
+Nodes (8): react, ParentLoginPage(), InfaqPrintSummaryContent(), InfaqPrintSummaryPage(), PrintData, ParentLoginDesktop(), ParentLoginMobile(), ParentLoginProps
 
 ### Community 9 - "sendWhatsAppMessage"
-Cohesion: 0.23
-Nodes (15): POST(), POST(), formatWAPhone(), OPENWA_API_KEY, OPENWA_SESSION_ID, OPENWA_SESSION_NAME, OPENWA_URL, resolveSessionId() (+7 more)
+Cohesion: 0.29
+Nodes (9): POST(), POST(), formatWAPhone(), OPENWA_API_KEY, OPENWA_SESSION_ID, OPENWA_SESSION_NAME, OPENWA_URL, resolveSessionId() (+1 more)
 
 ### Community 10 - "slide_search_core.py"
 Cohesion: 0.08
@@ -301,28 +295,24 @@ Cohesion: 0.05
 Nodes (43): Arbitrary Values, Aspect Ratio, Background Colors, Border Color, Border Radius, Border Style, Border Width, Borders (+35 more)
 
 ### Community 12 - "PpdbClientPage.tsx"
-Cohesion: 0.11
-Nodes (22): dynamic, metadata, revalidate, SpmbAppPage(), BERKAS_FISIK, BERKAS_UPLOAD, BULAN, CekUsia() (+14 more)
-
-### Community 13 - "ParentProfileMobile.tsx"
-Cohesion: 0.31
-Nodes (13): ChangePasswordForm(), EditMode, EditProfileSheet(), EditProfileSheetProps, formatBirthInfo(), normalizeGender(), ParentProfileClient(), ParentProfileDesktop() (+5 more)
+Cohesion: 0.14
+Nodes (18): dynamic, metadata, revalidate, SpmbAppPage(), BERKAS_FISIK, BERKAS_UPLOAD, BULAN, CekUsia() (+10 more)
 
 ### Community 14 - "design_system.py"
 Cohesion: 0.05
-Nodes (20): ansi_ljust(), _detect_page_type(), format_ascii_box(), format_markdown(), format_master_md(), format_page_override_md(), generate_design_system(), _generate_intelligent_overrides() (+12 more)
+Nodes (17): ansi_ljust(), _detect_page_type(), format_ascii_box(), format_markdown(), format_master_md(), format_page_override_md(), generate_design_system(), _generate_intelligent_overrides() (+9 more)
 
 ### Community 15 - "Brand Guidelines v1.0"
 Cohesion: 0.05
 Nodes (37): 1. Color Palette, 2. Typography, 3. Logo Usage, 4. Voice & Tone, 5. Imagery Guidelines, 6. Design Components, Accessibility, AI Image Generation (+29 more)
 
 ### Community 16 - "dependencies"
-Cohesion: 0.07
-Nodes (28): dependencies, bcryptjs@^3.0.3, driver.js@^1.8.0, jose@^6.2.3, lucide-react@^1.17.0, next@^16.2.11, nodemailer@^9.0.3, papaparse@^5.5.3 (+20 more)
+Cohesion: 0.05
+Nodes (41): dependencies, bcryptjs@^3.0.3, driver.js@^1.8.0, jose@^6.2.3, lenis@^1.3.25, lucide-react@^1.17.0, next@^16.2.11, nodemailer@^9.0.3 (+33 more)
 
 ### Community 17 - "argparse"
 Cohesion: 0.06
-Nodes (16): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main(), generate_html() (+8 more)
+Nodes (17): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main(), generate_html() (+9 more)
 
 ### Community 18 - "lucide-react"
 Cohesion: 0.08
@@ -337,19 +327,19 @@ Cohesion: 0.06
 Nodes (35): 1. Visual Communication First, 2. Minimal Text Integration, 3. Expert Craftsmanship, 4. Systematic Patterns, Analog Meditation, Approach, Canvas Boundaries, Canvas Design System (+27 more)
 
 ### Community 21 - "(admin)/layout.tsx"
-Cohesion: 0.26
-Nodes (8): AdminLayout(), Navbar(), NavbarClient(), Sidebar(), SidebarContext, SidebarContextType, SidebarProvider(), useSidebar()
+Cohesion: 0.25
+Nodes (9): AdminLayout(), GlobalAttendanceScanner(), Navbar(), NavbarClient(), Sidebar(), SidebarContext, SidebarContextType, SidebarProvider() (+1 more)
 
 ### Community 22 - "canManageFinance"
-Cohesion: 0.09
-Nodes (31): ExecutiveReportsPage(), formatRp(), GET(), PUT(), dynamic, fetchCache, GET(), POST() (+23 more)
+Cohesion: 0.08
+Nodes (36): SavingsPage(), SkeletonRow(), StudentSavingsDetail(), ExecutiveReportsPage(), formatRp(), GET(), PUT(), dynamic (+28 more)
 
 ### Community 23 - "DesignSystemGenerator"
 Cohesion: 0.06
-Nodes (9): DesignSystemGenerator, TestReasoningMatch, read_rows(), split_values(), style_identities(), TestGeneratedCatalogContract, TestLandingAndStackContract, TestReasoningContract (+1 more)
+Nodes (13): DesignSystemGenerator, apply_decision_rules(), _object_without_duplicates(), parse_decision_rules(), _validate_action(), TestReasoningMatch, read_rows(), split_values() (+5 more)
 
 ### Community 24 - "re"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (13): apply_color(), apply_viewbox_size(), extract_svgs(), generate_batch(), generate_icon(), generate_sizes(), load_env(), main() (+5 more)
 
 ### Community 25 - "Form & Input Components"
@@ -377,7 +367,7 @@ Cohesion: 0.07
 Nodes (28): Alert, Anatomy, Anatomy, Anatomy, Anatomy, Anatomy, Badge, Button (+20 more)
 
 ### Community 31 - "html-token-validator.py"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (12): get_context(), is_allowed_exception(), is_allowed_rgba(), is_inside_block(), load_css_variables(), main(), print_result(), print_summary() (+4 more)
 
 ### Community 32 - "shadcn/ui Accessibility Patterns"
@@ -385,8 +375,8 @@ Cohesion: 0.07
 Nodes (28): Accordion, Alert, ARIA Labels, Checkbox and Radio, Color Contrast, Command Palette Navigation, Component-Specific Patterns, Dialog/Modal Navigation (+20 more)
 
 ### Community 33 - "package.json"
-Cohesion: 0.06
-Nodes (42): lenis@^1.3.25, react-quill-new@^3.8.3, resend@^6.17.2, @tiptap/extension-table-cell@^3.27.3, @types/bcryptjs@^2.4.6, @types/papaparse@^5.5.2, ws@^8.21.1, devDependencies (+34 more)
+Cohesion: 0.09
+Nodes (28): devDependencies, eslint@^9, eslint-config-next@^16.2.11, tailwindcss@^4, @tailwindcss/postcss@^4, tsx@^4.19.3, @types/node@^20, @types/nodemailer@^8.0.1 (+20 more)
 
 ### Community 34 - "Chatbot.tsx"
 Cohesion: 0.10
@@ -400,9 +390,9 @@ Nodes (25): Accessibility, Archival, Asset Approval Checklist, Automation Suppor
 Cohesion: 0.08
 Nodes (25): Common Pitfalls, Core Prompt Structure, Detailed Brief, Eco/Sustainable, Effective Keywords by Style, Fashion Brand, Healthcare, Industry-Specific Prompts (+17 more)
 
-### Community 38 - "students/page.tsx"
-Cohesion: 0.14
-Nodes (15): papaparse, StudentDetailPage(), checkExamEligibility(), SkeletonRow(), StudentsPage(), BulkPhotoUpload(), CardDownloader(), CardDownloaderProps (+7 more)
+### Community 38 - "ParentProfileMobile.tsx"
+Cohesion: 0.07
+Nodes (41): CardDownloader(), CardDownloaderProps, SPPInvoice, Student, StudentDetailPage(), checkExamEligibility(), SkeletonRow(), StudentsPage() (+33 more)
 
 ### Community 39 - "Color Palette Management"
 Cohesion: 0.08
@@ -420,17 +410,17 @@ Nodes (24): Accessibility, Accessibility Requirements, ARIA States, Color Contra
 Cohesion: 0.08
 Nodes (24): Accessibility Patterns, Alternative: Tailwind-Only Setup, Best Practices, Common Patterns, Component Layer: shadcn/ui, Component Library Guide, Component + Styling Setup, Core Stack (+16 more)
 
-### Community 43 - "client.ts"
-Cohesion: 0.18
-Nodes (9): recharts@^3.8.1, recharts, AbsensiGuruPage(), AttendanceRecord, FilterType, LogEntry, Staff, AttendanceChartProps (+1 more)
+### Community 43 - "spmb-email.ts"
+Cohesion: 0.40
+Nodes (11): brevoMissingMsg(), getBrevoKey(), getEnvBrevoKey(), getParentEmail(), getParentPhone(), isBrevoConfigured(), SENDER, sendSpmbApprovalEmail() (+3 more)
 
 ### Community 44 - "Workflow"
 Cohesion: 0.08
 Nodes (23): Art Direction Styles (Reuse from Banner), Color & Contrast, Design Best Practices, HTML Design Rules, HTML Template Structure, Option A: Chrome Headless CLI (Recommended — zero dependencies), Option B: chrome-devtools skill, Option C: Playwright script (+15 more)
 
-### Community 46 - "attendanceRules.ts"
-Cohesion: 0.13
-Nodes (27): AbsenPage(), metadata, getTeacherSchedules(), POST(), processSingleScan(), recentStaffScanCache, teacherScheduleCache, AbsenClientPage() (+19 more)
+### Community 46 - "[class]/page.tsx"
+Cohesion: 0.05
+Nodes (61): AbsenPage(), metadata, AbsenSiswaPage(), cleanClassCode(), clientScanCache, formatTime(), getIndonesianDate(), PopupData (+53 more)
 
 ### Community 47 - "(admin)/dashboard/page.tsx"
 Cohesion: 0.16
@@ -441,8 +431,8 @@ Cohesion: 0.10
 Nodes (28): AboutPage(), FASILITAS_ABOUT, metadata, MISI_ITEMS, PRESTASI_LIST, SEJARAH_STEPS, AkademikPage(), metadata (+20 more)
 
 ### Community 49 - "ParentClassroomMobile.tsx"
-Cohesion: 0.18
-Nodes (20): AnimatedAttendanceTabIcon(), AnimatedAwardTabIcon(), AnimatedBookTabIcon(), AnimatedReportTabIcon(), ParentClassroomClient(), DAYS, MONTH_NAMES, ParentClassroomDesktop() (+12 more)
+Cohesion: 0.22
+Nodes (16): AnimatedAttendanceTabIcon(), AnimatedAwardTabIcon(), AnimatedBookTabIcon(), AnimatedReportTabIcon(), DAYS, MONTH_NAMES, ParentClassroomDesktopProps, DAYS (+8 more)
 
 ### Community 50 - "Design System"
 Cohesion: 0.09
@@ -461,12 +451,12 @@ Cohesion: 0.09
 Nodes (22): $type, $value, $type, $value, $type, $value, $type, $value (+14 more)
 
 ### Community 55 - "lucide-react"
-Cohesion: 0.05
-Nodes (21): lucide-react, CLASS_OPTIONS, ClassroomPage(), SkeletonCard(), SavingsPage(), SkeletonRow(), StudentSavingsDetail(), TeachingLog (+13 more)
+Cohesion: 0.06
+Nodes (16): lucide-react, Modul, ModulPembelajaranPage(), TeachingLog, GeneralInvoice, STATUS_CONFIG, SavingsData, Transaction (+8 more)
 
 ### Community 56 - "parent/dashboard/page.tsx"
-Cohesion: 0.23
-Nodes (17): AttendanceRecord, ParentAttendancePage(), StatusBadge(), Summary, getDashboardData(), ParentDashboardHome(), resolveStudent(), ExamRequirementsModal() (+9 more)
+Cohesion: 0.17
+Nodes (17): AttendanceRecord, ParentAttendancePage(), StatusBadge(), Summary, getClassroomPageData(), metadata, ParentClassroomPage(), getDashboardData() (+9 more)
 
 ### Community 57 - "test_design_system_mode.py"
 Cohesion: 0.10
@@ -485,8 +475,8 @@ Cohesion: 0.10
 Nodes (19): Base Color Presets, Best Practices, Color Customization, Color Format, Component Customization, CSS Variable System, Customize Styles, Customize Variants (+11 more)
 
 ### Community 61 - "ppdb/register/route.ts"
-Cohesion: 0.29
-Nodes (9): POST(), runtime, dynamic, POST(), calculateAgeAsOfJuly16_2027(), isFulldayRow(), isFulldayText(), ParsedRegistration (+1 more)
+Cohesion: 0.17
+Nodes (18): DELETE(), dynamic, GET(), PUT(), POST(), runtime, DELETE(), dynamic (+10 more)
 
 ### Community 62 - "Asset Organization Guide"
 Cohesion: 0.11
@@ -512,10 +502,6 @@ Nodes (19): $type, $value, background, foreground, muted-foreground, primary, pr
 Cohesion: 0.15
 Nodes (15): SPPPage(), DashboardStats, DashboardTab(), STATS_CACHE, INVOICES_CACHE, ManageTab(), STATUS_COLORS, STATUS_LABELS (+7 more)
 
-### Community 68 - "ppdb/admin/route.ts"
-Cohesion: 0.33
-Nodes (9): DELETE(), dynamic, GET(), PUT(), DELETE(), dynamic, GET(), PUT() (+1 more)
-
 ### Community 69 - "compilerOptions"
 Cohesion: 0.11
 Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+10 more)
@@ -540,17 +526,13 @@ Nodes (17): Accent, Applying Semantic Tokens, Background & Foreground, Border & 
 Cohesion: 0.11
 Nodes (17): Before Delivering App UI, Example Workflow, If a search returns 0 results, Output Formats, Query Contract, Rule Categories by Priority, Running the search tool, Step 1: Analyze User Requirements (+9 more)
 
-### Community 76 - "AbsenKelas1ClientPage.tsx"
-Cohesion: 0.29
-Nodes (8): metadata, Page(), AbsenKelas1ClientPage(), CLASS_CONFIGS, formatTime(), getIndonesianDate(), PopupData, StudentAttendance
-
 ### Community 77 - "middleware.ts"
 Cohesion: 0.17
 Nodes (15): POST(), GET(), POST(), getLogoutCookieOptions(), ADMIN_API_PREFIXES, ADMIN_PREFIXES, clearSessionCookie(), config (+7 more)
 
 ### Community 78 - "ParentInformasiMobile.tsx"
-Cohesion: 0.29
-Nodes (11): AnimatedAllTabIcon(), AnimatedCalendarTabIcon(), AnimatedCoinsTabIcon(), AnimatedMegaphoneTabIcon(), ParentInformasiClient(), ParentInformasiDesktop(), ParentInformasiDesktopProps, ParentInformasiMobile() (+3 more)
+Cohesion: 0.23
+Nodes (13): metadata, ParentInformasiPage(), AnimatedAllTabIcon(), AnimatedCalendarTabIcon(), AnimatedCoinsTabIcon(), AnimatedMegaphoneTabIcon(), ParentInformasiClient(), ParentInformasiDesktop() (+5 more)
 
 ### Community 79 - "workbox-c2c0676f.js"
 Cohesion: 0.18
@@ -561,8 +543,8 @@ Cohesion: 0.16
 Nodes (13): GeneralFinancePage(), Invoice, PREDEFINED_ITEMS, CreateBillModal(), CreateBillModalProps, PREDEFINED_ITEMS, ConfirmDialog(), GeneralInvoiceDetailModal() (+5 more)
 
 ### Community 81 - "ParentAdministrasiClient.tsx"
-Cohesion: 0.32
-Nodes (13): ParentAdministrasiClient(), ParentAdministrasiClientProps, ParentAdministrasiDesktop(), ParentAdministrasiDesktopProps, ParentAdministrasiMobile(), ParentAdministrasiMobileProps, GeneralInvoice, SavingsData (+5 more)
+Cohesion: 0.33
+Nodes (12): ParentAdministrasiClientProps, ParentAdministrasiDesktop(), ParentAdministrasiDesktopProps, ParentAdministrasiMobile(), ParentAdministrasiMobileProps, GeneralInvoice, SavingsData, SavingsTransaction (+4 more)
 
 ### Community 82 - "Design Principles"
 Cohesion: 0.12
@@ -597,8 +579,8 @@ Cohesion: 0.13
 Nodes (10): dotenv@^17.4.2, @supabase/supabase-js@^2.107.0, dotenv, @supabase/supabase-js, supabase, crypto, run(), { SignJWT } (+2 more)
 
 ### Community 94 - "guru/page.tsx"
-Cohesion: 0.22
-Nodes (7): DetailGuruPage(), GuruPage(), SkeletonRow(), CsvImportGuru(), CsvImportGuruProps, GuruForm(), GuruFormProps
+Cohesion: 0.13
+Nodes (14): papaparse, AbsensiGuruPage(), AttendanceRecord, FilterType, LogEntry, Staff, DetailGuruPage(), GuruPage() (+6 more)
 
 ### Community 95 - "Banner Design - Multi-Format Creative Banner System"
 Cohesion: 0.14
@@ -652,17 +634,13 @@ Nodes (6): et, h(), i, r, st(), U()
 Cohesion: 0.18
 Nodes (3): G, V(), Z
 
-### Community 111 - "AbsensiSiswaAcademicClient.tsx"
-Cohesion: 0.18
-Nodes (12): AcademicAbsensiSiswaPage(), metadata, AbsensiSiswaAcademicClient(), ClassroomSummary, DailyStudent, getGradeTheme(), GRADE_THEMES, MonthlyClassRecap (+4 more)
-
 ### Community 112 - "dashboard/layout.tsx"
 Cohesion: 0.30
 Nodes (9): getSessionData(), ParentDashboardLayout(), ParentNavbar(), ParentNotificationProvider(), ParentSidebar(), ParentSidebarContext, ParentSidebarContextType, ParentSidebarProvider() (+1 more)
 
 ### Community 113 - "dashboard/types.ts"
-Cohesion: 0.24
-Nodes (11): ExamRequirementsModalProps, ParentDashboardDesktopProps, ParentDashboardMobileProps, AttendanceSummary, DashboardData, GeneralInvoiceItem, ScheduleItem, StudentInfo (+3 more)
+Cohesion: 0.21
+Nodes (15): ExamRequirementsModal(), ExamRequirementsModalProps, ParentDashboardDesktop(), ParentDashboardDesktopProps, ParentDashboardMobileProps, AttendanceSummary, DashboardData, GeneralInvoiceItem (+7 more)
 
 ### Community 114 - "update.md"
 Cohesion: 0.15
@@ -673,8 +651,8 @@ Cohesion: 0.15
 Nodes (12): Available Styles, Color Psychology, Commands, Design Brief (Start Here), Detailed References, Generate Logo, Industry Defaults, Logo Design Reference (+4 more)
 
 ### Community 116 - "ParentNotificationProvider.tsx"
-Cohesion: 0.36
-Nodes (6): ParentNotificationBell(), AppNotification, LatestScan, ParentNotificationContext, ParentNotificationContextType, useParentNotifications()
+Cohesion: 0.33
+Nodes (9): ParentDashboardMobile(), ParentNotificationBell(), AppNotification, LatestScan, ParentNotificationContext, ParentNotificationContextType, useParentNotifications(), formatWIBDateIndo() (+1 more)
 
 ### Community 117 - "Token Architecture"
 Cohesion: 0.15
@@ -697,8 +675,8 @@ Cohesion: 0.09
 Nodes (10): _contrast_ratio(), _derive_dark_palette(), _filter_anti_patterns_for_mode(), _palette_is_dark(), _relative_luminance(), _select_palette_for_mode(), TestAntiPatternGating, TestEndToEndCoherence (+2 more)
 
 ### Community 124 - "api/upload/route.ts"
-Cohesion: 0.22
-Nodes (9): sharp, compressToWebP(), POST(), runtime, runtime, compressToWebP(), POST(), runtime (+1 more)
+Cohesion: 0.16
+Nodes (13): sharp@^0.35.3, sharp, compressImage(), POST(), runtime, compressToWebP(), POST(), runtime (+5 more)
 
 ### Community 125 - "Primitive Tokens"
 Cohesion: 0.17
@@ -745,8 +723,8 @@ Cohesion: 0.29
 Nodes (7): formatTimeAgo(), NotificationBell(), PushPermission(), Notification, urlBase64ToUint8Array(), useNotifications(), usePushSubscription()
 
 ### Community 138 - "UsersClient.tsx"
-Cohesion: 0.25
-Nodes (10): Admin, FormData, ImportGuruModal(), ROLE_CONFIG, RoleBadge(), SkeletonRow(), UserForm(), UserFormProps (+2 more)
+Cohesion: 0.21
+Nodes (12): UsersPage(), Admin, FormData, ImportGuruModal(), ROLE_CONFIG, RoleBadge(), SkeletonRow(), UserForm() (+4 more)
 
 ### Community 139 - "sync-brand-to-tokens.cjs"
 Cohesion: 0.29
@@ -784,21 +762,17 @@ Nodes (9): Common Structures, Duarte Sparkline Pattern, Matching Strategy to Con
 Cohesion: 0.38
 Nodes (5): dynamic, GET(), revalidate, dynamic, GET()
 
-### Community 149 - "design_system.py"
-Cohesion: 0.07
-Nodes (8): _run(), test_reports_missing_guidelines_without_breaking_the_harness(), test_sync_parses_bundled_starter_template(), main(), _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation(), TestDiagnosticsContracts
+### Community 149 - "subprocess"
+Cohesion: 0.17
+Nodes (6): _run(), test_reports_missing_guidelines_without_breaking_the_harness(), test_sync_parses_bundled_starter_template(), _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation()
 
 ### Community 150 - "ppdb/admin/settings/route.ts"
-Cohesion: 0.23
-Nodes (13): dynamic, GET(), PUT(), dynamic, GET(), PUT(), canAccessSpmb(), applyAutoOpen() (+5 more)
+Cohesion: 0.24
+Nodes (12): dynamic, GET(), PUT(), dynamic, GET(), PUT(), canAccessSpmb(), applyAutoOpen() (+4 more)
 
 ### Community 151 - "AnimatedNavIcons.tsx"
 Cohesion: 0.42
 Nodes (8): AnimatedAdminIcon(), AnimatedGraduationIcon(), AnimatedHomeIcon(), AnimatedInfoIcon(), AnimatedProfileIcon(), IconProps, NavItem, ParentBottomNav()
-
-### Community 154 - "[class]/page.tsx"
-Cohesion: 0.21
-Nodes (13): AbsenSiswaPage(), cleanClassCode(), clientScanCache, formatTime(), getIndonesianDate(), PopupData, scanRfidDirect(), StudentAttendance (+5 more)
 
 ### Community 155 - "classroom/[slug]/page.tsx"
 Cohesion: 0.16
@@ -844,6 +818,10 @@ Nodes (6): Key Features, Knowledge Base, Slides Reference, Usage, When to Use, W
 Cohesion: 0.29
 Nodes (6): Animation Classes, Background Images, Base Structure, Chart.js Integration, CSS Variables Reference, HTML Slide Template
 
+### Community 167 - "PpdbStatusChecker.tsx"
+Cohesion: 0.53
+Nodes (5): DocUploadCard(), PpdbStatusChecker(), PpdbStatusCheckerProps, StatusBadge(), TimelineStep()
+
 ### Community 168 - "HTML Slide Template"
 Cohesion: 0.29
 Nodes (6): Animation Classes, Background Images, Base Structure, Chart.js Integration, CSS Variables Reference, HTML Slide Template
@@ -864,13 +842,17 @@ Nodes (6): ACTION_CONFIG, ActionBadge(), ActivityLogPage(), Log, RESOURCE_LABELS
 Cohesion: 0.33
 Nodes (5): References (Knowledge Base), Routing, Slides, Subcommands, When to Use
 
+### Community 177 - "PpdbRequirements.tsx"
+Cohesion: 0.40
+Nodes (3): BERKAS_ITEMS, SYARAT_ITEMS, SyaratItem
+
 ### Community 178 - "gsap"
 Cohesion: 0.33
 Nodes (4): gsap@^3.15.0, @gsap/react@^2.1.2, gsap, @gsap/react
 
-### Community 179 - "modul-pembelajaran/page.tsx"
-Cohesion: 0.47
-Nodes (4): Modul, ModulPembelajaranPage(), ModulCard(), ModulCardProps
+### Community 179 - "resend"
+Cohesion: 0.67
+Nodes (3): resend@^6.17.2, resend, POST()
 
 ### Community 180 - "(admin)/profile/page.tsx"
 Cohesion: 0.47
@@ -905,8 +887,8 @@ Cohesion: 0.70
 Nodes (3): ContactClient(), ContactMessage, ContactPage()
 
 ### Community 192 - "dashboard/spp/page.tsx"
-Cohesion: 0.40
-Nodes (3): Invoice, MONTHS, STATUS_CONFIG
+Cohesion: 0.22
+Nodes (6): CLASS_OPTIONS, ClassroomPage(), SkeletonCard(), Invoice, MONTHS, STATUS_CONFIG
 
 ### Community 194 - "padding-y"
 Cohesion: 0.67
@@ -919,10 +901,6 @@ Nodes (4): xl, xl, $type, $value
 ### Community 196 - "none"
 Cohesion: 0.67
 Nodes (4): $type, $value, none, none
-
-### Community 201 - "infaq-summary/page.tsx"
-Cohesion: 0.67
-Nodes (3): InfaqPrintSummaryContent(), InfaqPrintSummaryPage(), PrintData
 
 ### Community 202 - "16"
 Cohesion: 0.67
@@ -968,27 +946,23 @@ Nodes (3): secondary-foreground, $type, $value
 Cohesion: 0.26
 Nodes (10): AdminSpmbPage(), Applicant, checkCanManageSpmb(), DocLink(), SkeletonCard(), SkeletonRow(), SkeletonStats(), StatusBadge() (+2 more)
 
-### Community 226 - "posts/[id]/route.ts"
-Cohesion: 0.19
-Nodes (4): supabase, dynamic, fetchCache, GET()
-
 ## Knowledge Gaps
-- **37 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `next` to `getAdminSupabase`, `posts/page.tsx`, `supabase.ts`, `verify/route.ts`, `getSession`, `contact/page.tsx`, `react`, `sendWhatsAppMessage`, `NotificationBell.tsx`, `PpdbClientPage.tsx`, `ParentProfileMobile.tsx`, `dependencies`, `lucide-react`, `ppdb/settings/route.ts`, `(admin)/layout.tsx`, `canManageFinance`, `ppdb/admin/settings/route.ts`, `AnimatedNavIcons.tsx`, `[class]/page.tsx`, `classroom/[slug]/page.tsx`, `banners/page.tsx`, `ModulForm.tsx`, `package.json`, `push.ts`, `Chatbot.tsx`, `jadwal-mengajar/page.tsx`, `students/page.tsx`, `client.ts`, `attendanceRules.ts`, `(admin)/dashboard/page.tsx`, `NewsPageClient.tsx`, `ParentClassroomMobile.tsx`, `modul-pembelajaran/page.tsx`, `app/layout.tsx`, `lucide-react`, `parent/dashboard/page.tsx`, `next.config.ts`, `ppdb/register/route.ts`, `ppdb/admin/route.ts`, `@supabase/ssr`, `infaq-summary/page.tsx`, `AbsenKelas1ClientPage.tsx`, `middleware.ts`, `ParentInformasiMobile.tsx`, `ParentAdministrasiClient.tsx`, `guru/page.tsx`, `academic/spmb/page.tsx`, `posts/[id]/route.ts`, `AbsensiSiswaAcademicClient.tsx`, `dashboard/layout.tsx`, `dashboard/types.ts`, `api/upload/route.ts`?**
-  _High betweenness centrality (0.045) - this node is a cross-community bridge._
+- **Why does `next` connect `next` to `getAdminSupabase`, `posts/page.tsx`, `supabase.ts`, `verify/route.ts`, `getSession`, `contact/page.tsx`, `react`, `sendWhatsAppMessage`, `NotificationBell.tsx`, `PpdbClientPage.tsx`, `dependencies`, `lucide-react`, `ppdb/settings/route.ts`, `(admin)/layout.tsx`, `canManageFinance`, `ppdb/admin/settings/route.ts`, `AnimatedNavIcons.tsx`, `classroom/[slug]/page.tsx`, `banners/page.tsx`, `ModulForm.tsx`, `package.json`, `push.ts`, `Chatbot.tsx`, `jadwal-mengajar/page.tsx`, `ParentProfileMobile.tsx`, `[class]/page.tsx`, `(admin)/dashboard/page.tsx`, `NewsPageClient.tsx`, `ParentClassroomMobile.tsx`, `app/layout.tsx`, `lucide-react`, `parent/dashboard/page.tsx`, `next.config.ts`, `ppdb/register/route.ts`, `dashboard/spp/page.tsx`, `@supabase/ssr`, `middleware.ts`, `ParentInformasiMobile.tsx`, `ParentAdministrasiClient.tsx`, `guru/page.tsx`, `academic/spmb/page.tsx`, `posts/[id]/route.ts`, `dashboard/layout.tsx`, `dashboard/types.ts`, `ParentNotificationProvider.tsx`, `api/upload/route.ts`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
 - **Should `getAdminSupabase` be split into smaller, more focused modules?**
-  _Cohesion score 0.07135135135135136 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react` to `getAdminSupabase`, `posts/page.tsx`, `contact/page.tsx`, `getSession`, `NotificationBell.tsx`, `UsersClient.tsx`, `PpdbClientPage.tsx`, `ParentProfileMobile.tsx`, `dependencies`, `lucide-react`, `(admin)/layout.tsx`, `canManageFinance`, `AnimatedNavIcons.tsx`, `[class]/page.tsx`, `classroom/[slug]/page.tsx`, `banners/page.tsx`, `ModulForm.tsx`, `TiptapEditor.tsx`, `package.json`, `Chatbot.tsx`, `jadwal-mengajar/page.tsx`, `students/page.tsx`, `client.ts`, `attendanceRules.ts`, `(admin)/dashboard/page.tsx`, `logs/page.tsx`, `NewsPageClient.tsx`, `gsap`, `modul-pembelajaran/page.tsx`, `(admin)/profile/page.tsx`, `ParentClassroomMobile.tsx`, `lucide-react`, `parent/dashboard/page.tsx`, `contact-messages/page.tsx`, `dashboard/spp/page.tsx`, `ManageTab.tsx`, `infaq-summary/page.tsx`, `AbsenKelas1ClientPage.tsx`, `ParentInformasiMobile.tsx`, `finance/general/page.tsx`, `ParentAdministrasiClient.tsx`, `guru/page.tsx`, `academic/spmb/page.tsx`, `AbsensiSiswaAcademicClient.tsx`, `dashboard/layout.tsx`, `dashboard/types.ts`, `ParentNotificationProvider.tsx`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+  _Cohesion score 0.0781387181738367 - nodes in this community are weakly interconnected._
+- **Why does `react` connect `react` to `getAdminSupabase`, `posts/page.tsx`, `contact/page.tsx`, `getSession`, `NotificationBell.tsx`, `UsersClient.tsx`, `PpdbClientPage.tsx`, `dependencies`, `lucide-react`, `(admin)/layout.tsx`, `canManageFinance`, `AnimatedNavIcons.tsx`, `classroom/[slug]/page.tsx`, `banners/page.tsx`, `ModulForm.tsx`, `TiptapEditor.tsx`, `package.json`, `Chatbot.tsx`, `jadwal-mengajar/page.tsx`, `ParentProfileMobile.tsx`, `PpdbStatusChecker.tsx`, `[class]/page.tsx`, `(admin)/dashboard/page.tsx`, `logs/page.tsx`, `NewsPageClient.tsx`, `gsap`, `PpdbRequirements.tsx`, `(admin)/profile/page.tsx`, `ParentClassroomMobile.tsx`, `lucide-react`, `parent/dashboard/page.tsx`, `contact-messages/page.tsx`, `dashboard/spp/page.tsx`, `ManageTab.tsx`, `ParentInformasiMobile.tsx`, `finance/general/page.tsx`, `ParentAdministrasiClient.tsx`, `guru/page.tsx`, `academic/spmb/page.tsx`, `dashboard/layout.tsx`, `dashboard/types.ts`, `ParentNotificationProvider.tsx`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Should `supabase.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.049689440993788817 - nodes in this community are weakly interconnected._
-- **Why does `lucide-react` connect `lucide-react` to `getAdminSupabase`, `posts/page.tsx`, `contact/page.tsx`, `getSession`, `react`, `NotificationBell.tsx`, `UsersClient.tsx`, `PpdbClientPage.tsx`, `ParentProfileMobile.tsx`, `dependencies`, `lucide-react`, `(admin)/layout.tsx`, `canManageFinance`, `[class]/page.tsx`, `classroom/[slug]/page.tsx`, `banners/page.tsx`, `ModulForm.tsx`, `TiptapEditor.tsx`, `package.json`, `Chatbot.tsx`, `jadwal-mengajar/page.tsx`, `students/page.tsx`, `client.ts`, `logs/page.tsx`, `(admin)/dashboard/page.tsx`, `NewsPageClient.tsx`, `attendanceRules.ts`, `ParentClassroomMobile.tsx`, `modul-pembelajaran/page.tsx`, `(admin)/profile/page.tsx`, `parent/dashboard/page.tsx`, `contact-messages/page.tsx`, `dashboard/spp/page.tsx`, `ManageTab.tsx`, `AbsenKelas1ClientPage.tsx`, `ParentInformasiMobile.tsx`, `finance/general/page.tsx`, `ParentAdministrasiClient.tsx`, `guru/page.tsx`, `academic/spmb/page.tsx`, `AbsensiSiswaAcademicClient.tsx`, `dashboard/layout.tsx`, `dashboard/types.ts`, `ParentNotificationProvider.tsx`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Should `ShadcnInstaller` be split into smaller, more focused modules?**
-  _Cohesion score 0.053555750658472345 - nodes in this community are weakly interconnected._
+- **Why does `lucide-react` connect `lucide-react` to `getAdminSupabase`, `posts/page.tsx`, `contact/page.tsx`, `getSession`, `react`, `NotificationBell.tsx`, `UsersClient.tsx`, `PpdbClientPage.tsx`, `dependencies`, `lucide-react`, `(admin)/layout.tsx`, `canManageFinance`, `classroom/[slug]/page.tsx`, `banners/page.tsx`, `ModulForm.tsx`, `TiptapEditor.tsx`, `package.json`, `Chatbot.tsx`, `jadwal-mengajar/page.tsx`, `ParentProfileMobile.tsx`, `PpdbStatusChecker.tsx`, `[class]/page.tsx`, `(admin)/dashboard/page.tsx`, `logs/page.tsx`, `NewsPageClient.tsx`, `PpdbRequirements.tsx`, `ParentClassroomMobile.tsx`, `(admin)/profile/page.tsx`, `parent/dashboard/page.tsx`, `contact-messages/page.tsx`, `dashboard/spp/page.tsx`, `ManageTab.tsx`, `ParentInformasiMobile.tsx`, `finance/general/page.tsx`, `ParentAdministrasiClient.tsx`, `guru/page.tsx`, `academic/spmb/page.tsx`, `dashboard/layout.tsx`, `dashboard/types.ts`, `ParentNotificationProvider.tsx`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Should `TestShadcnInstaller` be split into smaller, more focused modules?**
+  _Cohesion score 0.11578947368421053 - nodes in this community are weakly interconnected._
 - **Should `scripts/core.py` be split into smaller, more focused modules?**
   _Cohesion score 0.05563093622795115 - nodes in this community are weakly interconnected._
