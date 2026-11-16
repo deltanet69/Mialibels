@@ -65,6 +65,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
     let studentData: any = initialStudent;
     let sppData: any[] = initialSpp || [];
     let generalData: any[] = initialGeneral || [];
+    let loadedFromServer = false;
 
     if (targetId) {
       try {
@@ -73,13 +74,27 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
           const result = await res.json();
           if (result.success && result.data) {
             studentData = result.data;
-            sppData = result.data.spp_invoices || sppData;
-            generalData = result.data.general_invoices || generalData;
+            sppData = result.data.spp_invoices || [];
+            generalData = result.data.general_invoices || [];
+            loadedFromServer = true;
           }
         }
       } catch (err) {
-        console.warn('Could not fetch /api/students, using props fallback:', err);
+        console.warn('Could not fetch /api/students:', err);
       }
+    }
+
+    // /api/students khusus admin. Di portal orang tua ambil tagihan LENGKAP dari
+    // API parent — props bisa terpotong (mis. 5 tagihan terakhir) dan meloloskan cek infaq.
+    if (!loadedFromServer) {
+      const [sppRes, generalRes] = await Promise.all([
+        fetch('/api/parent/spp', { cache: 'no-store' }).catch(() => null),
+        fetch('/api/parent/general', { cache: 'no-store' }).catch(() => null),
+      ]);
+      const sppJson = sppRes?.ok ? await sppRes.json() : null;
+      const generalJson = generalRes?.ok ? await generalRes.json() : null;
+      if (sppJson?.success) sppData = sppJson.data || [];
+      if (generalJson?.success) generalData = generalJson.data || [];
     }
 
     if (!studentData && !initialStudent) {
@@ -461,7 +476,9 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
           generalInvoices: initialGeneral,
         })
       : null;
-  const isSppBlocked = !!initialEval && (!initialEval.infaqOk || !initialEval.tunggakanOk);
+  // Hanya kunci dari tagihan belum lunas yang TERLIHAT; data props bisa terpotong,
+  // jadi bulan yang tidak ada baru dinilai di drawCard dengan data lengkap.
+  const isSppBlocked = !!initialEval && (initialEval.hasUnpaidInfaq || !initialEval.tunggakanOk);
 
   const handleUjianClick = async () => {
     // If we only have studentId but no sppInvoices, we let drawCard handle the fetching and alerting.

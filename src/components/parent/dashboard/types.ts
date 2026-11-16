@@ -85,6 +85,7 @@ export interface DashboardData {
   paidSppCount: number;
   lastPaidSppTitle: string | null;
   generalInvoices: any[];
+  allGeneralInvoices?: any[];
   totalGeneralAmount: number;
   totalGeneralPaid: number;
   totalUnpaidGeneral: number;

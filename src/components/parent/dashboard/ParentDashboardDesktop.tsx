@@ -207,7 +207,7 @@ export function ParentDashboardDesktop({
                 fee_waiver_type: student.feeWaiverType
               }}
               sppInvoices={data.allSppInvoices}
-              generalInvoices={data.generalInvoices}
+              generalInvoices={data.allGeneralInvoices || data.generalInvoices}
               disableKartuSiswa={true}
             />
 

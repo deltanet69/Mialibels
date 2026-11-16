@@ -6,6 +6,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 import { getJwtSecretKey } from '@/lib/jwt';
 import { getWIBDateString, getWIBWeekDays, getWIBParts } from '@/lib/dateUtils';
 import { ParentDashboardClient } from '@/components/parent/ParentDashboardClient';
+import { evaluateExamCardRequirements } from '@/lib/examCardRules';
 
 
 
@@ -78,7 +79,7 @@ async function resolveStudent(payload: any) {
   };
 }
 
-async function getDashboardData(studentId: string, feeWaiverType?: string | null, classroomId?: string | null) {
+async function getDashboardData(studentId: string, feeWaiverType?: string | null, classroomId?: string | null, studentClassName?: string | null) {
   const supabase = getAdminSupabase();
 
   const now = new Date();
@@ -233,21 +234,14 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
     (acc, cur: any) => acc + ((cur.total_amount || 0) - (cur.paid_amount || 0)), 0
   );
 
-  // Check exam card requirements (SPP through September is paid, or fee exempt)
-  const isExempt = (w?: string | null) => {
-    if (!w) return false;
-    const val = String(w).toLowerCase().trim();
-    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
-  };
-  const exemptInfaqAndBuku = isExempt(feeWaiverType);
-
-  const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
-  const unpaidSeptemberSpp = allSpp.find(inv => {
-    const isTarget = targetMonths.includes(String(inv.month));
-    const isPaid = inv.status === 'PAID';
-    return isTarget && !isPaid;
+  // Syarat kartu ujian — aturan tunggal src/lib/examCardRules.ts (infaq s/d Desember 2026, dst.)
+  const examEval = evaluateExamCardRequirements({
+    className: studentClassName,
+    feeWaiverType,
+    sppInvoices: allSpp,
+    generalInvoices: allGeneral,
   });
-  const sppSeptemberPaid = exemptInfaqAndBuku || !unpaidSeptemberSpp;
+  const sppSeptemberPaid = examEval.infaqOk;
 
   return {
     attendance: attendanceSummary,
@@ -265,10 +259,11 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
     paidSppCount: paidSpps.length,
     lastPaidSppTitle: lastPaidSpp?.title || null,
     generalInvoices: allGeneral.slice(0, 5),
+    allGeneralInvoices: allGeneral,
     totalGeneralAmount,
     totalGeneralPaid,
     totalUnpaidGeneral,
-    isExamCardReady: sppSeptemberPaid,
+    isExamCardReady: examEval.isEligible,
     examCardRequirements: {
       sppSeptemberPaid,
       ulumFiftyPercent: true,
@@ -311,7 +306,7 @@ export default async function ParentDashboardHome() {
   const classroomId = studentObj?.classroom?.id || studentObj?.class_id || null;
 
   const dashboardData = student.id
-    ? await getDashboardData(student.id, student.feeWaiverType, classroomId)
+    ? await getDashboardData(student.id, student.feeWaiverType, classroomId, student.className)
     : {
         attendance: { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: 0 },
         persentaseHadir: 100,
@@ -328,12 +323,13 @@ export default async function ParentDashboardHome() {
         paidSppCount: 0,
         lastPaidSppTitle: null,
         generalInvoices: [],
+        allGeneralInvoices: [],
         totalGeneralAmount: 0,
         totalGeneralPaid: 0,
         totalUnpaidGeneral: 0,
-        isExamCardReady: true,
+        isExamCardReady: false,
         examCardRequirements: {
-          sppSeptemberPaid: true,
+          sppSeptemberPaid: false,
           ulumFiftyPercent: true,
           lksMinimumPaid: true
         },

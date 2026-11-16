@@ -8,66 +8,17 @@ import { StudentForm } from '@/components/portal/students/StudentForm'
 import { canManageStudents } from '@/lib/rbac'
 import { getDirectImageUrl } from '@/lib/imageUtils'
 import Link from 'next/link'
+import { evaluateExamCardRequirements } from '@/lib/examCardRules'
 
-// Exam eligibility helper
+// Exam eligibility helper — aturan tunggal di src/lib/examCardRules.ts
 function checkExamEligibility(student: any) {
-  const rawClass = student.class || '';
-  const isFullday = !!rawClass.match(/A$/i);
-  const isClass6 = rawClass.startsWith('6');
-
-  // Check if student has fee waiver (Anak Yatim / Anak Guru / Keluarga Guru)
-  const isExempt = (w?: string | null) => {
-    if (!w) return false;
-    const val = String(w).toLowerCase().trim();
-    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
-  };
-  const exemptInfaqAndBuku = isExempt(student.fee_waiver_type || student.feeWaiverType);
-
-  const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
-  const sppInvoices = student.spp_invoices || [];
-  const unpaidSeptemberSpp = sppInvoices.find((inv: any) => {
-    const isTarget = targetMonths.includes(String(inv.month));
-    const isPaid = inv.status === 'PAID';
-    return isTarget && !isPaid;
-  });
-  const sppOk = exemptInfaqAndBuku || !unpaidSeptemberSpp;
-
-  const generalInvoices = student.general_invoices || [];
-  const getPaid = (key: string) => {
-    return generalInvoices
-      .flatMap((inv: any) => inv.items || [])
-      .filter((item: any) => (item.name || '').toLowerCase().includes(key.toLowerCase()))
-      .reduce((sum: number, item: any) => sum + (Number(item.paid_amount) || 0), 0);
-  };
-
-  const paidBuku = getPaid('buku');
-  const paidUlum = getPaid('ulangan');
-  const paidAkhirTahun = getPaid('akhir tahun');
-
-  const minBuku = isFullday ? 700000 : 300000;
-  const minUlum = 110000;
-  const minAkhirTahun = 600000;
-
-  const bukuOk = exemptInfaqAndBuku || paidBuku >= minBuku;
-  const ulumOk = paidUlum >= minUlum;
-  const akhirTahunOk = !isClass6 || paidAkhirTahun >= minAkhirTahun;
-
-  const isEligible = sppOk && bukuOk && ulumOk && akhirTahunOk;
-
-  const issues: string[] = [];
-  if (!sppOk && !exemptInfaqAndBuku) issues.push('Infaq Sept belum lunas');
-  if (!bukuOk && !exemptInfaqAndBuku) issues.push(`Buku kurang Rp ${(minBuku - paidBuku).toLocaleString('id-ID')}`);
-  if (!ulumOk) issues.push(`ULUM kurang Rp ${(minUlum - paidUlum).toLocaleString('id-ID')}`);
-  if (!akhirTahunOk) issues.push(`Akhir Tahun kurang Rp ${(minAkhirTahun - paidAkhirTahun).toLocaleString('id-ID')}`);
-
-  return {
-    isEligible,
-    issues,
-    sppOk,
-    bukuOk,
-    ulumOk,
-    akhirTahunOk
-  };
+  const ev = evaluateExamCardRequirements({
+    className: student.class,
+    feeWaiverType: student.fee_waiver_type || student.feeWaiverType,
+    sppInvoices: student.spp_invoices,
+    generalInvoices: student.general_invoices,
+  })
+  return { ...ev, sppOk: ev.infaqOk }
 }
 
 // Skeleton row component

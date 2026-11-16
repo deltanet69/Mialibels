@@ -8,19 +8,21 @@
 // - parent/dashboard/page (isExamCardReady)
 // - (admin)/students/page (status kelayakan di daftar siswa)
 //
-// Aturan surat:
-// 1a. Keuangan PPDB/SPMB lunas
-// 1b. Tunggakan tahun sebelumnya lunas
-// 2.  Infaq terbayar s/d bulan Desember 2026
-// 3.  Uang Buku/LKS lunas (Reguler) / Uang Buku saja lunas (Fullday)
-// 4.  Uang Ulangan Umum minimal Rp110.000
-// 5.  Khusus Kelas 6: Uang Kegiatan Akhir Tahun minimal Rp1.400.000
+// Syarat (ditetapkan sekolah, Nov 2026):
+// 0a. Keuangan PPDB/SPMB lunas (item ppdb/spmb/pendaftaran)
+// 0b. Tunggakan tahun sebelumnya lunas (item "Tunggakan ..." + SPP sebelum Juli 2026)
+// 1. Uang Buku/LKS lunas (Fullday: Uang Buku)
+// 2. Infaq terbayar s/d bulan Desember 2026
+// 3. Uang Ulangan Umum (ULUM) minimal Rp110.000
+// 4. Khusus Kelas 6: Uang Kegiatan Akhir Tahun minimal Rp1.400.000
+// Anak yatim / keluarga guru / yayasan: bebas Infaq & Buku (kebijakan yang sudah berjalan).
 // Kartu dibuka mulai 16 November 2026; ASAS 23 Nov – 4 Des 2026.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const EXAM_CARD_RELEASE_DATE = new Date('2026-11-16T00:00:00+07:00');
 export const MIN_ULANGAN_UMUM = 110000;
 export const MIN_KEGIATAN_AKHIR_TAHUN = 1400000;
+const INFAQ_MONTHS = [7, 8, 9, 10, 11, 12];
 
 const MONTH_NAMES: Record<string, number> = {
   januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6,
@@ -55,6 +57,7 @@ export interface ExamCardEvaluation {
   isClass6: boolean;
   exemptInfaqAndBuku: boolean;
   ppdbOk: boolean;
+  hasUnpaidInfaq: boolean;
   tunggakanOk: boolean;
   infaqOk: boolean;
   bukuOk: boolean;
@@ -98,46 +101,57 @@ export function evaluateExamCardRequirements(input: {
   const sumDue = (list: typeof items) =>
     list.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
-  // 1a. PPDB/SPMB — item tagihan umum bernama ppdb/spmb/pendaftaran wajib lunas
-  // bila ada. Bila tidak ada itemnya, kewajiban dianggap tidak tercatat di
-  // keuangan siswa (dibayar saat pendaftaran via jalur SPMB) → tidak menahan.
+  // Item "Tunggakan ..." adalah utang tahun lalu (LKS, ULUM, Infaq, PPDB/SPMB, dll.):
+  // masuk syarat tunggakan, TIDAK dihitung ke syarat tahun berjalan.
+  const isTunggakan = (item: { name?: string }) => itemName(item).includes('tunggakan');
+  const currentItems = items.filter((item) => !isTunggakan(item));
+
+  // Syarat 0a. Keuangan PPDB/SPMB lunas — item bernama ppdb/spmb/pendaftaran
+  // (termasuk "Tunggakan PPDB/SPMB") terbayar penuh. Tanpa item = tidak tercatat
+  // di keuangan siswa (dibayar saat pendaftaran jalur SPMB) → tidak menahan.
   const ppdbItems = items.filter((item) => {
     const n = itemName(item);
     return n.includes('ppdb') || n.includes('spmb') || n.includes('pendaftaran');
   });
   const ppdbOk = ppdbItems.length === 0 || sumPaid(ppdbItems) >= sumDue(ppdbItems);
 
-  // 1b. Tunggakan tahun sebelumnya — tidak ada SPP belum PAID untuk periode
-  // sebelum awal tahun ajaran berjalan (sebelum Juli 2026).
-  const tunggakanOk = !spp.find((inv) => {
+  // Syarat 0b. Tunggakan tahun sebelumnya lunas:
+  // - setiap item tagihan umum bernama "tunggakan" terbayar penuh, dan
+  // - tidak ada SPP sebelum Juli 2026 (TA lalu) yang belum PAID.
+  const tunggakanItems = items.filter(isTunggakan);
+  const tunggakanItemsOk = tunggakanItems.every(
+    (item) => (Number(item.paid_amount) || 0) >= (Number(item.amount) || 0)
+  );
+  const tunggakanSppOk = !spp.find((inv) => {
     const m = monthNumber(inv.month);
     const y = inv.year === undefined || inv.year === null ? null : Number(inv.year);
     if (m === null || y === null || Number.isNaN(y)) return false;
     const beforeCurrentYear = y < 2026 || (y === 2026 && m < 7);
     return beforeCurrentYear && inv.status !== 'PAID';
   });
+  const tunggakanOk = tunggakanItemsOk && tunggakanSppOk;
 
-  // 2. Infaq s/d Desember 2026 — tidak ada SPP belum PAID untuk bulan
-  // Juli–Desember 2026. (Tagihan yang belum diterbitkan TU tidak terlihat
-  // di data; sama seperti perilaku validasi lama, yang diperiksa adalah
-  // tagihan yang ada.)
+  // Syarat 2. Infaq s/d Desember 2026 — SETIAP bulan Juli–Desember 2026 wajib punya
+  // tagihan berstatus PAID dan tidak boleh ada yang belum PAID. Bulan tanpa
+  // tagihan (belum diterbitkan / data terpotong) dianggap BELUM lunas.
+  const infaqRange = spp.filter((inv) => {
+    const m = monthNumber(inv.month);
+    const y = inv.year === undefined || inv.year === null ? null : Number(inv.year);
+    if (m === null || m < 7 || m > 12) return false;
+    return y === null || Number.isNaN(y) || y === 2026;
+  });
+  const hasUnpaidInfaq = !exemptInfaqAndBuku && infaqRange.some((inv) => inv.status !== 'PAID');
   const infaqOk =
     exemptInfaqAndBuku ||
-    !spp.find((inv) => {
-      const m = monthNumber(inv.month);
-      const y = inv.year === undefined || inv.year === null ? null : Number(inv.year);
-      if (m === null || m < 7 || m > 12) return false;
-      if (y !== null && !Number.isNaN(y) && y !== 2026) return false;
-      return inv.status !== 'PAID';
-    });
+    (!hasUnpaidInfaq &&
+      INFAQ_MONTHS.every((m) => infaqRange.some((inv) => monthNumber(inv.month) === m)));
 
-  // 3. Buku/LKS lunas — seluruh item terkait harus terbayar penuh
-  // (paid >= amount) dan minimal ada satu item tagihannya.
-  // Reguler: item "buku" dan/atau "lks". Fullday: item "buku" saja,
-  // item LKS tidak diperiksa sama sekali.
+  // Syarat 1. Buku/LKS lunas — seluruh item tahun berjalan terbayar penuh
+  // (paid >= amount) dan minimal ada satu item tagihannya ("Buku Paket/LKS").
+  // Reguler: item "buku" dan/atau "lks". Fullday: item "buku" saja.
   const bukuItems = isFullday
-    ? items.filter((item) => itemName(item).includes('buku'))
-    : items.filter((item) => {
+    ? currentItems.filter((item) => itemName(item).includes('buku'))
+    : currentItems.filter((item) => {
         const n = itemName(item);
         return n.includes('buku') || n.includes('lks');
       });
@@ -145,17 +159,22 @@ export function evaluateExamCardRequirements(input: {
   const paidBuku = sumPaid(bukuItems);
   const bukuOk = exemptInfaqAndBuku || (bukuItems.length > 0 && paidBuku >= dueBuku);
 
-  // 4. Ulangan Umum — total terbayar minimal Rp110.000 (pas = lulus).
-  const paidUlum = sumPaid(items.filter((item) => itemName(item).includes('ulangan')));
+  // Syarat 3. Ulangan Umum (ULUM) tahun berjalan — terbayar minimal Rp110.000 (pas = lulus).
+  const paidUlum = sumPaid(
+    currentItems.filter((item) => {
+      const n = itemName(item);
+      return n.includes('ulangan') || n.includes('ulum');
+    })
+  );
   const ulumOk = paidUlum >= MIN_ULANGAN_UMUM;
 
-  // 5. Kegiatan Akhir Tahun — khusus Kelas 6, minimal Rp1.400.000 (pas = lulus).
+  // Syarat 4. Kegiatan Akhir Tahun — khusus Kelas 6, minimal Rp1.400.000 (pas = lulus).
   const paidAkhirTahun = sumPaid(
-    items.filter((item) => itemName(item).includes('akhir tahun'))
+    currentItems.filter((item) => itemName(item).includes('akhir tahun'))
   );
   const akhirTahunOk = !isClass6 || paidAkhirTahun >= MIN_KEGIATAN_AKHIR_TAHUN;
 
-  const isEligible = ppdbOk && tunggakanOk && infaqOk && bukuOk && ulumOk && akhirTahunOk;
+  const isEligible = ppdbOk && tunggakanOk && bukuOk && infaqOk && ulumOk && akhirTahunOk;
 
   const issues: string[] = [];
   if (!ppdbOk) issues.push('Keuangan PPDB/SPMB belum lunas.');
@@ -182,6 +201,7 @@ export function evaluateExamCardRequirements(input: {
     isClass6,
     exemptInfaqAndBuku,
     ppdbOk,
+    hasUnpaidInfaq,
     tunggakanOk,
     infaqOk,
     bukuOk,

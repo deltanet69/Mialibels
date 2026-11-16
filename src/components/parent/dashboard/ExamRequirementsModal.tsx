@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Award, XCircle, FileCheck2, Sparkles } from 'lucide-react';
 import { StudentInfo, DashboardData } from './types';
+import { evaluateExamCardRequirements, MIN_ULANGAN_UMUM, MIN_KEGIATAN_AKHIR_TAHUN } from '@/lib/examCardRules';
 
 interface ExamRequirementsModalProps {
   isOpen: boolean;
@@ -20,44 +21,18 @@ export function ExamRequirementsModal({
 }: ExamRequirementsModalProps) {
   if (!isOpen) return null;
 
-  const isFullday = (student.className || '').match(/A$/i);
-  const isClass6 = (student.className || '').startsWith('6');
-
-  const isExempt = (w?: string | null) => {
-    if (!w) return false;
-    const val = String(w).toLowerCase().trim();
-    return val === 'anak_yatim' || val === 'keluarga guru' || val.includes('yatim') || val.includes('guru') || val.includes('yayasan');
-  };
-  const exemptInfaqAndBuku = isExempt(student.feeWaiverType);
-
-  const targetMonths = ['Juli', 'Agustus', 'September', '7', '8', '9', 7, 8, 9];
-  const unpaidSeptemberSpp = (data.allSppInvoices || []).find(inv => {
-    const isTarget = targetMonths.includes(String(inv.month));
-    const isPaid = inv.status === 'PAID';
-    return isTarget && !isPaid;
+  // Aturan tunggal — sama dengan gerbang unduh di CardDownloader.
+  const ev = evaluateExamCardRequirements({
+    className: student.className,
+    feeWaiverType: student.feeWaiverType,
+    sppInvoices: data.allSppInvoices,
+    generalInvoices: data.allGeneralInvoices || data.generalInvoices,
   });
-  const sppOk = exemptInfaqAndBuku || !unpaidSeptemberSpp;
-
-  const getGeneralPaid = (key: string) => {
-    return (data.generalInvoices || [])
-      .flatMap((inv: any) => inv.items || [])
-      .filter((item: any) => (item.name || '').toLowerCase().includes(key.toLowerCase()))
-      .reduce((sum: number, item: any) => sum + (Number(item.paid_amount) || 0), 0);
-  };
-
-  const paidBuku = getGeneralPaid('buku');
-  const paidUlum = getGeneralPaid('ulangan');
-  const paidAkhirTahun = getGeneralPaid('akhir tahun');
-
-  const minBuku = isFullday ? 700000 : 300000;
-  const minUlum = 110000;
-  const minAkhirTahun = 600000;
-
-  const bukuOk = exemptInfaqAndBuku || paidBuku >= minBuku;
-  const ulumOk = paidUlum >= minUlum;
-  const akhirTahunOk = !isClass6 || paidAkhirTahun >= minAkhirTahun;
-
-  const isEligible = sppOk && bukuOk && ulumOk && akhirTahunOk;
+  const { isFullday, isClass6, exemptInfaqAndBuku, ppdbOk, tunggakanOk, bukuOk, ulumOk, akhirTahunOk, isEligible, paidBuku, paidUlum, paidAkhirTahun } = ev;
+  const sppOk = ev.infaqOk;
+  const minBuku = ev.dueBuku;
+  const minUlum = MIN_ULANGAN_UMUM;
+  const minAkhirTahun = MIN_KEGIATAN_AKHIR_TAHUN;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
@@ -127,34 +102,47 @@ export function ExamRequirementsModal({
             </div>
 
             <div className="space-y-2.5">
-              {/* 1. PPDB / SPMB */}
+              {/* 1. PPDB/SPMB & tunggakan tahun sebelumnya */}
               <div className="p-3 rounded-xl border border-slate-200/80 bg-white flex items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] font-bold bg-emerald-500">
-                    ✓
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] font-bold ${ppdbOk && tunggakanOk ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                    {ppdbOk && tunggakanOk ? '✓' : '✗'}
                   </span>
                   <div>
                     <p className="font-bold text-slate-800">1. Keuangan PPDB/SPMB & Tunggakan Lalu</p>
-                    <p className="text-[11px] text-emerald-600 font-medium">Telah Lunas / Bebas Tunggakan</p>
+                    <p className={`text-[11px] font-medium ${ppdbOk && tunggakanOk ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      {ppdbOk && tunggakanOk
+                        ? 'Telah Lunas / Bebas Tunggakan'
+                        : [!ppdbOk && 'Keuangan PPDB/SPMB belum lunas', !tunggakanOk && 'Masih ada tunggakan tahun sebelumnya'].filter(Boolean).join(' · ')}
+                    </p>
                   </div>
                 </div>
+                {!(ppdbOk && tunggakanOk) && (
+                  <Link
+                    href="/parent/dashboard/general"
+                    onClick={onClose}
+                    className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px] rounded-lg transition shrink-0"
+                  >
+                    Rincian &rarr;
+                  </Link>
+                )}
               </div>
 
-              {/* 2. SPP September */}
+              {/* 2. Infaq s/d Desember */}
               <div className="p-3 rounded-xl border border-slate-200/80 bg-white flex items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2.5">
                   <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] font-bold ${sppOk ? 'bg-emerald-500' : 'bg-rose-500'}`}>
                     {sppOk ? '✓' : '✗'}
                   </span>
                   <div>
-                    <p className="font-bold text-slate-800">2. Infaq / SPP s/d September 2026</p>
+                    <p className="font-bold text-slate-800">2. Infaq / SPP s/d Desember 2026</p>
                     <p className="text-[11px] text-slate-500">
                       {exemptInfaqAndBuku ? (
                         <span className="text-emerald-600 font-semibold">Telah Lunas / Kompensasi ({student.feeWaiverType})</span>
                       ) : sppOk ? (
-                        <span className="text-emerald-600 font-semibold">Telah Lunas s/d September 2026</span>
+                        <span className="text-emerald-600 font-semibold">Telah Lunas s/d Desember 2026</span>
                       ) : (
-                        'Ada tagihan Infaq belum lunas'
+                        'Infaq Juli–Desember 2026 belum lunas semua'
                       )}
                     </p>
                   </div>
@@ -183,7 +171,7 @@ export function ExamRequirementsModal({
                         <span className="text-emerald-600 font-semibold">Bebas Biaya / Kompensasi ({student.feeWaiverType})</span>
                       ) : (
                         <>
-                          Min: <strong>Rp {minBuku.toLocaleString('id-ID')}</strong> · Terbayar: <strong className={bukuOk ? 'text-emerald-600' : 'text-slate-700'}>Rp {paidBuku.toLocaleString('id-ID')}</strong>
+                          Tagihan: <strong>Rp {minBuku.toLocaleString('id-ID')}</strong> · Terbayar: <strong className={bukuOk ? 'text-emerald-600' : 'text-slate-700'}>Rp {paidBuku.toLocaleString('id-ID')}</strong>
                           {!bukuOk && <span className="text-rose-600 font-bold"> (Kurang Rp {(minBuku - paidBuku).toLocaleString('id-ID')})</span>}
                         </>
                       )}
