@@ -249,6 +249,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
         // src/lib/examCardRules.ts. Template kartu = desain ASAS kiriman
         // sekolah (Nov 2026), lihat blok canvas 'ujian' di bawah.
         const evaluation = evaluateExamCardRequirements({
+          nisn: studentData.nisn || initialStudent?.nisn,
           className: studentData.class || studentData.className || '',
           feeWaiverType:
             studentData.fee_waiver_type ||
@@ -272,7 +273,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
       
-      const templateSrc = type === 'siswa' ? '/kartu/kartutemplate.png' : '/kartuujian.png';
+      const templateSrc = type === 'siswa' ? '/kartu/kartutemplate.png' : '/kartuujian.png?v=asas2026';
       
       await new Promise((resolve, reject) => {
         img.onload = resolve;
@@ -470,6 +471,7 @@ export const CardDownloader: React.FC<CardDownloaderProps> = ({
   const initialEval =
     initialSpp && initialSpp.length > 0
       ? evaluateExamCardRequirements({
+          nisn: initialStudent?.nisn,
           className: initialStudent?.class || '',
           feeWaiverType: initialWaiver,
           sppInvoices: initialSpp,

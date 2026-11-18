@@ -52,6 +52,15 @@ export function isFeeExempt(waiverType?: string | null): boolean {
   );
 }
 
+// Simulasi DEV untuk SATU siswa uji (Mikhayla 4B). Tanpa mengubah data keuangan.
+// Hanya aktif di luar production DAN NISN cocok; set NEXT_PUBLIC_DEV_EXAM_CARD=eligible|noneligible di .env.local.
+const DEV_TEST_NISN = "8686821381";
+function devOverride(nisn?: string | null): "eligible" | "noneligible" | null {
+  if (process.env.NODE_ENV === "production" || String(nisn || "").trim() !== DEV_TEST_NISN) return null;
+  const v = process.env.NEXT_PUBLIC_DEV_EXAM_CARD;
+  return v === "eligible" || v === "noneligible" ? v : null;
+}
+
 export interface ExamCardEvaluation {
   isFullday: boolean;
   isClass6: boolean;
@@ -82,6 +91,7 @@ interface GeneralLike {
 }
 
 export function evaluateExamCardRequirements(input: {
+  nisn?: string | null;
   className?: string | null;
   feeWaiverType?: string | null;
   sppInvoices?: SppLike[] | null;
@@ -195,6 +205,17 @@ export function evaluateExamCardRequirements(input: {
     issues.push(
       `Uang Kegiatan Akhir Tahun minimal Rp.${MIN_KEGIATAN_AKHIR_TAHUN.toLocaleString('id-ID')} belum terpenuhi (Terbayar: Rp.${paidAkhirTahun.toLocaleString('id-ID')}).`
     );
+
+  const dev = devOverride(input.nisn);
+  if (dev) {
+    const ok = dev === "eligible";
+    return {
+      isFullday, isClass6, exemptInfaqAndBuku: false, hasUnpaidInfaq: !ok,
+      ppdbOk: ok, tunggakanOk: ok, infaqOk: ok, bukuOk: ok, ulumOk: ok, akhirTahunOk: ok,
+      isEligible: ok, dueBuku, paidBuku, paidUlum, paidAkhirTahun,
+      issues: ok ? [] : ["[DEV] Simulasi tidak eligible (NEXT_PUBLIC_DEV_EXAM_CARD=noneligible)."],
+    };
+  }
 
   return {
     isFullday,

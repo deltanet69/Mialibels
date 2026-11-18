@@ -79,7 +79,7 @@ async function resolveStudent(payload: any) {
   };
 }
 
-async function getDashboardData(studentId: string, feeWaiverType?: string | null, classroomId?: string | null, studentClassName?: string | null) {
+async function getDashboardData(studentId: string, feeWaiverType?: string | null, classroomId?: string | null, studentClassName?: string | null, nisn?: string | null) {
   const supabase = getAdminSupabase();
 
   const now = new Date();
@@ -236,6 +236,7 @@ async function getDashboardData(studentId: string, feeWaiverType?: string | null
 
   // Syarat kartu ujian — aturan tunggal src/lib/examCardRules.ts (infaq s/d Desember 2026, dst.)
   const examEval = evaluateExamCardRequirements({
+    nisn,
     className: studentClassName,
     feeWaiverType,
     sppInvoices: allSpp,
@@ -306,7 +307,7 @@ export default async function ParentDashboardHome() {
   const classroomId = studentObj?.classroom?.id || studentObj?.class_id || null;
 
   const dashboardData = student.id
-    ? await getDashboardData(student.id, student.feeWaiverType, classroomId, student.className)
+    ? await getDashboardData(student.id, student.feeWaiverType, classroomId, student.className, student.nisn)
     : {
         attendance: { hadir: 0, sakit: 0, izin: 0, alpha: 0, total: 0 },
         persentaseHadir: 100,

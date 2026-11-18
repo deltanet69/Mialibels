@@ -13,6 +13,7 @@ import { evaluateExamCardRequirements } from '@/lib/examCardRules'
 // Exam eligibility helper — aturan tunggal di src/lib/examCardRules.ts
 function checkExamEligibility(student: any) {
   const ev = evaluateExamCardRequirements({
+    nisn: student.nisn,
     className: student.class,
     feeWaiverType: student.fee_waiver_type || student.feeWaiverType,
     sppInvoices: student.spp_invoices,

@@ -23,6 +23,7 @@ export function ExamRequirementsModal({
 
   // Aturan tunggal — sama dengan gerbang unduh di CardDownloader.
   const ev = evaluateExamCardRequirements({
+    nisn: student.nisn,
     className: student.className,
     feeWaiverType: student.feeWaiverType,
     sppInvoices: data.allSppInvoices,
